@@ -13,9 +13,11 @@ parted -s /dev/vda -- mklabel gpt \
 mkfs.fat -F 32 -n BOOT /dev/vda1
 mkfs.ext4 -F -L nixos /dev/vda2
 
-mount /dev/disk/by-label/nixos /mnt
+# Mount by device node — the by-label symlinks may not exist yet right
+# after mkfs (udev race), which would abort the script under set -e.
+mount /dev/vda2 /mnt
 mkdir -p /mnt/boot
-mount /dev/disk/by-label/BOOT /mnt/boot
+mount /dev/vda1 /mnt/boot
 
 nixos-generate-config --root /mnt
 # Keep the generated hardware-configuration.nix; replace the system config

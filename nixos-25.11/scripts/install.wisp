@@ -32,8 +32,17 @@ fn provision(lab: Lab) -> Result[unit, string] {
     vm.type_text("sudo sh -c 'mkdir -p /m && mount -o ro /dev/disk/by-label/NIXSETUP /m && sh /m/install.sh'\n")?
     lab.log("install.sh started (partition + nixos-install, takes a while)...")
 
-    vm.wait_shutdown(5400)?
-    lab.log("installer powered the VM off; ready to seal")
+    match vm.wait_shutdown(5400) {
+        Ok(_)  => lab.log("installer powered the VM off; ready to seal"),
+        Err(e) => {
+            // Snapshot the console so the failure is diagnosable from logs.
+            match vm.ocr() {
+                Ok(text) => lab.log("install never finished; screen reads:\n" + text),
+                Err(o)   => lab.log("install never finished and OCR failed: " + o),
+            }
+            return Err(e)
+        }
+    }
     Ok(())
 }
 
