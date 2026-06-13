@@ -32,12 +32,27 @@ template: `cd` into it and run `vmlab template build`.
 
 ## Usage
 
+With [just](https://github.com/casey/just):
+
+```sh
+just                    # list recipes
+just debian-build       # build one template (skips if already in the store)
+just build              # build them all
+```
+
+Or by hand:
+
 ```sh
 cd debian-13
 vmlab validate          # sanity-check the definition
 vmlab template build    # download, install, seal into the local store
 vmlab template list     # confirm it landed
 ```
+
+Builds are idempotent via `scripts/template-build.py`: a template already
+in the store is skipped (`vmlab template rm <ref>` to force a rebuild),
+and templates with a `fetch-deps.sh` get their payloads staged
+automatically.
 
 Reference a built template from a lab:
 
