@@ -1,0 +1,40 @@
+// Windows 11 Enterprise (Evaluation) on aarch64 — EXPERIMENTAL (PRD §6.1).
+//
+// vmlab auto-selects the `virt` machine + aarch64 UEFI firmware for
+// arch = "aarch64" (the windows-11 profile's q35/ovmf are x86 hints that
+// get overridden), and emits tpm-tis-device for the TPM. So the QEMU side
+// is sound; the open risks are the ARM64 guest-tools/agent packaging and
+// raw speed (see README.md). Treat this as best-effort.
+//
+// >>> YOU MUST FILL IN url + sha256 + version BELOW <<<
+// Microsoft does not publish a stable direct link or hash for the ARM64
+// Enterprise eval ISO — the eval-center link is generated per-session and
+// updated builds have at times been x64-only. Grab the current "Arm64 ISO"
+// from https://www.microsoft.com/en-us/evalcenter/evaluate-windows-11-enterprise
+// (or the Media Creation Tool, /MediaArch arm64), then `sha256sum` it and
+// set the three fields below. The all-zero sha256 is a deliberate tripwire:
+// the build refuses to proceed until you replace it.
+//
+//   ./fetch-deps.sh        # one-time: ARM64 virtio drivers + MSIs into unattend/
+//   vmlab template build   # SLOW under TCG on x86 hosts — hours, not minutes
+
+import <vmlab.wcl>
+
+template "windows-11-arm64" {
+  arch    = "aarch64"
+  version = "26100.1742"
+  profile = "windows-11"
+  cpus    = 4
+  memory  = "8G"
+  disk    = "60G"
+
+  source "iso" {
+    url    = "https://www.microsoft.com/en-us/evalcenter/evaluate-windows-11-enterprise"
+    sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+  }
+
+  media { kind = "iso" from = "./unattend/" label = "UNATTEND" }
+  nic { nat = true }
+
+  provision "scripts/install.wisp" { }
+}
