@@ -1,0 +1,33 @@
+// Debian 13 (trixie) for riscv64, built from the official `generic` cloud
+// qcow2. Runs under TCG on x86 hosts (no KVM) — slow but functional.
+// cloud-init picks up the CIDATA seed (NoCloud), creates vmlab/vmlab,
+// installs the QEMU guest agent and the provision confirms the agent
+// answers before the image is sealed. Build with:
+//
+//   vmlab template build        (run from this directory)
+//
+// riscv64 cloud images currently ship only under trixie/latest (no dated
+// build carries them yet), so the URL tracks `latest`; sha256 computed from
+// the file pinned 2026-06-17. Re-pin when latest rolls (see README).
+
+import <vmlab.wcl>
+
+template "debian-13" {
+  arch     = "riscv64"
+  version  = "13.20260617"
+  profile  = "linux-modern"
+  firmware = "ovmf"
+  cpus     = 2
+  memory   = "2G"
+  disk     = "20G"
+
+  source "qcow2" {
+    url    = "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-generic-riscv64.qcow2"
+    sha256 = "706370f37baae93bcd29e18a3e6135a2979696a70b5b37cc422613a31b1a8e2a"
+  }
+
+  media { kind = "iso" from = "./cloudinit/" label = "CIDATA" }
+  nic { nat = true }
+
+  provision "scripts/install.wisp" { }
+}

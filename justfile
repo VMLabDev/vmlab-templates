@@ -74,3 +74,19 @@ ubuntu-arm64-build: (template-build 'ubuntu-arm64' 'aarch64/ubuntu-24.04')
 # Build every arm64 template into the local store (slow under TCG)
 [group('build-arm64')]
 build-arm64: alpine-arm64-build debian-arm64-build fedora-arm64-build ubuntu-arm64-build
+
+# Build the Debian 13 riscv64 template (runs under TCG on x86 hosts)
+[group('build-riscv64')]
+debian-riscv64-build: (template-build 'debian-riscv64' 'riscv64/debian-13')
+
+# Build the Fedora 42 riscv64 template (runs under TCG on x86 hosts)
+[group('build-riscv64')]
+fedora-riscv64-build: (template-build 'fedora-riscv64' 'riscv64/fedora-42')
+
+# Build the Ubuntu Server 24.04 riscv64 template (runs under TCG on x86 hosts)
+[group('build-riscv64')]
+ubuntu-riscv64-build: (template-build 'ubuntu-riscv64' 'riscv64/ubuntu-24.04')
+
+# Build every riscv64 template into the local store (slow under TCG)
+[group('build-riscv64')]
+build-riscv64: debian-riscv64-build fedora-riscv64-build ubuntu-riscv64-build

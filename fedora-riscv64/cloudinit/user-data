@@ -1,0 +1,34 @@
+#cloud-config
+# NoCloud seed for the fedora-42 (riscv64) template build.
+# Credentials baked into the template: vmlab / vmlab.
+hostname: fedora
+users:
+  - name: vmlab
+    shell: /bin/bash
+    groups: [wheel]
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: false
+    passwd: "$6$msm7717SQBFhDWd8$Or75iQS6wZyqEqcm3QhWTz8gktMIHyvDmqWhs8rATckOUtgRZyTfuQ5C2lPMKnN9PQGF5FxJwYDaU6wGafA/z0"
+ssh_pwauth: true
+packages:
+  - qemu-guest-agent
+
+# Fedora/EL ship the guest agent with guest-exec/guest-file-* filtered
+# out; vmlab needs them for exec/cp. Drop the filter with a systemd
+# override — robust against whichever config mechanism the package uses.
+write_files:
+  - path: /etc/systemd/system/qemu-guest-agent.service.d/vmlab.conf
+    content: |
+      [Service]
+      ExecStart=
+      ExecStart=/usr/bin/qemu-ga --method=virtio-serial --path=/dev/virtio-ports/org.qemu.guest_agent.0
+
+runcmd:
+  # Lab images run SELinux permissive: enforcing denies the guest agent
+  # exec'ing most binaries, which breaks vmlab exec/provisioning.
+  - [sh, -c, "setenforce 0 || true"]
+  - sed -i 's/^SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
+  # No `systemctl enable`: the unit has no [Install] section (it is
+  # statically activated by udev when the virtio port appears).
+  - systemctl daemon-reload
+  - systemctl restart qemu-guest-agent

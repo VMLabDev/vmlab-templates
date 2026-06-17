@@ -1,0 +1,31 @@
+// Fedora 42 for riscv64, built from the official Cloud Base Generic qcow2
+// (RISC-V is a Fedora alternative-architecture port, currently at 42 —
+// behind the primary aarch64/x86_64 which are at 44). Runs under TCG on x86
+// hosts (no KVM) — slow but functional. cloud-init picks up the CIDATA seed
+// (NoCloud), creates vmlab/vmlab and installs the QEMU guest agent. Build:
+//
+//   vmlab template build        (run from this directory)
+//
+// sha256 from the official *.qcow2.sha256 alongside the image.
+
+import <vmlab.wcl>
+
+template "fedora-42" {
+  arch     = "riscv64"
+  version  = "42.20250911"
+  profile  = "linux-modern"
+  firmware = "ovmf"
+  cpus     = 2
+  memory   = "2G"
+  disk     = "20G"
+
+  source "qcow2" {
+    url    = "https://dl.fedoraproject.org/pub/alt/risc-v/release/42/Cloud/riscv64/images/Fedora-Cloud-Base-Generic-42.20250911-2251ba41cdd3.riscv64.qcow2"
+    sha256 = "60f39aa84f78f7d83b95e86c9b0ae78f99f7d1a9c67b0e94c352dd9942713f44"
+  }
+
+  media { kind = "iso" from = "./cloudinit/" label = "CIDATA" }
+  nic { nat = true }
+
+  provision "scripts/install.wisp" { }
+}

@@ -1,0 +1,32 @@
+// Ubuntu Server 24.04 LTS (noble) for riscv64. Built from the official
+// cloud image qcow2 + cloud-init (NoCloud CIDATA seed), consistent with the
+// arm64 cloud-image templates. Runs under TCG on x86 hosts (no KVM) — slow
+// but functional. cloud-init creates vmlab/vmlab and installs the QEMU guest
+// agent. Boots UEFI (EDK2 RiscVVirt) on the QEMU `virt` machine. Build with:
+//
+//   vmlab template build        (run from this directory)
+//
+// Image pinned to cloud build serial 20260518; sha256 from the official
+// cloud-images.ubuntu.com SHA256SUMS.
+
+import <vmlab.wcl>
+
+template "ubuntu-24.04" {
+  arch     = "riscv64"
+  version  = "24.04.20260518"
+  profile  = "linux-modern"
+  firmware = "ovmf"
+  cpus     = 2
+  memory   = "2G"
+  disk     = "20G"
+
+  source "qcow2" {
+    url    = "https://cloud-images.ubuntu.com/noble/20260518/noble-server-cloudimg-riscv64.img"
+    sha256 = "5884193cef4e8d55661c6a15105404fa77b124c500d8dfb18051352e75e3bb3e"
+  }
+
+  media { kind = "iso" from = "./cloudinit/" label = "CIDATA" }
+  nic { nat = true }
+
+  provision "scripts/install.wisp" { }
+}
