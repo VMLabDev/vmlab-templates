@@ -1,0 +1,31 @@
+// Alpine Linux 3.23 for arm64/aarch64, built from the official NoCloud
+// cloud image (UEFI, cloud-init variant). Runs under TCG on x86 hosts (no
+// KVM) — slow but functional. cloud-init picks up the CIDATA seed, creates
+// vmlab/vmlab and installs the QEMU guest agent. Build with:
+//
+//   vmlab template build        (run from this directory)
+//
+// Image sha512-verified against dl-cdn.alpinelinux.org, sha256 computed
+// from the verified file.
+
+import <vmlab.wcl>
+
+template "alpine-3.23" {
+  arch     = "aarch64"
+  version  = "3.23.4"
+  profile  = "linux-modern"
+  firmware = "ovmf"
+  cpus     = 1
+  memory   = "1G"
+  disk     = "10G"
+
+  source "qcow2" {
+    url    = "https://dl-cdn.alpinelinux.org/alpine/v3.23/releases/cloud/nocloud_alpine-3.23.4-aarch64-uefi-cloudinit-r0.qcow2"
+    sha256 = "eeda75c83fcade4c9f0c461c923b965df0fb1b294e5c66d4ef09ed0dc2ad360c"
+  }
+
+  media { kind = "iso" from = "./cloudinit/" label = "CIDATA" }
+  nic { nat = true }
+
+  provision "scripts/install.wisp" { }
+}

@@ -1,0 +1,30 @@
+// Fedora 44 for arm64/aarch64, built from the official Cloud Base Generic
+// qcow2. Runs under TCG on x86 hosts (no KVM) — slow but functional.
+// cloud-init picks up the CIDATA seed (NoCloud), creates vmlab/vmlab and
+// installs the QEMU guest agent. Build with:
+//
+//   vmlab template build        (run from this directory)
+//
+// sha256 from the official Fedora-Cloud-44-1.7-aarch64-CHECKSUM file.
+
+import <vmlab.wcl>
+
+template "fedora-44" {
+  arch     = "aarch64"
+  version  = "44.1.7"
+  profile  = "linux-modern"
+  firmware = "ovmf"
+  cpus     = 2
+  memory   = "2G"
+  disk     = "20G"
+
+  source "qcow2" {
+    url    = "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/aarch64/images/Fedora-Cloud-Base-Generic-44-1.7.aarch64.qcow2"
+    sha256 = "55c60a3b80d3616a08705afd0459e75fe9f03c54aba7a46e4002a41a72fa0d5b"
+  }
+
+  media { kind = "iso" from = "./cloudinit/" label = "CIDATA" }
+  nic { nat = true }
+
+  provision "scripts/install.wisp" { }
+}

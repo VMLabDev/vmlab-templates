@@ -51,6 +51,26 @@ ubuntu-build: (template-build 'ubuntu-24.04' 'x86_64/ubuntu-24.04')
 [group('build')]
 windows-build: (template-build 'windows-server-2025' 'x86_64/windows-server-2025')
 
-# Build every template into the local store
+# Build every x86_64 template into the local store
 [group('build')]
 build: alpine-build debian-build fedora-build kali-build nixos-build parrot-build rocky-build ubuntu-build windows-build
+
+# Build the Alpine Linux 3.23 arm64 template (runs under TCG on x86 hosts)
+[group('build-arm64')]
+alpine-arm64-build: (template-build 'alpine-3.23-arm64' 'aarch64/alpine-3.23')
+
+# Build the Debian 13 arm64 template (runs under TCG on x86 hosts)
+[group('build-arm64')]
+debian-arm64-build: (template-build 'debian-13-arm64' 'aarch64/debian-13')
+
+# Build the Fedora 44 arm64 template (runs under TCG on x86 hosts)
+[group('build-arm64')]
+fedora-arm64-build: (template-build 'fedora-44-arm64' 'aarch64/fedora-44')
+
+# Build the Ubuntu Server 24.04 arm64 template (runs under TCG on x86 hosts)
+[group('build-arm64')]
+ubuntu-arm64-build: (template-build 'ubuntu-arm64' 'aarch64/ubuntu-24.04')
+
+# Build every arm64 template into the local store (slow under TCG)
+[group('build-arm64')]
+build-arm64: alpine-arm64-build debian-arm64-build fedora-arm64-build ubuntu-arm64-build

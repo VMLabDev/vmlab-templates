@@ -18,6 +18,19 @@ template: `cd` into it and run `vmlab template build`.
 | `parrot/` | Parrot OS Security 7.2 | Official QEMU qcow2 (run `fetch-deps.sh` first) |
 | `windows-server-2025/` | Windows Server 2025 Eval | Installer ISO + autounattend, sysprep-generalized (run `fetch-deps.sh` first) |
 
+### arm64 (aarch64)
+
+These build the same distros for `aarch64`, all from cloud images +
+cloud-init. They boot UEFI (AAVMF) on the QEMU `virt` machine; on x86 hosts
+they run under **TCG** (no KVM), so builds are slow.
+
+| Directory | OS | Store ref |
+|---|---|---|
+| `alpine-3.23-arm64/` | Alpine Linux 3.23 | `aarch64/alpine-3.23` |
+| `debian-13-arm64/` | Debian 13 (trixie) | `aarch64/debian-13` |
+| `fedora-44-arm64/` | Fedora 44 | `aarch64/fedora-44` |
+| `ubuntu-arm64/` | Ubuntu Server 24.04 LTS | `aarch64/ubuntu-24.04` |
+
 ## Conventions
 
 - Credentials baked into every template: user `vmlab`, password `vmlab`
@@ -37,7 +50,9 @@ With [just](https://github.com/casey/just):
 ```sh
 just                    # list recipes
 just debian-build       # build one template (skips if already in the store)
-just build              # build them all
+just build              # build all x86_64 templates
+just debian-arm64-build # build one arm64 template
+just build-arm64        # build all arm64 templates (slow under TCG)
 ```
 
 Or by hand:

@@ -1,0 +1,34 @@
+// Ubuntu Server 24.04 LTS (noble) for arm64/aarch64. Unlike the x86
+// ubuntu-24.04 template (installer ISO + subiquity autoinstall), the arm64
+// build uses the official cloud image qcow2 + cloud-init — far faster
+// under TCG and consistent with the other arm64 cloud-image templates.
+// Runs under TCG on x86 hosts (no KVM) — slow but functional. cloud-init
+// picks up the CIDATA seed (NoCloud), creates vmlab/vmlab and installs the
+// QEMU guest agent. Build with:
+//
+//   vmlab template build        (run from this directory)
+//
+// Image pinned to cloud build serial 20260518; sha256 from the official
+// cloud-images.ubuntu.com SHA256SUMS.
+
+import <vmlab.wcl>
+
+template "ubuntu-24.04" {
+  arch     = "aarch64"
+  version  = "24.04.20260518"
+  profile  = "linux-modern"
+  firmware = "ovmf"
+  cpus     = 2
+  memory   = "2G"
+  disk     = "20G"
+
+  source "qcow2" {
+    url    = "https://cloud-images.ubuntu.com/noble/20260518/noble-server-cloudimg-arm64.img"
+    sha256 = "6a61b967ba4a27dd1966f835a67643073ed55c2860ce3dc1cb0517282e6b8bec"
+  }
+
+  media { kind = "iso" from = "./cloudinit/" label = "CIDATA" }
+  nic { nat = true }
+
+  provision "scripts/install.wisp" { }
+}

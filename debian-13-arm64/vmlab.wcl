@@ -1,0 +1,32 @@
+// Debian 13 (trixie) for arm64/aarch64, built from the official
+// genericcloud qcow2. Runs under TCG on x86 hosts (no KVM) — slow but
+// functional. cloud-init picks up the CIDATA seed (NoCloud), creates
+// vmlab/vmlab, installs the QEMU guest agent and the provision script
+// confirms the agent answers before the image is sealed. Build with:
+//
+//   vmlab template build        (run from this directory)
+//
+// Image pinned to cloud build 20260601-2496; sha512-verified against
+// cloud.debian.org SHA512SUMS, sha256 computed from the verified file.
+
+import <vmlab.wcl>
+
+template "debian-13" {
+  arch     = "aarch64"
+  version  = "13.20260601"
+  profile  = "linux-modern"
+  firmware = "ovmf"
+  cpus     = 2
+  memory   = "2G"
+  disk     = "20G"
+
+  source "qcow2" {
+    url    = "https://cloud.debian.org/images/cloud/trixie/20260601-2496/debian-13-genericcloud-arm64-20260601-2496.qcow2"
+    sha256 = "94d272856d4a514ced320f14380147957a9b5606f9c91c1f3b9294a4e74018ce"
+  }
+
+  media { kind = "iso" from = "./cloudinit/" label = "CIDATA" }
+  nic { nat = true }
+
+  provision "scripts/install.wisp" { }
+}

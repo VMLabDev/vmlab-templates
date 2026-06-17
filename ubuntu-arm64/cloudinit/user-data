@@ -1,0 +1,17 @@
+#cloud-config
+# NoCloud seed for the ubuntu (arm64) template build.
+# Credentials baked into the template: vmlab / vmlab.
+hostname: ubuntu
+users:
+  - name: vmlab
+    shell: /bin/bash
+    groups: [sudo]
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: false
+    passwd: "$6$msm7717SQBFhDWd8$Or75iQS6wZyqEqcm3QhWTz8gktMIHyvDmqWhs8rATckOUtgRZyTfuQ5C2lPMKnN9PQGF5FxJwYDaU6wGafA/z0"
+ssh_pwauth: true
+package_update: true
+packages:
+  - qemu-guest-agent
+runcmd:
+  - systemctl enable --now qemu-guest-agent
