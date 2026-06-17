@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Answer file for `sysprep /generalize /oobe /shutdown` at the end of the
+  windows-7 build. Sysprep caches it, so every clone replays it on first boot:
+  specialize generates a fresh SID + random computer name, OOBE is skipped, and
+  Administrator comes back with the lab password and a single autologon.
+-->
+<unattend xmlns="urn:schemas-microsoft-com:unattend">
+
+  <settings pass="generalize">
+    <component name="Microsoft-Windows-PnpSysprep"
+               processorArchitecture="x86" publicKeyToken="31bf3856ad364e35"
+               language="neutral" versionScope="nonSxS">
+      <PersistAllDeviceInstalls>true</PersistAllDeviceInstalls>
+    </component>
+  </settings>
+
+  <settings pass="specialize">
+    <component name="Microsoft-Windows-Shell-Setup"
+               processorArchitecture="x86" publicKeyToken="31bf3856ad364e35"
+               language="neutral" versionScope="nonSxS">
+      <ComputerName>*</ComputerName>
+    </component>
+  </settings>
+
+  <settings pass="oobeSystem">
+    <component name="Microsoft-Windows-International-Core"
+               processorArchitecture="x86" publicKeyToken="31bf3856ad364e35"
+               language="neutral" versionScope="nonSxS">
+      <InputLocale>0409:00000409</InputLocale>
+      <SystemLocale>en-US</SystemLocale>
+      <UILanguage>en-US</UILanguage>
+      <UserLocale>en-US</UserLocale>
+    </component>
+
+    <component name="Microsoft-Windows-Shell-Setup"
+               processorArchitecture="x86" publicKeyToken="31bf3856ad364e35"
+               language="neutral" versionScope="nonSxS">
+{W8}
+
+<OOBE>
+        <HideEULAPage>true</HideEULAPage>
+        <HideLocalAccountScreen>true</HideLocalAccountScreen>
+        <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+        <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+        <ProtectYourPC>3</ProtectYourPC>
+        <NetworkLocation>Work</NetworkLocation>
+      </OOBE>      <UserAccounts>
+        <AdministratorPassword>
+          <Value>vmlab123!</Value>
+          <PlainText>true</PlainText>
+        </AdministratorPassword>"
+".<LocalAccounts>
+          <LocalAccount wcm:action="add"
+              xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+            <Name>vmlab</Name>
+            <DisplayName>vmlab</DisplayName>
+            <Group>Administrators</Group>
+            <Password>
+              <Value>vmlab123!</Value>
+              <PlainText>true</PlainText>
+            </Password>
+          </LocalAccount>
+        </LocalAccounts>.
+      </UserAccounts>
+
+      <AutoLogon>
+        <Enabled>true</Enabled>
+        <LogonCount>1</LogonCount>
+        <Username>Administrator</Username>
+        <Password>
+          <Value>vmlab123!</Value>
+          <PlainText>true</PlainText>
+        </Password>
+      </AutoLogon>
+    </component>
+  </settings>
+</unattend>

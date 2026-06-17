@@ -1,0 +1,27 @@
+// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
+// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
+// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
+//
+// These old releases have no qemu guest agent, so the install is agent-free:
+// autounattend.xml installs Windows and, on first logon, runs
+// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
+// power off and seals the generalized disk. Clones therefore boot generalized
+// but without the vmlab guest agent (no `ready`/`exec`).
+
+import <vmlab.wcl>
+
+template "windows-server-2012-r2" {
+  arch    = "x86_64"
+  version = "9600"
+  profile = "windows-legacy"
+  cpus    = 2
+  memory  = "4G"
+  disk    = "40G"
+
+  source "iso" { path = "../iso/en_windows_server_2012_r2_x64_dvd_2707946.iso" }
+
+  media { kind = "floppy" from = "./unattend/" label = "UNATTEND" }
+  nic { nat = true }
+
+  provision "scripts/install.wisp" { }
+}
