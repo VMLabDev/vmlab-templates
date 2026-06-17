@@ -121,6 +121,23 @@ windows-server-2016-build: (template-build 'windows-server-2016' 'x86_64/windows
 [group('build-windows-local')]
 build-windows-local: windows-vista-build windows-vista-x86-build windows-7-build windows-7-x86-build windows-8-build windows-8-x86-build windows-8-1-build windows-8-1-x86-build windows-server-2008-build windows-server-2008-x86-build windows-server-2008-r2-build windows-server-2012-build windows-server-2012-r2-build windows-server-2016-build
 
+# --- Vintage x86 (DOS / Windows 3.x–ME / 2000), driven by wisp UI automation ---
+# These layer or install from local media in iso/ (gitignored) and are driven
+# over the live screen (VNC + OCR), since they predate answer files and have no
+# guest agent. They run on the x86_64 emulator but show as arch `x86`.
+
+# Build the MS-DOS 6.22 template (bootable C:, driven install)
+[group('build-vintage')]
+dos-6-22-build: (template-build 'dos-6.22' 'x86/dos-6.22')
+
+# Build Windows for Workgroups 3.11 (layers on dos-6.22; auto-launches Windows)
+[group('build-vintage')]
+windows-3-11-build: dos-6-22-build (template-build 'windows-3.11' 'x86/windows-3.11')
+
+# Build every vintage x86 template into the local store
+[group('build-vintage')]
+build-vintage: dos-6-22-build windows-3-11-build
+
 # Build the Alpine Linux 3.23 arm64 template (runs under TCG on x86 hosts)
 [group('build-arm64')]
 alpine-arm64-build: (template-build 'alpine-3.23-arm64' 'aarch64/alpine-3.23')

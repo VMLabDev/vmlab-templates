@@ -1,7 +1,12 @@
-// windows-3.11 template (PRD §6.1). Pre-autounattend.xml era guest on the windows-9x
-// profile (i440fx/SeaBIOS/IDE, Cirrus VGA, AMD PCnet NIC). The installer is
-// driven by the build provision wisp via screenshots + keyboard/mouse, since
-// these OSes have no answer-file auto-load and no QEMU guest agent.
+// windows-3.11 template (PRD §6.1). Windows for Workgroups 3.11, layered on the
+// dos-6.22 base (windows-9x profile: i440fx/SeaBIOS/IDE, Cirrus VGA, AMD PCnet).
+//
+// The ../iso payload is a *pre-installed* WfW 3.11 tree, not an installer, so
+// there is no GUI setup to drive. fetch-deps.sh extracts it (patching the
+// display driver from the unemulated S3 Trio to generic VGA) into ./win311/,
+// which is built into the WIN311 media ISO. The build provision wisp boots the
+// dos-6.22 disk, loads the CD driver that dos-6.22 already carries in C:\DOS,
+// copies the WINDOWS tree onto C:, and configures DOS to launch Windows.
 
 import <vmlab.wcl>
 
@@ -13,6 +18,12 @@ template "windows-3.11" {
   memory  = "64M"
   disk    = "1G"
 
-  source "iso" { path = "../iso/Windows-3.11-stock.zip" }
+  // Seed from the bootable MS-DOS 6.22 disk; its C:\DOS already holds the Oak
+  // CD driver (cd1.sys) + MSCDEX that the install wisp uses to read the media.
+  source "template" { from = "x86/dos-6.22" }
+
+  // The extracted WfW 3.11 tree, surfaced to the guest as a CD-ROM.
+  media { kind = "iso" from = "./win311/" label = "WIN311" }
+
   provision "scripts/install.wisp" { }
 }
