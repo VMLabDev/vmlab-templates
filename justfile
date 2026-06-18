@@ -138,21 +138,9 @@ windows-3-11-build: dos-6-22-build (template-build 'windows-3.11' 'x86/windows-3
 [group('build-vintage')]
 windows-2000-build: (template-build 'windows-2000' 'x86/windows-2000')
 
-# Build Windows 98 SE (unattended via MSBATCH.INF; needs .env key)
-[group('build-vintage')]
-windows-98-build: (template-build 'windows-98' 'x86/windows-98')
-
-# Build Windows 95 OSR2 (unattended via MSBATCH.INF; needs .env key)
-[group('build-vintage')]
-windows-95-build: (template-build 'windows-95' 'x86/windows-95')
-
-# Build Windows ME (non-bootable ISO; boot-floppy launched; needs .env key)
-[group('build-vintage')]
-windows-me-build: (template-build 'windows-me' 'x86/windows-me')
-
 # Build every vintage x86 template into the local store
 [group('build-vintage')]
-build-vintage: dos-6-22-build windows-3-11-build windows-2000-build windows-98-build windows-95-build windows-me-build
+build-vintage: dos-6-22-build windows-3-11-build windows-2000-build
 
 # Build the Alpine Linux 3.23 arm64 template (runs under TCG on x86 hosts)
 [group('build-arm64')]
