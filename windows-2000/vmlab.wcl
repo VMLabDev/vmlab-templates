@@ -9,7 +9,7 @@ import <vmlab.wcl>
 
 template "windows-2000" {
   arch    = "x86"
-  version = "sp4"
+  version = "2195.0"
   registry = "ghcr.io/vmlabdev/vmlab-templates/windows-2000"
   profile = "windows-9x"
   cpus    = 1
