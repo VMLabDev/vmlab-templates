@@ -25,7 +25,10 @@ $unattend = Join-Path $env:TEMP 'sysprep-unattend.xml'
 $tag      = Join-Path $sp 'Sysprep_succeeded.tag'
 $log      = Join-Path $sp 'Panther\setupact.log'
 
-for ($i = 0; $i -lt 12; $i++) {
+# Client SKUs (Windows 10/11) carry many more consumer AppX packages than Server,
+# so allow plenty of passes; each failed pass is a fast validate-only abort.
+$prev = ''
+for ($i = 0; $i -lt 25; $i++) {
     Remove-Item $tag -ErrorAction SilentlyContinue
     Start-Process "$sp\sysprep.exe" -Wait -ArgumentList @(
         '/generalize', '/oobe', '/quit', '/quiet', "/unattend:$unattend"
@@ -43,6 +46,13 @@ for ($i = 0; $i -lt 12; $i++) {
         exit 1
     }
     $name = ($blocker -split '_')[0]
+    # If the same package blocks twice running, our removal isn't sticking (an
+    # un-removable package we must not have deprovisioned) — bail rather than spin.
+    if ($name -eq $prev) {
+        Write-Output "AppX blocker $name still present after removal; aborting"
+        exit 1
+    }
+    $prev = $name
     Write-Output ("pass {0}: removing AppX blocker {1}" -f $i, $name)
     Get-AppxPackage -AllUsers $name | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
 }
