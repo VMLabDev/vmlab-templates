@@ -8,7 +8,6 @@ import <vmlab.wcl>
 template "dos-6.22" {
   arch    = "x86"
   version = "6.22"
-  registry = "ghcr.io/vmlabdev/vmlab-templates/dos-6.22"
   profile = "windows-9x"
   cpus    = 1
   memory  = "32M"

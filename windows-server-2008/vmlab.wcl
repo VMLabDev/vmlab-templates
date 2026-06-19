@@ -13,7 +13,6 @@ import <vmlab.wcl>
 template "windows-server-2008" {
   arch    = "x86_64"
   version = "6001.0"
-  registry = "ghcr.io/vmlabdev/vmlab-templates/windows-server-2008"
   profile = "windows-legacy"
   cpus    = 2
   memory  = "4G"

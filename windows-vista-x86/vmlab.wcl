@@ -13,7 +13,6 @@ import <vmlab.wcl>
 template "windows-vista" {
   arch    = "x86"
   version = "6002.0"
-  registry = "ghcr.io/vmlabdev/vmlab-templates/windows-vista"
   profile = "windows-legacy"
   cpus    = 2
   memory  = "3G"

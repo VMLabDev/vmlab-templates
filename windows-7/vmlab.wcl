@@ -13,7 +13,6 @@ import <vmlab.wcl>
 template "windows-7" {
   arch    = "x86_64"
   version = "7600.0"
-  registry = "ghcr.io/vmlabdev/vmlab-templates/windows-7"
   profile = "windows-legacy"
   cpus    = 2
   memory  = "4G"

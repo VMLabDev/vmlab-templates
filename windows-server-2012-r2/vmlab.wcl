@@ -13,7 +13,6 @@ import <vmlab.wcl>
 template "windows-server-2012-r2" {
   arch    = "x86_64"
   version = "9600.0"
-  registry = "ghcr.io/vmlabdev/vmlab-templates/windows-server-2012-r2"
   profile = "windows-legacy"
   cpus    = 2
   memory  = "4G"

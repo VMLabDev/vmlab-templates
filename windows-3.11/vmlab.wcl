@@ -13,7 +13,6 @@ import <vmlab.wcl>
 template "windows-3.11" {
   arch    = "x86"
   version = "3.11"
-  registry = "ghcr.io/vmlabdev/vmlab-templates/windows-3.11"
   profile = "windows-9x"
   cpus    = 1
   memory  = "64M"
