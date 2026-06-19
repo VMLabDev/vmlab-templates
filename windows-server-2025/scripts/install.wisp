@@ -47,51 +47,37 @@ fn install(lab: Lab) -> Result[unit, string] {
     sysprep(lab, vm)
 }
 
-// Generalize the image so clones get fresh SIDs (domain-joinable). The answer
-// file rides the UNATTEND ISO; copy it onto the disk first since the ISO is
-// not attached to lab clones.
+// Generalize the image so clones get fresh SIDs + random names (domain-joinable).
+// The answer file and the generalize script ride the UNATTEND ISO; copy them onto
+// the disk first since the ISO is not attached to lab clones.
+//
+// generalize.ps1 does the real work: sysprep /generalize aborts on the 26100
+// codebase when an AppX package is "installed for a user but not provisioned"
+// (0x80073cf2), and those consumer packages register asynchronously after first
+// logon, so the script runs sysprep in a loop, removing exactly the package each
+// failed pass names until sysprep writes its success tag. It judges success by
+// that tag, never by sysprep.exe's (unreliable) exit code — and its OWN exit code
+// IS reliable, so we gate the build on it.
 fn sysprep(lab: Lab, vm: Vm) -> Result[unit, string] {
     let copy = vm.exec("cmd.exe", [
         "/c",
-        "for %d in (D E F G) do if exist %d:\\sysprep-unattend.xml copy /y %d:\\sysprep-unattend.xml C:\\Windows\\Temp\\sysprep-unattend.xml",
+        "for %d in (D E F G) do if exist %d:\\generalize.ps1 ( copy /y %d:\\sysprep-unattend.xml C:\\Windows\\Temp\\ & copy /y %d:\\generalize.ps1 C:\\Windows\\Temp\\ )",
     ])?
     if copy.exit_code != 0 {
-        return Err("could not stage sysprep-unattend.xml: " + copy.stderr)
+        return Err("could not stage sysprep files: " + copy.stderr)
     }
 
-    // sysprep /generalize aborts on Win10/11 client SKUs when an AppX package
-    // is installed for a user but not provisioned for all users. Removing the
-    // per-user and provisioned packages clears the mismatch (harmless on
-    // Server, which carries few/no such packages).
-    lab.log("removing AppX packages so sysprep /generalize won't abort...")
-    let strip = vm.exec_timeout("powershell.exe", [
-        "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command",
-        "Get-AppxPackage -AllUsers | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue; Get-AppxProvisionedPackage -Online | ForEach-Object { Remove-AppxProvisionedPackage -Online -PackageName $_.PackageName -ErrorAction SilentlyContinue }",
-    ], 2400)
-    match strip {
-        Ok(r)  => lab.log("AppX strip done (exit " + fmt("{}", r.exit_code) + ")"),
-        Err(e) => lab.log("AppX strip returned an error (continuing): " + e),
-    }
-
-    // Run sysprep with /quit (not /shutdown) so we can read its exit code and
-    // surface the Panther log on failure, instead of blindly waiting out a
-    // poweroff that never comes.
-    lab.log("running sysprep /generalize (5-10 minutes)...")
-    let sp = vm.exec_timeout("C:\\Windows\\System32\\Sysprep\\sysprep.exe", [
-        "/generalize", "/oobe", "/quit", "/quiet",
-        "/unattend:C:\\Windows\\Temp\\sysprep-unattend.xml",
+    lab.log("generalizing (sysprep /generalize with AppX-blocker retry, 5-15 min)...")
+    let gen = vm.exec_timeout("powershell.exe", [
+        "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+        "-File", "C:\\Windows\\Temp\\generalize.ps1",
     ], 2400)?
-    if sp.exit_code != 0 {
-        match vm.exec("powershell.exe", [
-            "-NoProfile", "-Command",
-            "Get-Content C:\\Windows\\System32\\Sysprep\\Panther\\setupact.log -Tail 80",
-        ]) {
-            Ok(r)  => return Err("sysprep /generalize failed (exit " + fmt("{}", sp.exit_code) + "); setupact.log tail:\n" + r.stdout),
-            Err(_) => return Err("sysprep /generalize failed (exit " + fmt("{}", sp.exit_code) + ")"),
-        }
+    lab.log("generalize.ps1: " + gen.stdout.trim())
+    if gen.exit_code != 0 {
+        return Err("sysprep generalize failed (exit " + fmt("{}", gen.exit_code) + "): " + gen.stdout.trim() + " " + gen.stderr.trim())
     }
 
-    lab.log("sysprep generalized OK; powering off to seal")
+    lab.log("sysprep generalized OK (success tag present); powering off to seal")
     let shut = vm.exec_timeout("cmd.exe", ["/c", "shutdown /s /t 0"], 60)
     vm.wait_shutdown(900)?
     Ok(())
