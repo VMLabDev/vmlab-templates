@@ -11,7 +11,7 @@ import <vmlab.wcl>
 
 template "alpine-3.23" {
   arch    = "x86_64"
-  version = "3.23.4"
+  version = "3.23"
   registry = "ghcr.io/vmlabdev/vmlab-templates/alpine-3.23"
   profile = "linux-modern"
   cpus    = 1

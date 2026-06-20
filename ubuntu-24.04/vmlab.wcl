@@ -10,7 +10,7 @@ import <vmlab.wcl>
 
 template "ubuntu-24.04" {
   arch    = "x86_64"
-  version = "24.04.4"
+  version = "24.04"
   registry = "ghcr.io/vmlabdev/vmlab-templates/ubuntu-24.04"
   profile = "linux-modern"
   cpus    = 2
