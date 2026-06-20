@@ -290,16 +290,295 @@ push: alpine-push debian-push fedora-push kali-push nixos-push parrot-push rocky
 release: build push
 
 # --- Examples: smoke-test a single template ---
-# Each template has a ready-to-run one-VM lab under examples/<name>/ (where
-# <name> matches the template directory, e.g. windows-11, alpine-3.23-arm64,
-# dos-6.22). The template must be in the store (built locally or pulled).
+# Each template has a ready-to-run one-VM lab under examples/<name>/ (<name>
+# matches the template directory). The template must be in the store (built
+# locally or pulled). The per-template recipes delegate to these shared workers;
+# recipe names sanitise dots to hyphens, like the build recipes.
 
-# Bring up examples/<name> and open the guest console (e.g. `example-up windows-11`)
-[group('example')]
+[private]
 example-up name:
 	cd examples/{{ name }} && vmlab up && vmlab console guest
 
-# Destroy the examples/<name> lab (e.g. `example-down windows-11`)
-[group('example')]
+[private]
 example-down name:
 	cd examples/{{ name }} && vmlab destroy
+
+# Boot the alpine-3.23 example (up + console)
+[group('example')]
+alpine-3-23-example-up: (example-up 'alpine-3.23')
+# Destroy the alpine-3.23 example
+[group('example')]
+alpine-3-23-example-down: (example-down 'alpine-3.23')
+
+# Boot the alpine-3.23-arm64 example (up + console)
+[group('example')]
+alpine-3-23-arm64-example-up: (example-up 'alpine-3.23-arm64')
+# Destroy the alpine-3.23-arm64 example
+[group('example')]
+alpine-3-23-arm64-example-down: (example-down 'alpine-3.23-arm64')
+
+# Boot the debian-13 example (up + console)
+[group('example')]
+debian-13-example-up: (example-up 'debian-13')
+# Destroy the debian-13 example
+[group('example')]
+debian-13-example-down: (example-down 'debian-13')
+
+# Boot the debian-13-arm64 example (up + console)
+[group('example')]
+debian-13-arm64-example-up: (example-up 'debian-13-arm64')
+# Destroy the debian-13-arm64 example
+[group('example')]
+debian-13-arm64-example-down: (example-down 'debian-13-arm64')
+
+# Boot the debian-riscv64 example (up + console)
+[group('example')]
+debian-riscv64-example-up: (example-up 'debian-riscv64')
+# Destroy the debian-riscv64 example
+[group('example')]
+debian-riscv64-example-down: (example-down 'debian-riscv64')
+
+# Boot the dos-6.22 example (up + console)
+[group('example')]
+dos-6-22-example-up: (example-up 'dos-6.22')
+# Destroy the dos-6.22 example
+[group('example')]
+dos-6-22-example-down: (example-down 'dos-6.22')
+
+# Boot the fedora-44 example (up + console)
+[group('example')]
+fedora-44-example-up: (example-up 'fedora-44')
+# Destroy the fedora-44 example
+[group('example')]
+fedora-44-example-down: (example-down 'fedora-44')
+
+# Boot the fedora-44-arm64 example (up + console)
+[group('example')]
+fedora-44-arm64-example-up: (example-up 'fedora-44-arm64')
+# Destroy the fedora-44-arm64 example
+[group('example')]
+fedora-44-arm64-example-down: (example-down 'fedora-44-arm64')
+
+# Boot the fedora-riscv64 example (up + console)
+[group('example')]
+fedora-riscv64-example-up: (example-up 'fedora-riscv64')
+# Destroy the fedora-riscv64 example
+[group('example')]
+fedora-riscv64-example-down: (example-down 'fedora-riscv64')
+
+# Boot the freedos-1.3 example (up + console)
+[group('example')]
+freedos-1-3-example-up: (example-up 'freedos-1.3')
+# Destroy the freedos-1.3 example
+[group('example')]
+freedos-1-3-example-down: (example-down 'freedos-1.3')
+
+# Boot the home-assistant-aarch64 example (up + console)
+[group('example')]
+home-assistant-aarch64-example-up: (example-up 'home-assistant-aarch64')
+# Destroy the home-assistant-aarch64 example
+[group('example')]
+home-assistant-aarch64-example-down: (example-down 'home-assistant-aarch64')
+
+# Boot the kali example (up + console)
+[group('example')]
+kali-example-up: (example-up 'kali')
+# Destroy the kali example
+[group('example')]
+kali-example-down: (example-down 'kali')
+
+# Boot the nixos-25.11 example (up + console)
+[group('example')]
+nixos-25-11-example-up: (example-up 'nixos-25.11')
+# Destroy the nixos-25.11 example
+[group('example')]
+nixos-25-11-example-down: (example-down 'nixos-25.11')
+
+# Boot the parrot example (up + console)
+[group('example')]
+parrot-example-up: (example-up 'parrot')
+# Destroy the parrot example
+[group('example')]
+parrot-example-down: (example-down 'parrot')
+
+# Boot the rocky-9 example (up + console)
+[group('example')]
+rocky-9-example-up: (example-up 'rocky-9')
+# Destroy the rocky-9 example
+[group('example')]
+rocky-9-example-down: (example-down 'rocky-9')
+
+# Boot the ubuntu-24.04 example (up + console)
+[group('example')]
+ubuntu-24-04-example-up: (example-up 'ubuntu-24.04')
+# Destroy the ubuntu-24.04 example
+[group('example')]
+ubuntu-24-04-example-down: (example-down 'ubuntu-24.04')
+
+# Boot the ubuntu-arm64 example (up + console)
+[group('example')]
+ubuntu-arm64-example-up: (example-up 'ubuntu-arm64')
+# Destroy the ubuntu-arm64 example
+[group('example')]
+ubuntu-arm64-example-down: (example-down 'ubuntu-arm64')
+
+# Boot the ubuntu-riscv64 example (up + console)
+[group('example')]
+ubuntu-riscv64-example-up: (example-up 'ubuntu-riscv64')
+# Destroy the ubuntu-riscv64 example
+[group('example')]
+ubuntu-riscv64-example-down: (example-down 'ubuntu-riscv64')
+
+# Boot the windows-10 example (up + console)
+[group('example')]
+windows-10-example-up: (example-up 'windows-10')
+# Destroy the windows-10 example
+[group('example')]
+windows-10-example-down: (example-down 'windows-10')
+
+# Boot the windows-11 example (up + console)
+[group('example')]
+windows-11-example-up: (example-up 'windows-11')
+# Destroy the windows-11 example
+[group('example')]
+windows-11-example-down: (example-down 'windows-11')
+
+# Boot the windows-11-arm64 example (up + console)
+[group('example')]
+windows-11-arm64-example-up: (example-up 'windows-11-arm64')
+# Destroy the windows-11-arm64 example
+[group('example')]
+windows-11-arm64-example-down: (example-down 'windows-11-arm64')
+
+# Boot the windows-2000 example (up + console)
+[group('example')]
+windows-2000-example-up: (example-up 'windows-2000')
+# Destroy the windows-2000 example
+[group('example')]
+windows-2000-example-down: (example-down 'windows-2000')
+
+# Boot the windows-3.11 example (up + console)
+[group('example')]
+windows-3-11-example-up: (example-up 'windows-3.11')
+# Destroy the windows-3.11 example
+[group('example')]
+windows-3-11-example-down: (example-down 'windows-3.11')
+
+# Boot the windows-7 example (up + console)
+[group('example')]
+windows-7-example-up: (example-up 'windows-7')
+# Destroy the windows-7 example
+[group('example')]
+windows-7-example-down: (example-down 'windows-7')
+
+# Boot the windows-7-x86 example (up + console)
+[group('example')]
+windows-7-x86-example-up: (example-up 'windows-7-x86')
+# Destroy the windows-7-x86 example
+[group('example')]
+windows-7-x86-example-down: (example-down 'windows-7-x86')
+
+# Boot the windows-8 example (up + console)
+[group('example')]
+windows-8-example-up: (example-up 'windows-8')
+# Destroy the windows-8 example
+[group('example')]
+windows-8-example-down: (example-down 'windows-8')
+
+# Boot the windows-8.1 example (up + console)
+[group('example')]
+windows-8-1-example-up: (example-up 'windows-8.1')
+# Destroy the windows-8.1 example
+[group('example')]
+windows-8-1-example-down: (example-down 'windows-8.1')
+
+# Boot the windows-8.1-x86 example (up + console)
+[group('example')]
+windows-8-1-x86-example-up: (example-up 'windows-8.1-x86')
+# Destroy the windows-8.1-x86 example
+[group('example')]
+windows-8-1-x86-example-down: (example-down 'windows-8.1-x86')
+
+# Boot the windows-8-x86 example (up + console)
+[group('example')]
+windows-8-x86-example-up: (example-up 'windows-8-x86')
+# Destroy the windows-8-x86 example
+[group('example')]
+windows-8-x86-example-down: (example-down 'windows-8-x86')
+
+# Boot the windows-server-2008 example (up + console)
+[group('example')]
+windows-server-2008-example-up: (example-up 'windows-server-2008')
+# Destroy the windows-server-2008 example
+[group('example')]
+windows-server-2008-example-down: (example-down 'windows-server-2008')
+
+# Boot the windows-server-2008-r2 example (up + console)
+[group('example')]
+windows-server-2008-r2-example-up: (example-up 'windows-server-2008-r2')
+# Destroy the windows-server-2008-r2 example
+[group('example')]
+windows-server-2008-r2-example-down: (example-down 'windows-server-2008-r2')
+
+# Boot the windows-server-2008-x86 example (up + console)
+[group('example')]
+windows-server-2008-x86-example-up: (example-up 'windows-server-2008-x86')
+# Destroy the windows-server-2008-x86 example
+[group('example')]
+windows-server-2008-x86-example-down: (example-down 'windows-server-2008-x86')
+
+# Boot the windows-server-2012 example (up + console)
+[group('example')]
+windows-server-2012-example-up: (example-up 'windows-server-2012')
+# Destroy the windows-server-2012 example
+[group('example')]
+windows-server-2012-example-down: (example-down 'windows-server-2012')
+
+# Boot the windows-server-2012-r2 example (up + console)
+[group('example')]
+windows-server-2012-r2-example-up: (example-up 'windows-server-2012-r2')
+# Destroy the windows-server-2012-r2 example
+[group('example')]
+windows-server-2012-r2-example-down: (example-down 'windows-server-2012-r2')
+
+# Boot the windows-server-2016 example (up + console)
+[group('example')]
+windows-server-2016-example-up: (example-up 'windows-server-2016')
+# Destroy the windows-server-2016 example
+[group('example')]
+windows-server-2016-example-down: (example-down 'windows-server-2016')
+
+# Boot the windows-server-2019 example (up + console)
+[group('example')]
+windows-server-2019-example-up: (example-up 'windows-server-2019')
+# Destroy the windows-server-2019 example
+[group('example')]
+windows-server-2019-example-down: (example-down 'windows-server-2019')
+
+# Boot the windows-server-2022 example (up + console)
+[group('example')]
+windows-server-2022-example-up: (example-up 'windows-server-2022')
+# Destroy the windows-server-2022 example
+[group('example')]
+windows-server-2022-example-down: (example-down 'windows-server-2022')
+
+# Boot the windows-server-2025 example (up + console)
+[group('example')]
+windows-server-2025-example-up: (example-up 'windows-server-2025')
+# Destroy the windows-server-2025 example
+[group('example')]
+windows-server-2025-example-down: (example-down 'windows-server-2025')
+
+# Boot the windows-vista example (up + console)
+[group('example')]
+windows-vista-example-up: (example-up 'windows-vista')
+# Destroy the windows-vista example
+[group('example')]
+windows-vista-example-down: (example-down 'windows-vista')
+
+# Boot the windows-vista-x86 example (up + console)
+[group('example')]
+windows-vista-x86-example-up: (example-up 'windows-vista-x86')
+# Destroy the windows-vista-x86 example
+[group('example')]
+windows-vista-x86-example-down: (example-down 'windows-vista-x86')
