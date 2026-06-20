@@ -38,4 +38,9 @@ template "windows-11-arm64" {
   nic { nat = true }
 
   provision "scripts/install.wisp" { }
+
+  // Runs on every clone's first boot, before the VM is reported ready: waits
+  // for sysprep specialize/OOBE to finish (the specialize-pass marker), then
+  // clears it. So labs using this template never see a half-specialized clone.
+  first_boot = "scripts/firstboot.wisp"
 }

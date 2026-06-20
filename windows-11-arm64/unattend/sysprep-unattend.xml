@@ -4,11 +4,28 @@
   of the template build. Sysprep caches it in C:\Windows\Panther, so every
   clone of the sealed image replays it on first boot: specialize generates
   a fresh SID and a random computer name, OOBE is skipped, and the
-  Administrator account comes back with the lab password plus a single
-  autologon. The QEMU guest agent service survives generalize, so clones
-  still report "ready".
+  Administrator account comes back with the lab password. The QEMU guest
+  agent service survives generalize, so clones still report "ready".
+
+  NO AutoLogon — deliberately. On modern (24H2) codebases the base build's
+  "Last Known Good" shell packages (MicrosoftWindows.LKG.Search / IrisService
+  / AccountsService) are reconciled during the clone's first-boot specialize.
+  If Administrator is auto-logged-in during that window, the shell launches
+  mid-reconciliation, the per-user AppX state is left broken, and explorer.exe
+  then fail-fasts (0xc0000409 / BEX64) on every subsequent logon. Without
+  autologon the first interactive logon happens after specialize settles, so
+  the profile is built clean and the shell works. Clones come up at the lock
+  screen (log in as Administrator / vmlab123!).
+
+  The guest agent can answer guest-ping WHILE specialize is still running, so
+  agent-up alone is too early to call a clone "ready". A specialize-pass
+  RunSynchronousCommand (below) writes C:\Windows\Temp\vmlab-firstboot.done as
+  SYSTEM (no logon needed); vmlab's first-boot provision
+  (first_boot = scripts/firstboot.wisp) waits for that marker, deletes it, and
+  only then reports the VM provisioned.
 -->
-<unattend xmlns="urn:schemas-microsoft-com:unattend">
+<unattend xmlns="urn:schemas-microsoft-com:unattend"
+          xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
 
   <settings pass="generalize">
     <!-- The clone runs on identical virtual hardware; keeping device
@@ -27,6 +44,21 @@
       <!-- "*" = auto-generated unique name, so multiple clones can join
            the same domain without renaming first. -->
       <ComputerName>*</ComputerName>
+    </component>
+
+    <!-- Write the first-boot marker as SYSTEM during specialize (no logon
+         needed, since there is no autologon). vmlab's first-boot provision
+         waits for it, deletes it, then reports the clone provisioned. -->
+    <component name="Microsoft-Windows-Deployment"
+               processorArchitecture="arm64" publicKeyToken="31bf3856ad364e35"
+               language="neutral" versionScope="nonSxS">
+      <RunSynchronous>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>1</Order>
+          <Path>cmd /c echo ready&gt; C:\Windows\Temp\vmlab-firstboot.done</Path>
+          <Description>vmlab first-boot ready marker</Description>
+        </RunSynchronousCommand>
+      </RunSynchronous>
     </component>
   </settings>
 
@@ -58,16 +90,6 @@
           <PlainText>true</PlainText>
         </AdministratorPassword>
       </UserAccounts>
-
-      <AutoLogon>
-        <Enabled>true</Enabled>
-        <LogonCount>1</LogonCount>
-        <Username>Administrator</Username>
-        <Password>
-          <Value>vmlab123!</Value>
-          <PlainText>true</PlainText>
-        </Password>
-      </AutoLogon>
     </component>
   </settings>
 </unattend>
