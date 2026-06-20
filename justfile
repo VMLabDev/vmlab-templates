@@ -288,3 +288,26 @@ push: alpine-push debian-push fedora-push kali-push nixos-push parrot-push rocky
 # Build everything `just build` covers, then push the Linux templates upstream
 [group('push')]
 release: build push
+
+# --- Examples: smoke-test one template in a throwaway one-VM lab ---
+# `example-up` stamps the chosen `<arch>/<name>` over the default ref in
+# examples/vmlab.wcl into examples/.run/ (gitignored), brings the lab up and
+# opens its console; `example-down` destroys it. Only the named template needs
+# to be in the store (built locally or pulled). See examples/vmlab.wcl.
+
+# Boot a one-VM lab for a template (arch defaults to x86_64) and open its console
+[group('example')]
+example-up name arch='x86_64':
+	#!/usr/bin/env bash
+	set -euo pipefail
+	mkdir -p examples/.run
+	[ -f examples/.run/vmlab.wcl ] && (cd examples/.run && vmlab destroy >/dev/null 2>&1 || true)
+	sed 's#x86_64/ubuntu-24.04#{{ arch }}/{{ name }}#' examples/vmlab.wcl > examples/.run/vmlab.wcl
+	cd examples/.run
+	vmlab up
+	vmlab console guest
+
+# Destroy the example lab spun up by `example-up`
+[group('example')]
+example-down:
+	cd examples/.run && vmlab destroy
