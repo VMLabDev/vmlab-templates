@@ -15,7 +15,7 @@
   then fail-fasts (0xc0000409 / BEX64) on every subsequent logon. Without
   autologon the first interactive logon happens after specialize settles, so
   the profile is built clean and the shell works. Clones come up at the lock
-  screen (log in as Administrator / vmlab123!).
+  screen (log in as vmlab / vmlab123!).
 
   The guest agent can answer guest-ping WHILE specialize is still running, so
   agent-up alone is too early to call a clone "ready". A specialize-pass
@@ -84,11 +84,28 @@
         <ProtectYourPC>3</ProtectYourPC>
       </OOBE>
 
+      <!-- Pre-create a local admin account so client OOBE skips the
+           "Who's going to use this device?" screen. Combined with NO autologon
+           (see header), the clone lands at the lock screen with this account
+           already built — OOBE never auto-logs-in during the LKG shell-package
+           reconciliation, so explorer does not fail-fast. Log in as
+           vmlab / vmlab123! (the built-in Administrator keeps the same pw). -->
       <UserAccounts>
         <AdministratorPassword>
           <Value>vmlab123!</Value>
           <PlainText>true</PlainText>
         </AdministratorPassword>
+        <LocalAccounts>
+          <LocalAccount wcm:action="add">
+            <Name>vmlab</Name>
+            <Group>Administrators</Group>
+            <DisplayName>vmlab</DisplayName>
+            <Password>
+              <Value>vmlab123!</Value>
+              <PlainText>true</PlainText>
+            </Password>
+          </LocalAccount>
+        </LocalAccounts>
       </UserAccounts>
     </component>
   </settings>
