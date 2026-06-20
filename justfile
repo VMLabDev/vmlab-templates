@@ -289,25 +289,17 @@ push: alpine-push debian-push fedora-push kali-push nixos-push parrot-push rocky
 [group('push')]
 release: build push
 
-# --- Examples: smoke-test one template in a throwaway one-VM lab ---
-# `example-up` stamps the chosen `<arch>/<name>` over the default ref in
-# examples/vmlab.wcl into examples/.run/ (gitignored), brings the lab up and
-# opens its console; `example-down` destroys it. Only the named template needs
-# to be in the store (built locally or pulled). See examples/vmlab.wcl.
+# --- Examples: smoke-test a single template ---
+# Each template has a ready-to-run one-VM lab under examples/<name>/ (where
+# <name> matches the template directory, e.g. windows-11, alpine-3.23-arm64,
+# dos-6.22). The template must be in the store (built locally or pulled).
 
-# Boot a one-VM lab for a template (arch defaults to x86_64) and open its console
+# Bring up examples/<name> and open the guest console (e.g. `example-up windows-11`)
 [group('example')]
-example-up name arch='x86_64':
-	#!/usr/bin/env bash
-	set -euo pipefail
-	mkdir -p examples/.run
-	[ -f examples/.run/vmlab.wcl ] && (cd examples/.run && vmlab destroy >/dev/null 2>&1 || true)
-	sed 's#x86_64/ubuntu-24.04#{{ arch }}/{{ name }}#' examples/vmlab.wcl > examples/.run/vmlab.wcl
-	cd examples/.run
-	vmlab up
-	vmlab console guest
+example-up name:
+	cd examples/{{ name }} && vmlab up && vmlab console guest
 
-# Destroy the example lab spun up by `example-up`
+# Destroy the examples/<name> lab (e.g. `example-down windows-11`)
 [group('example')]
-example-down:
-	cd examples/.run && vmlab destroy
+example-down name:
+	cd examples/{{ name }} && vmlab destroy

@@ -15,5 +15,5 @@ parrot/disk/
 # Product keys for the MSDN/VL ISOs in iso/ — never commit real keys
 .env
 
-# Throwaway lab that `just example-up` stamps from examples/vmlab.wcl
-examples/.run/
+# Lab-local working data (clones, state, media) created when running an example
+.vmlab/

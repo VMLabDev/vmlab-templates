@@ -1,0 +1,22 @@
+// Smoke-test the fedora-riscv64 template: boot riscv64/fedora-42 on a NAT'd segment and watch the
+// console. Build or pull the template first, then from the repo root:
+//
+//   just example-up fedora-riscv64       # bring it up and open the console
+//   just example-down fedora-riscv64     # tear it down
+//
+// Hardware (cpus / memory / firmware) is inherited from the template.
+
+import <vmlab.wcl>
+
+lab "fedora-riscv64" {
+
+  segment "lan" {
+    subnet = "10.99.0.0/24"
+    nat    = true
+  }
+
+  vm "guest" {
+    template = "riscv64/fedora-42"
+    nic { segment = "lan" }
+  }
+}
