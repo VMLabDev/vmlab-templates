@@ -17,3 +17,6 @@ parrot/disk/
 
 # Lab-local working data (clones, state, media) created when running an example
 .vmlab/
+
+# Generated docs site
+/docs/_site

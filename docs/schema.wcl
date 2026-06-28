@@ -1,0 +1,50 @@
+// Data model for the template-library site.
+//
+// Two block kinds, gathered by the root @document:
+//   • `tpl`   — registry/repo FACTS, generated into data/templates.gen.wcl by
+//               `just docs-data` (gen-data.sh). Do not hand-edit that file.
+//   • `tmeta` — authored PRESENTATION copy (description / category / tags / …),
+//               hand-maintained in data/meta.wcl. This is the curation gate: a
+//               template is shown only if it has a matching `tmeta` (joined by id).
+//
+// The block kind is `tpl`, not `template` — `template` is already a wdoc block
+// kind (the render-template), so reusing it would collide.
+
+import <wdoc.wcl>
+
+// One published template artifact, per (arch, name). Facts only.
+@block("tpl")
+type Tpl {
+  @inline(0) id: identifier   // slug, e.g. x86_64_alpine_3_23
+  name:        utf8           // arch-qualified ref, e.g. "x86_64/alpine-3.23"
+  short_name:  utf8           // registry name, e.g. "alpine-3.23"
+  arch:        utf8           // "x86_64" | "aarch64" | "riscv64"
+  version:     utf8
+  profile:     utf8
+  cpus:        i64
+  memory:      utf8           // pretty, e.g. "1 GiB"
+  disk:        utf8           // pretty, e.g. "10 GiB"
+  registry:    utf8           // full ghcr ref
+  updated:     utf8           // last-touched date (git), human text
+  source_dir:  utf8           // repo dir, for the View-source link
+}
+
+// Authored presentation metadata for a template, keyed by registry short-name
+// (joined to every `tpl` whose `short_name` matches — one entry covers all
+// arches of a template).
+@block("tmeta")
+type Tmeta {
+  @inline(0) key: utf8                    // registry short-name, e.g. "alpine-3.23"
+  description: utf8                       // one-liner for the card + detail header
+  category:    utf8                       // "os" | "cluster" | "appliance"
+  os_family:   utf8                       // "linux" | "windows" | "bsd" | …
+  @default([])        tags:     list<utf8>
+  @default("MIT")     license:  utf8
+  @default("VMLabDev") maintainer: utf8
+  @default("")        overview: utf8      // longer prose for the detail Overview
+  @default([])        features: list<utf8> // detail bullet list
+}
+
+// NOTE: the root @document that gathers these lives in main.wcl, NOT here —
+// wdoc only resolves field access on its gathered lists when the @document is
+// declared in the root document file.

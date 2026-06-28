@@ -129,7 +129,7 @@ windows-server-2016-build: (template-build 'windows-server-2016' 'x86_64/windows
 [group('build-windows-local')]
 build-windows-local: windows-vista-build windows-vista-x86-build windows-7-build windows-7-x86-build windows-8-build windows-8-x86-build windows-8-1-build windows-8-1-x86-build windows-server-2008-build windows-server-2008-x86-build windows-server-2008-r2-build windows-server-2012-build windows-server-2012-r2-build windows-server-2016-build
 
-# --- Vintage x86 (DOS / Windows 3.x–ME / 2000), driven by wisp UI automation ---
+# --- Vintage x86 (DOS / Windows 3.x–ME / 2000), driven by wscript UI automation ---
 # These layer or install from local media in iso/ (gitignored) and are driven
 # over the live screen (VNC + OCR), since they predate answer files and have no
 # guest agent. They run on the x86_64 emulator but show as arch `x86`.
@@ -582,3 +582,25 @@ windows-vista-x86-example-up: (example-up 'windows-vista-x86')
 # Destroy the windows-vista-x86 example
 [group('example')]
 windows-vista-x86-example-destroy: (example-destroy 'windows-vista-x86')
+
+# --- docs site (templates.vmlab.dev) ---
+
+# Regenerate docs/data/templates.gen.wcl from the registry + in-repo vmlab.wcl
+[group('docs')]
+docs-data:
+	bash docs/gen-data.sh
+
+# Build the template-library website to docs/_site
+[group('docs')]
+docs-build:
+	wcl wdoc build docs/main.wcl --out docs/_site
+
+# Serve the website locally with live reload
+[group('docs')]
+docs-serve:
+	wcl wdoc serve docs/main.wcl
+
+# Remove the generated site
+[group('docs')]
+docs-clean:
+	rm -rf docs/_site

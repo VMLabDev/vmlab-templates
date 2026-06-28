@@ -1,0 +1,104 @@
+// Render blocks: build the listing body and per-template detail body as raw
+// HTML from the `tpl` (facts) + `tmeta` (authored copy) records. Both extend
+// WdocBlock so they can sit directly in a page; their `lower` returns a single
+// HtmlFundamental::Raw. The page shell (nav/footer/CSS/JS) is templates-site.wcl.
+
+import <wdoc.wcl>
+import "./schema.wcl"
+
+let d = "$"   // literal dollar for shell prompts inside interpolated heredocs
+
+let arch_cls = fn(a: utf8) -> utf8 {
+  if a == "x86_64" { "a-x86" } else { if a == "aarch64" { "a-arm" } else { "a-rv" } }
+}
+
+// — icons —
+let svg_disk = <<'SVG'
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14a9 3 0 0 0 18 0V5"></path></svg>
+SVG
+let svg_clock = <<'SVG'
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>
+SVG
+let svg_search = <<'SVG'
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+SVG
+let svg_file = <<'SVG'
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+SVG
+let svg_term = <<'SVG'
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+SVG
+let svg_chevron = <<'SVG'
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+SVG
+
+let toolbar_chips = <<'HTML'
+<button class="chip on" data-filter="all">All</button><button class="chip" data-filter="x86_64"><span class="chipdot" style="background:var(--info-fg)"></span>x86_64</button><button class="chip" data-filter="aarch64"><span class="chipdot" style="background:var(--success-fg)"></span>aarch64</button><button class="chip" data-filter="riscv64"><span class="chipdot" style="background:var(--warning-fg)"></span>riscv64</button><button class="chip" data-filter="windows">Windows</button><button class="chip" data-filter="linux">Linux</button><button class="chip" data-filter="bsd">BSD</button><button class="chip" data-filter="legacy">Legacy</button>
+HTML
+
+// One listing card from a (tpl, tmeta) pair.
+let card_html = fn(t: Tpl, m: Tmeta) -> utf8 {
+  let cls = arch_cls(t.arch);
+  $<<HTML
+<a class="tpl" data-name="${t.name}" data-desc="${m.description}" data-arch="${t.arch}" data-os="${m.os_family}" href="template_${t.id}.html"><div class="tplhd"><span class="arch ${cls}">${t.arch}</span></div><div class="tplname">${t.name}</div><p class="tpldesc">${m.description}</p><div class="tplmeta"><span class="mi">${svg_disk}${t.disk}</span><span class="mi">${svg_clock}${t.updated}</span></div></a>
+HTML
+}
+
+// The listing page body: head + toolbar + count + card grid + empty state.
+@block("tpl_listing")
+type TplListing extends WdocBlock {
+  items: list<Tpl>
+  metas: list<Tmeta>
+  lower = fn(b: TplListing) -> list<HtmlFundamental> {
+    let all_metas = b.metas;
+    let keylist = map(b.metas, fn(m: Tmeta) -> utf8 { m.key });
+    let cards = map(b.items, fn(t: Tpl) -> utf8 {
+      let m = at(all_metas, index_of(keylist, t.short_name));
+      card_html(t, m)
+    });
+    let grid = join(cards, "");
+    let n = len(b.items);
+    [ HtmlFundamental::Raw { html: $<<HTML
+<section class="head"><div class="wrap"><div class="eyebrow">// templates.vmlab.dev</div><h1 class="h1">Template library</h1><p class="lead">Ready-to-boot base images for vmlab. Reference any template by name in a <span class="mono c-acc">vm</span> block — vmlab pulls it from the registry and clones it on first use.</p><div class="toolbar"><label class="search">${svg_search}<input id="tpl-search" type="text" placeholder="Search templates…"></label><div class="chips">${toolbar_chips}</div></div><div class="count" id="tpl-count">${n} templates</div><div class="tpls">${grid}</div><div class="empty" id="tpl-empty" style="display:none">No templates match your search.</div></div></section>
+HTML
+    } ]
+  }
+}
+
+// One detail page body for a (tpl, tmeta) pair.
+@block("tpl_detail")
+type TplDetail extends WdocBlock {
+  unit: Tpl
+  meta: Tmeta
+  lower = fn(b: TplDetail) -> list<HtmlFundamental> {
+    let t = b.unit;
+    let m = b.meta;
+    let cls = arch_cls(t.arch);
+    let ov = if m.overview == "" {
+      $"This template ships a clean ${t.short_name} image, ready to reference from any vm block. vmlab keeps one copy of the backing file on the host and boots each guest as a qcow2 linked clone, so a lab of ten machines costs little more than one base image on disk."
+    } else { m.overview };
+    let feat_items = join(map(m.features, fn(x: utf8) -> utf8 { $"<li>${x}</li>" }), "");
+    let feat_html = match len(m.features) { 0 => "", _ => $"<ul class=\"ul\">${feat_items}</ul>" };
+    let tag_items = join(map(m.tags, fn(x: utf8) -> utf8 { $"<span class=\"tag\">${x}</span>" }), "");
+    let tags_html = match len(m.tags) { 0 => "", _ => $"<div class=\"card\"><h2 class=\"sectitle\">Tags</h2><div class=\"tags\">${tag_items}</div></div>" };
+    [ HtmlFundamental::Raw { html: $<<HTML
+<div class="wrap"><div class="crumb"><a href="index.html">Templates</a>${svg_chevron}<span class="c-info">${t.arch}</span>${svg_chevron}<span class="c-fg">${t.short_name}</span></div></div><section class="thead"><div class="wrap theadrow"><div><div class="fx ac gap8"><span class="arch ${cls}">${t.arch}</span><span class="verpill">v${t.version}</span><span class="verpill">latest</span></div><h1 class="tname">${t.name}</h1><p class="tdesc">${m.description}</p></div><div class="tact"><div class="pull"><span class="c-acc">${d}</span><span class="pt">vmlab pull ${t.name}</span><button class="copybtn" data-copy="vmlab pull ${t.name}" onclick="vmlabCopy(this)">copy</button></div><a class="btn btn-primary" href="https://github.com/VMLabDev/vmlab-templates/tree/main/${t.source_dir}">${svg_file}View source</a></div></div></section><div class="wrap body"><div class="main"><div class="sec"><h2 class="sectitle">Overview</h2><div class="prose"><p>${ov}</p></div>${feat_html}</div><div class="sec"><h2 class="sectitle">Reference it in a lab</h2><div class="code"><div class="codehead">${svg_file}vmlab.wcl</div><div class="codebody"><span class="t-key">import</span> <span class="t-str">&lt;vmlab.wcl&gt;</span>
+
+<span class="t-key">lab</span> <span class="t-str">"demo"</span> {
+
+  <span class="t-key">segment</span> <span class="t-str">"lan"</span> {
+    <span class="t-key">subnet</span> = <span class="t-str">"10.99.0.0/24"</span>
+    <span class="t-key">nat</span>    = <span class="t-num">true</span>
+  }
+
+  <span class="t-key">vm</span> <span class="t-str">"guest"</span> {
+    <span class="t-key">template</span> = <span class="t-str">"${t.name}"</span>
+    <span class="t-key">nic</span> { <span class="t-key">segment</span> = <span class="t-str">"lan"</span> }
+  }
+}</div></div></div><div class="sec"><h2 class="sectitle">Boot it</h2><div class="code"><div class="codehead">${svg_term}shell</div><div class="codebody"><span class="c-acc">${d}</span> <span class="t-cmd">vmlab up</span>
+  <span class="c-ok">✔</span> pulled ${t.name} <span class="c-dim">(${t.disk})</span>
+  <span class="c-ok">✔</span> guest · 1 segment up</div></div></div></div><div class="side"><div class="card"><div class="metarow"><span class="mk">Architecture</span><span class="mv ${cls}">${t.arch}</span></div><div class="metarow"><span class="mk">Base image</span><span class="mv">${t.short_name} ${t.version}</span></div><div class="metarow"><span class="mk">Disk size</span><span class="mv">${t.disk}</span></div><div class="metarow"><span class="mk">vCPUs</span><span class="mv">${t.cpus}</span></div><div class="metarow"><span class="mk">Memory</span><span class="mv">${t.memory}</span></div><div class="metarow"><span class="mk">Format</span><span class="mv">qcow2</span></div><div class="metarow"><span class="mk">OS family</span><span class="mv">${m.os_family}</span></div><div class="metarow"><span class="mk">Profile</span><span class="mv">${t.profile}</span></div><div class="metarow"><span class="mk">Maintainer</span><span class="mv">${m.maintainer}</span></div><div class="metarow"><span class="mk">License</span><span class="mv">${m.license}</span></div><div class="metarow"><span class="mk">Updated</span><span class="mv">${t.updated}</span></div></div><div class="card"><h2 class="sectitle">Versions</h2><div class="verlist"><div class="veritem"><span class="vername">${t.version}</span><span class="vertag">latest</span><span class="verdate">${t.updated}</span></div></div></div>${tags_html}</div></div>
+HTML
+    } ]
+  }
+}

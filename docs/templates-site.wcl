@@ -1,0 +1,174 @@
+// The shared page shell for the template-library site (templates.vmlab.dev).
+//
+// A custom wdoc template (wdoc's "bring your own HTML/CSS" seam): it renders the
+// converted Claude Design chrome — theme CSS, sticky nav, footer, and the vanilla
+// JS for the listing search/filter + copy buttons — and slots each page's body in
+// via `${c.content}`. Both the listing page and every generated detail page use
+// it (`default_template = :templates_site`). The page bodies are built by the
+// `tpl_listing` / `tpl_detail` blocks in render.wcl.
+//
+// Converted from the Claude Design artifacts (templates.dc.html + template.dc.html):
+// the x-dc/DCLogic runtime, `{{ }}` bindings and `<sc-for>/<sc-if>` are gone; the
+// framework's flex utilities (.fx/.ac/.jb/.gap*) are defined inline; the brand
+// mark SVG is inlined; search/filter/copy are reimplemented as plain JS below.
+
+let site_css = <<'CSS'
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+:root{--bg-0:#0B0D10;--bg-1:#11141A;--bg-2:#171B22;--bg-3:#1E232C;--bg-4:#252B36;--fg-0:#ECEEF2;--fg-1:#B7BDC8;--fg-2:#7C8593;--fg-3:#4E5664;--border-subtle:#1A1F27;--border:#262C36;--border-strong:#3A4250;--accent:oklch(0.62 0.16 250);--accent-hover:oklch(0.66 0.17 250);--accent-bg:oklch(0.62 0.16 250 / 0.14);--accent-fg:oklch(0.82 0.13 250);--success-fg:oklch(0.82 0.16 150);--warning-fg:oklch(0.86 0.13 80);--info-fg:oklch(0.82 0.12 230);--danger-fg:oklch(0.78 0.16 25);--font-sans:'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;--r-sm:4px;--r-md:6px;--r-lg:8px;--ease-out:cubic-bezier(0.2,0,0,1)}
+.page *{box-sizing:border-box}
+.page a{text-decoration:none;color:inherit}
+.fx{display:flex}.ac{align-items:center}.jb{justify-content:space-between}.gap8{gap:8px}.gap16{gap:16px}.gap24{gap:24px}
+.page{background:var(--bg-0);color:var(--fg-0);min-height:100vh;overflow-x:hidden;font-family:var(--font-sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+.mono{font-family:var(--font-mono)}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:0.02em;color:var(--accent-fg)}
+.c-acc{color:var(--accent-fg)}.c-ok{color:var(--success-fg)}.c-info{color:var(--info-fg)}.c-warn{color:var(--warning-fg)}.c-dim{color:var(--fg-2)}.c-fg{color:var(--fg-0)}
+.alpha-banner{background:var(--accent-bg);color:var(--accent-fg);border-bottom:1px solid var(--border);font-family:var(--font-mono);font-size:12.5px;line-height:1.45;text-align:center;padding:8px 16px}
+.alpha-banner strong{font-weight:600}
+.nav{position:sticky;top:0;z-index:20;height:56px;border-bottom:1px solid var(--border);background:rgba(11,13,16,0.82);backdrop-filter:blur(8px)}
+.navin{height:56px}
+.brand{display:flex;align-items:center;gap:9px;font-family:var(--font-mono);font-weight:600;font-size:16px;color:var(--fg-0);letter-spacing:-0.01em}
+.mark{width:24px;height:24px;display:block}
+.bvm{color:var(--accent-fg)}.blab{color:#9AA1AB}
+.navlink{color:var(--fg-1);font-size:13px;display:inline-flex;align-items:center;gap:6px;transition:color 80ms var(--ease-out)}
+.navlink:hover{color:var(--fg-0)}.navlink.on{color:var(--fg-0)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:var(--r-sm);font-size:14px;font-weight:500;border:1px solid transparent;cursor:pointer;text-decoration:none;transition:background 80ms var(--ease-out),border-color 80ms,color 80ms}
+.btn svg{width:16px;height:16px}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn-outline{background:transparent;color:var(--fg-0);border-color:var(--border-strong)}
+.btn-outline:hover{background:var(--bg-2)}
+.head{padding:64px 0 32px}
+.h1{font-size:38px;line-height:1.08;letter-spacing:-0.025em;font-weight:600;margin:14px 0 0}
+.lead{font-size:16px;color:var(--fg-1);line-height:1.6;max-width:60ch;margin:14px 0 0}
+.toolbar{display:flex;align-items:center;gap:12px;margin-top:32px;flex-wrap:wrap}
+.search{display:flex;align-items:center;gap:10px;height:42px;padding:0 14px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-md);flex:1;min-width:240px;transition:border-color 80ms var(--ease-out)}
+.search:focus-within{border-color:var(--border-strong)}
+.search svg{width:16px;height:16px;color:var(--fg-2);flex:none}
+.search input{background:none;border:none;outline:none;color:var(--fg-0);font-family:var(--font-sans);font-size:14px;width:100%}
+.search input::placeholder{color:var(--fg-3)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{font-family:var(--font-mono);font-size:12px;color:var(--fg-1);background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-sm);padding:0 12px;height:42px;display:inline-flex;align-items:center;gap:7px;cursor:pointer;transition:border-color 80ms var(--ease-out),color 80ms,background 80ms}
+.chip:hover{border-color:var(--border-strong);color:var(--fg-0)}
+.chip.on{background:var(--accent-bg);border-color:var(--accent);color:var(--accent-fg)}
+.chipdot{width:7px;height:7px;border-radius:50%}
+.count{font-family:var(--font-mono);font-size:12px;color:var(--fg-2);margin:28px 0 14px}
+.tpls{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding-bottom:8px}
+.tpl{display:flex;flex-direction:column;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-md);padding:18px;text-decoration:none;transition:border-color 80ms var(--ease-out),background 80ms}
+.tpl:hover{border-color:var(--border-strong);background:var(--bg-2)}
+.tplhd{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.arch{font-family:var(--font-mono);font-size:11px;font-weight:600;padding:2px 7px;border-radius:var(--r-sm);border:1px solid var(--border);letter-spacing:0.01em}
+.a-x86{color:var(--info-fg)}.a-arm{color:var(--success-fg)}.a-rv{color:var(--warning-fg)}
+.tplname{font-family:var(--font-mono);font-size:15px;font-weight:600;color:var(--fg-0);margin:14px 0 0;letter-spacing:-0.01em}
+.tpldesc{font-size:13px;color:var(--fg-2);line-height:1.55;margin:7px 0 0}
+.tplmeta{display:flex;align-items:center;gap:14px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border-subtle);font-family:var(--font-mono);font-size:11.5px;color:var(--fg-3)}
+.tplmeta .mi{display:inline-flex;align-items:center;gap:5px}
+.tplmeta svg{width:12px;height:12px}
+.empty{text-align:center;padding:60px 0;color:var(--fg-2);font-family:var(--font-mono);font-size:13px}
+.crumb{display:flex;align-items:center;gap:8px;padding:28px 0 0;font-family:var(--font-mono);font-size:12.5px;color:var(--fg-3)}
+.crumb a{color:var(--fg-2)}.crumb a:hover{color:var(--fg-0)}
+.crumb svg{width:13px;height:13px}
+.thead{padding:24px 0 28px;border-bottom:1px solid var(--border-subtle)}
+.theadrow{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.verpill{font-family:var(--font-mono);font-size:11px;color:var(--fg-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:2px 7px}
+.tname{font-family:var(--font-mono);font-size:28px;font-weight:600;color:var(--fg-0);letter-spacing:-0.02em;margin:14px 0 0}
+.tdesc{font-size:15px;color:var(--fg-1);line-height:1.6;max-width:62ch;margin:12px 0 0}
+.tact{display:flex;flex-direction:column;gap:10px;min-width:300px}
+.pull{display:flex;align-items:center;gap:10px;height:46px;padding:0 6px 0 14px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-md);font-family:var(--font-mono);font-size:13px}
+.pull .pt{color:var(--fg-0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.copybtn{margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:var(--r-sm);background:var(--bg-2);border:1px solid var(--border);color:var(--fg-1);font-family:var(--font-mono);font-size:12px;cursor:pointer;transition:border-color 80ms var(--ease-out),color 80ms}
+.copybtn:hover{border-color:var(--border-strong);color:var(--fg-0)}
+.body{display:grid;grid-template-columns:1.55fr 1fr;gap:40px;padding:36px 0 0;align-items:start}
+.sec{margin-bottom:32px}
+.sectitle{font-size:13px;font-weight:600;color:var(--fg-0);text-transform:uppercase;letter-spacing:0.05em;font-family:var(--font-mono);margin:0 0 14px}
+.prose{font-size:14.5px;color:var(--fg-1);line-height:1.7}
+.prose p{margin:0 0 12px}
+.prose strong{color:var(--fg-0);font-weight:600}
+.prose code{font-family:var(--font-mono);font-size:13px;color:var(--accent-fg);background:var(--bg-2);border:1px solid var(--border-subtle);border-radius:var(--r-sm);padding:1px 5px}
+.ul{list-style:none;padding:0;margin:0}
+.ul li{position:relative;padding:5px 0 5px 20px;font-size:14px;color:var(--fg-1);line-height:1.55}
+.ul li::before{content:"";position:absolute;left:2px;top:12px;width:6px;height:6px;border-radius:50%;background:var(--accent-fg)}
+.code{background:#090B0F;border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;margin-top:6px}
+.codehead{display:flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-bottom:1px solid var(--border-subtle);font-family:var(--font-mono);font-size:12px;color:var(--fg-2)}
+.codehead svg{width:14px;height:14px}
+.codebody{padding:16px 18px;font-family:var(--font-mono);font-size:12.5px;line-height:1.75;white-space:pre;overflow-x:auto;color:var(--fg-1)}
+.t-key{color:var(--accent-fg)}.t-str{color:var(--success-fg)}.t-num{color:var(--warning-fg)}.t-com{color:var(--fg-3)}.t-cmd{color:var(--fg-0)}
+.side{display:flex;flex-direction:column;gap:8px}
+.card{background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-md);padding:18px}
+.metarow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--border-subtle);font-size:13px}
+.metarow:last-child{border-bottom:none}
+.mk{color:var(--fg-2)}
+.mv{font-family:var(--font-mono);font-size:12.5px;color:var(--fg-0);text-align:right}
+.verlist{display:flex;flex-direction:column}
+.veritem{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--border-subtle);font-family:var(--font-mono);font-size:12.5px}
+.veritem:last-child{border-bottom:none}
+.vername{color:var(--fg-1)}
+.vertag{font-size:10.5px;color:var(--accent-fg);border:1px solid var(--accent);border-radius:var(--r-sm);padding:0 5px}
+.verdate{color:var(--fg-3)}
+.tags{display:flex;flex-wrap:wrap;gap:7px}
+.tag{font-family:var(--font-mono);font-size:11.5px;color:var(--fg-1);background:var(--bg-2);border:1px solid var(--border-subtle);border-radius:var(--r-sm);padding:3px 9px}
+.footer{border-top:1px solid var(--border-subtle);padding:48px 0 40px;margin-top:56px}
+.fbar{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--fg-3);font-family:var(--font-mono);flex-wrap:wrap;gap:12px}
+.fbar a{color:var(--fg-2)}.fbar a:hover{color:var(--fg-0)}
+@media(max-width:880px){.tpls{grid-template-columns:1fr 1fr}.h1{font-size:32px}.body{grid-template-columns:1fr;gap:28px}.tname{font-size:24px}.tact{min-width:0;width:100%}}
+@media(max-width:560px){.tpls{grid-template-columns:1fr}}
+CSS
+
+// Inlined brand mark (flask-with-VM), used in the nav.
+let mark_svg = <<'SVG'
+<svg class="mark" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m7 9 3 3-3 3"></path><line x1="13" y1="15" x2="17" y2="15"></line></svg>
+SVG
+
+let nav_html = $<<HTML
+<nav class="nav"><div class="wrap fx ac jb navin"><a class="brand" href="index.html">${mark_svg}<span><span class="bvm">vm</span><span class="blab">lab</span></span></a><div class="fx ac gap24"><a class="navlink" href="https://vmlab.dev/">Home</a><a class="navlink" href="https://vmlab.dev/wskills/vmlab/">Reference</a><a class="navlink on" href="index.html">Templates</a><a class="navlink" href="https://github.com/VMLabDev/vmlab-templates"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"></path></svg>GitHub</a></div></div></nav>
+HTML
+
+let footer_html = <<'HTML'
+<footer class="footer"><div class="wrap fbar"><span>© 2026 vmlab · MIT License</span><span class="fx gap16"><a href="https://vmlab.dev/">Home</a><a href="https://vmlab.dev/wskills/vmlab/">Reference</a><a href="https://github.com/VMLabDev/vmlab-templates">GitHub</a></span></div></footer>
+HTML
+
+// Vanilla JS: copy buttons (data-copy) + listing search/arch/category filter.
+let site_js = <<'HTML'
+<script>
+function vmlabCopy(b){var t=b.getAttribute('data-copy')||'';try{navigator.clipboard&&navigator.clipboard.writeText(t);}catch(e){}var o=b.textContent;b.textContent='copied';clearTimeout(b._t);b._t=setTimeout(function(){b.textContent=o;},1500);}
+(function(){
+  var q='',f='all';
+  var search=document.getElementById('tpl-search');
+  var chips=document.querySelectorAll('.chip');
+  var cards=Array.prototype.slice.call(document.querySelectorAll('.tpl'));
+  var count=document.getElementById('tpl-count');
+  var empty=document.getElementById('tpl-empty');
+  if(!cards.length)return;
+  function apply(){
+    var n=0;
+    cards.forEach(function(c){
+      var okF=f==='all'||c.getAttribute('data-arch')===f||c.getAttribute('data-os')===f;
+      var hay=((c.getAttribute('data-name')||'')+' '+(c.getAttribute('data-desc')||'')).toLowerCase();
+      var okQ=!q||hay.indexOf(q)>=0;
+      var show=okF&&okQ;c.style.display=show?'':'none';if(show)n++;
+    });
+    if(count)count.textContent=n+(n===1?' template':' templates');
+    if(empty)empty.style.display=n?'none':'';
+  }
+  if(search)search.addEventListener('input',function(e){q=(e.target.value||'').trim().toLowerCase();apply();});
+  chips.forEach(function(ch){ch.addEventListener('click',function(){chips.forEach(function(x){x.classList.remove('on');});ch.classList.add('on');f=ch.getAttribute('data-filter');apply();});});
+  apply();
+})();
+</script>
+HTML
+
+let banner_html = <<'HTML'
+<div class="alpha-banner">⚠ <strong>Alpha software.</strong> vmlab and its templates are under active development — expect frequent breaking changes.</div>
+HTML
+
+let shell_html = fn(c: TemplateCtx) -> utf8
+  $<<HTML
+<style>${site_css}</style>
+<div class="page" data-theme="dark">${banner_html}${nav_html}${c.content}${footer_html}</div>
+${site_js}
+HTML
+
+template templates_site {
+  render = fn(c: TemplateCtx) -> list<HtmlFundamental>
+    [ HtmlFundamental::Raw { html: shell_html(c) } ]
+}

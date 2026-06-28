@@ -1,0 +1,53 @@
+// templates.vmlab.dev — the vmlab template-library site, authored in wdoc.
+//
+//   wcl wdoc build docs/main.wcl --out docs/_site     (just docs-build)
+//   wcl wdoc serve docs/main.wcl                       (just docs-serve)
+//
+// Data flow: `just docs-data` (gen-data.sh) pulls the registry + in-repo
+// vmlab.wcl facts into data/templates.gen.wcl (`tpl` blocks); presentation copy
+// is hand-authored in data/meta.wcl (`tmeta` blocks). A template is shown only
+// when it has a matching `tmeta` (the curation gate). The listing page lists
+// them; one detail page is generated per shown template.
+import <wdoc.wcl>
+import "./schema.wcl"
+import "./render.wcl"
+import "./templates-site.wcl"
+import "./data/meta.wcl"
+import "./data/templates.gen.wcl"
+
+// The root @document MUST be declared here (the root file): wdoc only resolves
+// field access on its gathered lists when the @document is in the root document.
+@document
+type TemplatesDoc {
+  @children("tpl")   templates: list<Tpl>
+  @children("tmeta") metas:     list<Tmeta>
+}
+
+site lib {
+  default_template = :templates_site
+  title            = "vmlab templates"
+  root             = true
+}
+
+// Join `tpl` facts to authored `tmeta` copy by short-name, without a nested
+// capturing closure (which doesn't resolve at document scope): `keylist` is the
+// metas' keys in order, so `index_of` gives both membership and the lookup index.
+let keylist = map(metas, fn(m: Tmeta) -> utf8 { m.key })
+
+// The authored `tmeta` for a template short-name (guaranteed for any `shown`).
+let meta_for = fn(sn: utf8) -> Tmeta { at(metas, index_of(keylist, sn)) }
+
+// Only templates with authored presentation metadata are published (curation gate).
+let shown = filter(templates, fn(t: Tpl) -> bool { index_of(keylist, t.short_name) >= 0 })
+
+// Listing page (served at /).
+page index { sites = [:lib]  start = true  title = "Template library"
+  tpl_listing { items = shown  metas = metas }
+}
+
+// One detail page per shown template — `template_<id>.html`.
+wdoc_repeater { each = shown  as = :t
+  page $"template_${t.id}" { sites = [:lib]  title = $"${t.name}"
+    tpl_detail { unit = t  meta = meta_for(t.short_name) }
+  }
+}

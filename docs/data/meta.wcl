@@ -1,0 +1,124 @@
+// Authored presentation metadata for the template library — hand-maintained.
+//
+// Keyed by registry short-name; one entry covers all arches of a template, and
+// it is the curation gate: only templates with a `tmeta` here are published to
+// the site. Joined to the generated `tpl` facts at render time. Keep
+// descriptions free of double-quotes (they ride in an HTML attribute).
+
+import "../schema.wcl"
+
+tmeta "alpine-3.23" {
+  description = "Minimal Alpine Linux 3.23 — musl + busybox with a tiny footprint. A great default Linux guest."
+  category  = "os"
+  os_family = "linux"
+  tags = ["alpine", "minimal", "musl", "cloud-init", "guest-agent"]
+  features = [
+    "musl libc + busybox userland, OpenRC init",
+    "qemu-guest-agent enabled at boot",
+    "cloud-init for SSH keys, hostname, and first-boot scripts",
+    "VirtIO disk and net drivers built in",
+  ]
+}
+
+tmeta "ubuntu-24.04" {
+  description = "Ubuntu 24.04 LTS cloud image with cloud-init and the QEMU guest agent preinstalled."
+  category  = "os"
+  os_family = "linux"
+  tags = ["ubuntu", "lts", "cloud-init", "guest-agent"]
+}
+
+tmeta "debian-13" {
+  description = "Debian 13 (trixie) genericcloud image — a stable base for servers and provisioning targets."
+  category  = "os"
+  os_family = "linux"
+  tags = ["debian", "stable", "cloud-init"]
+}
+
+tmeta "fedora-44" {
+  description = "Fedora 44 Cloud Base — a recent kernel and toolchain for testing new userspace."
+  category  = "os"
+  os_family = "linux"
+  tags = ["fedora", "cloud-init", "recent"]
+}
+
+tmeta "rocky-9" {
+  description = "Rocky Linux 9 — an enterprise-compatible RHEL rebuild for server labs."
+  category  = "os"
+  os_family = "linux"
+  tags = ["rocky", "rhel", "enterprise"]
+}
+
+tmeta "nixos-25.11" {
+  description = "NixOS 25.11 with a declarative base config — reproducible from the first boot."
+  category  = "os"
+  os_family = "linux"
+  tags = ["nixos", "declarative", "reproducible"]
+}
+
+tmeta "kali" {
+  description = "Kali Linux rolling — the offensive-security toolkit, ready for isolated test labs."
+  category  = "os"
+  os_family = "linux"
+  tags = ["kali", "security", "pentest"]
+}
+
+tmeta "parrot" {
+  description = "Parrot Security OS — a Debian-based security distribution for sandboxed labs."
+  category  = "os"
+  os_family = "linux"
+  tags = ["parrot", "security", "debian"]
+}
+
+tmeta "freedos-1.3" {
+  description = "FreeDOS 1.3 — an open-source DOS for running vintage software and tooling under emulation."
+  category  = "os"
+  os_family = "legacy"
+  tags = ["freedos", "dos", "vintage"]
+}
+
+tmeta "home-assistant" {
+  description = "Home Assistant OS appliance image — drop it into a lab to test smart-home automations."
+  category  = "appliance"
+  os_family = "linux"
+  tags = ["home-assistant", "appliance", "iot"]
+}
+
+tmeta "windows-11" {
+  description = "Windows 11 evaluation image with VirtIO drivers and the guest agent. Sysprep-generalized."
+  category  = "os"
+  os_family = "windows"
+  license   = "Microsoft Software License Terms (evaluation)"
+  tags = ["windows", "win11", "virtio", "guest-agent"]
+}
+
+tmeta "windows-10" {
+  description = "Windows 10 evaluation image with VirtIO drivers and the guest agent. Sysprep-generalized."
+  category  = "os"
+  os_family = "windows"
+  license   = "Microsoft Software License Terms (evaluation)"
+  tags = ["windows", "win10", "virtio", "guest-agent"]
+}
+
+tmeta "windows-server-2025" {
+  description = "Windows Server 2025 evaluation image — domain controllers and Windows server labs."
+  category  = "os"
+  os_family = "windows"
+  license   = "Microsoft Software License Terms (evaluation)"
+  tags = ["windows", "server", "2025", "active-directory"]
+}
+
+tmeta "windows-server-2022" {
+  description = "Windows Server 2022 evaluation image with VirtIO drivers and the guest agent."
+  category  = "os"
+  os_family = "windows"
+  license   = "Microsoft Software License Terms (evaluation)"
+  tags = ["windows", "server", "2022"]
+}
+
+tmeta "windows-server-2019" {
+  description = "Windows Server 2019 evaluation image with VirtIO drivers and the guest agent."
+  category  = "os"
+  os_family = "windows"
+  license   = "Microsoft Software License Terms (evaluation)"
+  tags = ["windows", "server", "2019"]
+}
