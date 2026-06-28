@@ -1,0 +1,3 @@
+name = "vmlab-templates"
+pages_build_output_dir = "docs/_site"
+compatibility_date = "2026-05-31"

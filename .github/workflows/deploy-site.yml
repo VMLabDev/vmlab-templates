@@ -1,0 +1,64 @@
+name: Deploy Site
+
+# Builds the template-library site (docs/main.wcl -> docs/_site) with the `wcl`
+# CLI and deploys it to Cloudflare Pages (project "vmlab-templates", configured
+# in wrangler.toml; the templates.vmlab.dev custom domain is attached in the
+# Cloudflare dashboard). Runs only when docs/ — or the deploy config — change on
+# main.
+#
+# This is a docs-only build: it runs `wcl wdoc build` over the COMMITTED
+# docs/data/templates.gen.wcl. It does NOT run `just docs-data` (that needs the
+# `vmlab` binary + GHCR auth) and it does NOT build any template image, so it
+# does not need KVM and stays within GitHub Actions' terms. Refresh registry
+# facts locally with `just docs-data` and commit the result.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'wrangler.toml'
+      - '.github/workflows/deploy-site.yml'
+
+env:
+  CARGO_TERM_COLOR: always
+  # Pin the wcl CLI to the same rev the vmlab repo uses, so both sites render
+  # with the same wdoc version.
+  WCL_REV: ed84924565334008ae0656be78e29338328c8419
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Cache wcl CLI
+        id: wcl-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/wcl
+          key: wcl-${{ env.WCL_REV }}
+
+      - name: Install wcl CLI
+        if: steps.wcl-cache.outputs.cache-hit != 'true'
+        run: cargo install --git https://github.com/wiltaylor/wcl.git --rev ${{ env.WCL_REV }} --locked wcl
+
+      - uses: taiki-e/install-action@just
+
+      - name: Build docs site
+        run: just docs-build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy
