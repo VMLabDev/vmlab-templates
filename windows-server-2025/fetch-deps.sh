@@ -44,4 +44,11 @@ done
 
 cp "$tmp/virtio-win-gt-x64.msi" unattend/
 cp "$tmp/guest-agent/qemu-ga-x86_64.msi" unattend/
+# WinFsp: the user-mode filesystem framework the virtio-win virtiofs
+# service needs — enables the virtiofs share transport (vmlab §7.5).
+# Pinned release; redistributable (GPLv3 with FLOSS exception).
+WINFSP_URL="https://github.com/winfsp/winfsp/releases/download/v2.0/winfsp-2.0.23075.msi"
+curl -fSL --retry 3 -o unattend/winfsp.msi "$WINFSP_URL"
+echo "6324dc81194a6a08f97b6aeca303cf5c2325c53ede153bae9fc4378f0838c101  unattend/winfsp.msi" | sha256sum -c --quiet -
+
 echo "MSIs staged into unattend/"

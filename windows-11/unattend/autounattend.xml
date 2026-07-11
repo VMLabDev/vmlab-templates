@@ -153,6 +153,12 @@
         <SynchronousCommand wcm:action="add"
             xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
           <Order>3</Order>
+          <CommandLine>cmd /c for %d in (D E F G) do if exist %d:\winfsp.msi start /wait msiexec.exe /i %d:\winfsp.msi /qn /norestart</CommandLine>
+          <Description>WinFsp (virtiofs share transport)</Description>
+        </SynchronousCommand>
+        <SynchronousCommand wcm:action="add"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+          <Order>4</Order>
           <CommandLine>cmd /c for %d in (D E F G) do if exist %d:\qemu-ga-x86_64.msi start /wait msiexec.exe /i %d:\qemu-ga-x86_64.msi /qn /norestart</CommandLine>
           <Description>QEMU guest agent (signals build completion)</Description>
         </SynchronousCommand>
