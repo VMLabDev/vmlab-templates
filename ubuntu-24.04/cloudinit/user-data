@@ -16,6 +16,16 @@ autoinstall:
   ssh:
     install-server: true
     allow-pw: true
+  # Match the predictable-name family rather than the build VM's PCI-derived
+  # interface name. Clones can enumerate the same virtio NIC as enp0s3 or
+  # enp0s4 depending on which optional devices their lab configuration adds.
+  network:
+    version: 2
+    ethernets:
+      all-en:
+        match:
+          name: "en*"
+        dhcp4: true
   packages:
     - qemu-guest-agent
   late-commands:
