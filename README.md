@@ -4,6 +4,44 @@ A collection of [vmlab](https://github.com/wiltaylor/vmlab) template
 definitions for common operating systems. Each directory is a standalone
 template: `cd` into it and run `vmlab template build`.
 
+The root [`vmlab.wcl`](vmlab.wcl) is a unified catalog of every definition in
+this repository. It is generated from the standalone files with
+`scripts/generate-unified-wcl.sh`; edit the per-template definitions and
+regenerate rather than editing the root file directly.
+
+## Build from the Web UI
+
+The included Compose stack runs the unified catalog with the vmlab
+`0.6.0-alpha` prerelease, which supports same-name templates on multiple
+architectures:
+
+```sh
+docker compose pull
+docker compose up -d
+```
+
+Open <http://localhost:7879>, select the `templates` lab, then use the
+**Templates** tab to build or publish an exact architecture/template pair.
+The template store, build working data, and downloaded artefacts live in named
+Docker volumes, so they survive container replacement. Override the image when
+testing another build:
+
+```sh
+VMLAB_IMAGE=ghcr.io/vmlabdev/vmlab:latest docker compose up -d
+```
+
+The repository is bind-mounted at `/lab`, so prerequisites generated on the
+host are immediately visible in the container. Compose deliberately does not
+run `fetch-deps.sh` automatically: prepare the templates that need staged
+drivers, extracted images, or answer files with their existing `just` recipe
+or script before clicking Build. Templates backed by proprietary media also
+need the documented ISO in `iso/`; `windows-2000` additionally needs the
+product key in `.env`. The Windows 11 ARM64 definition remains experimental
+and retains its deliberate placeholder URL/hash tripwire.
+
+Linux/KVM is required by the Compose stack (`/dev/kvm`). Non-native ARM64 and
+RISC-V builds still use TCG inside vmlab and can take substantially longer.
+
 ## Templates
 
 | Directory | OS | Source strategy |

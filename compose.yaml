@@ -1,0 +1,21 @@
+services:
+  vmlab-web:
+    image: ${VMLAB_IMAGE:-ghcr.io/vmlabdev/vmlab:0.6.0-alpha}
+    ports:
+      - "7879:7878"
+    devices:
+      - "/dev/kvm:/dev/kvm"
+    environment:
+      VMLAB_WEB_UP: "0"
+      VMLAB_FASTPATH: "off"
+    volumes:
+      - .:/lab
+      - vmlab-template-store:/root/.local/share/vmlab/templates
+      - vmlab-template-work:/var/lib/vmlab/work
+      - vmlab-artefacts:/root/.cache/vmlab/artefacts
+    restart: unless-stopped
+
+volumes:
+  vmlab-template-store:
+  vmlab-template-work:
+  vmlab-artefacts:

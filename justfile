@@ -6,6 +6,20 @@
 main:
 	@just --list
 
+# Start the unified template catalog in the vmlab Web UI
+[group('web')]
+web:
+	docker compose up -d
+	@echo "vmlab Web UI: http://localhost:7879"
+
+# Rebuild vmlab from the sibling source repo, then recreate the Web UI service
+# with that local image (including any runtime dependency changes).
+[group('web')]
+rebuild:
+	docker build -t vmlab:templates-local -f ../vmlab/Containerfile ../vmlab
+	VMLAB_IMAGE=vmlab:templates-local docker compose up -d --force-recreate --pull never
+	@echo "vmlab Web UI: http://localhost:7879"
+
 # Build one template dir (skips refs already in the store; stages fetch-deps.sh payloads)
 [group('build')]
 template-build dir ref:
