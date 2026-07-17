@@ -158,11 +158,29 @@ fn hold_until_warm(lab: Lab, vm: Vm) {
     lab.log("first-boot: warm-up wait capped; continuing")
 }
 
+// Images generalized in a USER context (generalize.ps1 writes
+// HKLM\SOFTWARE\vmlab SysprepContext=user) don't have the sysprep-as-SYSTEM
+// damage: their clones survive even an immediate first logon (verified live
+// 2026-07-17), so the retrofit hook and the 5-minute warm-up hold are
+// skipped. Images sealed the old way (no marker) keep both.
+fn image_fixed(vm: Vm) -> bool {
+    let ps = "(Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\vmlab' -Name 'SysprepContext' -ErrorAction SilentlyContinue).SysprepContext"
+    match vm.exec("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", ps]) {
+        Ok(r) => r.exit_code == 0 && r.stdout.trim() == "user",
+        Err(e) => false,
+    }
+}
+
 fn main(lab: Lab) {
     let vm = lab.this_vm().expect("first-boot: no target VM")
     wait_first_boot(lab, vm).expect("windows first-boot failed")
+    let fixed = image_fixed(vm)
     settle_appx(lab, vm)
-    install_xaml_hook(lab, vm)
+    if !fixed {
+        install_xaml_hook(lab, vm)
+    }
     reboot_guest(lab, vm).expect("first-boot reboot failed")
-    hold_until_warm(lab, vm)
+    if !fixed {
+        hold_until_warm(lab, vm)
+    }
 }

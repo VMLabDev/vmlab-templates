@@ -49,6 +49,13 @@ Get-AppxPackage -AllUsers | Where-Object {
     Write-Output ("pre-sysprep appx: {0}: {1}" -f $r, $_.PackageFullName)
 }
 
+# Record that this image was generalized in a USER context (the supported
+# mode — see the header): the template's first-boot script skips its
+# broken-image retrofits (XAML registration hook, warm-up hold) when this
+# marker survives into the clone.
+New-Item -Path 'HKLM:\SOFTWARE\vmlab' -Force | Out-Null
+Set-ItemProperty -Path 'HKLM:\SOFTWARE\vmlab' -Name 'SysprepContext' -Value 'user'
+
 # Client SKUs (Windows 10/11) carry many more consumer AppX packages than Server,
 # so allow plenty of passes; each failed pass is a fast validate-only abort.
 $prev = ''
