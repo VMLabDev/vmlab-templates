@@ -44,7 +44,15 @@ fn install(lab: Lab) -> Result[unit, string] {
         Err(e) => lab.log("version check failed (agent is up though): " + e),
     }
 
-    apply_updates(lab, vm)?
+    // Operator toggle for fast test builds: patching is the bulk of the
+    // 30-45 min build, so `VMLAB_SKIP_UPDATES=1 vmlab template build ...`
+    // skips it while iterating on the install/sysprep flow. Published
+    // builds must run fully patched (the default).
+    if vmlab::env("VMLAB_SKIP_UPDATES") == "1" {
+        lab.log("VMLAB_SKIP_UPDATES=1 — skipping Windows Update (test build only)")
+    } else {
+        apply_updates(lab, vm)?
+    }
     disable_updates(lab, vm)?
     sysprep(lab, vm)
 }
