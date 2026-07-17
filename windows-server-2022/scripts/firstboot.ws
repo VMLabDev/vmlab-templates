@@ -17,6 +17,16 @@
 // reboot after specialize completes lets the reconciliation finish on a clean
 // boot, so the first logon builds a working profile. (github.com/wiltaylor/
 // vmlab-templates#1.)
+//
+// The reboot alone is NOT enough (issue #1, second act, diagnosed 2026-07-17):
+// the image's Windows Update run leaves 24H2's LKG shell packages
+// (MicrosoftWindows.LKG.*) staged at the base version for no user, and Windows
+// re-attempts their reconciliation during the machine's next PROFILE-CREATING
+// logon — the during-logon AppX pass. explorer.exe starting mid-reconciliation
+// fail-fasts and that profile's shell state stays broken on every later logon
+// (seen live: a DC's first Administrator logon 4 min after the dcpromo reboot;
+// a fresh profile created after the reconciliation settled was fine).
+// settle_appx consumes that pending work as SYSTEM before anyone can log on.
 
 use vmlab
 
@@ -39,6 +49,26 @@ fn wait_first_boot(lab: Lab, vm: Vm) -> Result[unit, string] {
         vmlab::sleep_ms(5000)
     }
     Err("first-boot marker never appeared after ~25 minutes")
+}
+
+// Consume the pending staged-AppX reconciliation before anyone can log on.
+// Targets main packages staged for no user and not provisioned (the stale LKG
+// shell fallbacks after a Windows Update run). The LKG system apps refuse
+// removal (0x80073CFA "part of Windows") — that is fine: the removal ATTEMPT
+// itself settles the pending reconciliation, so the first real logon has
+// nothing to race. Best-effort; never fails the first boot.
+fn settle_appx(lab: Lab, vm: Vm) {
+    lab.log("first-boot: settling staged AppX (LKG) before first logon")
+    let ps = "$prov = (Get-AppxProvisionedPackage -Online).DisplayName; Get-AppxPackage -AllUsers | Where-Object { -not $_.IsFramework -and -not $_.IsResourcePackage -and $prov -notcontains $_.Name -and -not ($_.PackageUserInformation | Where-Object InstallState -eq 'Installed') } | ForEach-Object { $r = 'removed'; try { Remove-AppxPackage -Package $_.PackageFullName -AllUsers -ErrorAction Stop } catch { $r = 'settled' }; Write-Output ($r + ' ' + $_.PackageFullName) }"
+    match vm.exec("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", ps]) {
+        Ok(r) => {
+            let out = r.stdout.trim()
+            if out != "" {
+                lab.log("first-boot: appx: " + out)
+            }
+        }
+        Err(e) => lab.log("first-boot: appx settle skipped (" + e + ")"),
+    }
 }
 
 // Reboot from inside Windows once specialize has finished, then wait for the
@@ -68,5 +98,6 @@ fn reboot_guest(lab: Lab, vm: Vm) -> Result[unit, string] {
 fn main(lab: Lab) {
     let vm = lab.this_vm().expect("first-boot: no target VM")
     wait_first_boot(lab, vm).expect("windows first-boot failed")
+    settle_appx(lab, vm)
     reboot_guest(lab, vm).expect("first-boot reboot failed")
 }
