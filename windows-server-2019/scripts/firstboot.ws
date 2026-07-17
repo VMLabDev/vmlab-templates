@@ -71,6 +71,40 @@ fn settle_appx(lab: Lab, vm: Vm) {
     }
 }
 
+// Install the first-logon XAML registration hook (the ROOT cause of issue #1,
+// diagnosed 2026-07-17 against Microsoft's own writeup): vmlab runs sysprep
+// under the guest agent, i.e. as Local System, which on 24H2/Server 2025
+// "skips AppX registration for certain XAML packages" — explorer.exe then
+// fail-fasts (0xc0000409) on a clone's early first logon, permanently
+// breaking that profile's shell. Microsoft's supported mitigation for
+// deployed images is to register MicrosoftWindows.Client.CBS,
+// Microsoft.UI.Xaml.CBS and MicrosoftWindows.Client.Core in the user session
+// BEFORE the shell starts:
+// https://learn.microsoft.com/en-us/troubleshoot/windows-client/setup-upgrade-and-drivers/sysprep-as-system-windows-11
+// Active Setup is exactly that hook: its StubPath runs synchronously at each
+// user's first logon, before explorer launches. No-op on pre-24H2 guests
+// (the CBS packages don't exist there). Best-effort.
+fn install_xaml_hook(lab: Lab, vm: Vm) {
+    lab.log("first-boot: installing first-logon XAML registration hook (sysprep-as-SYSTEM workaround)")
+    // register-xaml.ps1, base64 to dodge three layers of quoting. Decoded
+    // it registers the three CBS packages for the logging-on user (retrying
+    // until the deployment service accepts) and then holds the shell until
+    // ~5 min of uptime — a first logon earlier than that permanently breaks
+    // the new profile's shell even with the packages registered. Regenerate:
+    //   base64 -w0 register-xaml.ps1   (source kept in the repo next to this)
+    let b64 = "IyB2bWxhYjogZmlyc3QtbG9nb24gc2hlbGwgZ2F0ZSAoQWN0aXZlIFNldHVwIFN0dWJQYXRoOyBleHBsb3Jlci5leGUgd2FpdHMKIyBmb3IgdGhpcyB0byBleGl0KS4gSW5zdGFsbGVkIGJ5IHRoZSB0ZW1wbGF0ZSdzIGZpcnN0LWJvb3Qgc2NyaXB0IGJlY2F1c2UKIyB2bWxhYiBydW5zIHN5c3ByZXAgYXMgTG9jYWwgU3lzdGVtLCB3aGljaCBvbiAyNEgyL1NlcnZlciAyMDI1IHNraXBzIEFwcFgKIyByZWdpc3RyYXRpb24gZm9yIHRoZSBYQU1MIENCUyBwYWNrYWdlcyDigJQgc2VlCiMgaHR0cHM6Ly9sZWFybi5taWNyb3NvZnQuY29tL2VuLXVzL3Ryb3VibGVzaG9vdC93aW5kb3dzLWNsaWVudC9zZXR1cC11cGdyYWRlLWFuZC1kcml2ZXJzL3N5c3ByZXAtYXMtc3lzdGVtLXdpbmRvd3MtMTEKIwojIFR3byBqb2JzLCBib3RoIHJlcXVpcmVkICh2ZXJpZmllZCBsaXZlIDIwMjYtMDctMTcgb24gU2VydmVyIDIwMjUpOgojICAxLiBSZWdpc3RlciB0aGUgdGhyZWUgQ0JTIHBhY2thZ2VzIGZvciB0aGlzIHVzZXIsIHJldHJ5aW5nIHVudGlsIHRoZSBBcHBYCiMgICAgIGRlcGxveW1lbnQgc2VydmljZSBhY2NlcHRzIHRoZW0gKGl0IHJlZnVzZXMgd29yayBpbiB0aGUgZmlyc3QgbWludXRlCiMgICAgIG9yIHR3byBhZnRlciBib290OyB0aGUgY21kbGV0IHN1Y2NlZWRpbmcgaXMgdGhlIGNvbXBsZXRpb24gc2lnbmFsKS4KIyAgMi4gSG9sZCB0aGUgc2hlbGwgdW50aWwgdGhlIG1hY2hpbmUgaXMgfjUgbWludXRlcyBwYXN0IGJvb3QuIEEgZmlyc3QKIyAgICAgbG9nb24gdGhhdCBsYW5kcyBlYXJsaWVyIHBlcm1hbmVudGx5IGJyZWFrcyB0aGUgbmV3IHByb2ZpbGUncyBzaGVsbAojICAgICBldmVuIFdJVEggdGhlIHBhY2thZ2VzIHJlZ2lzdGVyZWQgKGV4cGxvcmVyIGZhaWwtZmFzdHMsIG9yIG5ldmVyCiMgICAgIGxhdW5jaGVzKSDigJQgdGhlIHN5c3ByZXAtYXMtU1lTVEVNIGRhbWFnZSByZWFjaGVzIGJleW9uZCB0aG9zZSB0aHJlZQojICAgICBwYWNrYWdlcywgYW5kIHBvc3QtYm9vdCBzZXJ2aWNpbmcgbmVlZHMgdGltZSB0byBzZXR0bGUuIFByb2ZpbGVzCiMgICAgIGNyZWF0ZWQgYWZ0ZXIgdGhpcyBnYXRlIGdldCBhIHdvcmtpbmcgZGVza3RvcDsgbGF0ZXIgbG9nb25zIG9mIHRoZQojICAgICBzYW1lIHVzZXIgc2tpcCB0aGlzIHN0dWIgZW50aXJlbHkgKEFjdGl2ZSBTZXR1cCBydW5zIG9uY2UgcGVyIHVzZXIpLgokYXBwcyA9IEAoCiAgJ01pY3Jvc29mdFdpbmRvd3MuQ2xpZW50LkNCU19jdzVuMWgydHh5ZXd5JywKICAnTWljcm9zb2Z0LlVJLlhhbWwuQ0JTXzh3ZWt5YjNkOGJid2UnLAogICdNaWNyb3NvZnRXaW5kb3dzLkNsaWVudC5Db3JlX2N3NW4xaDJ0eHlld3knCikgfCBXaGVyZS1PYmplY3QgeyBUZXN0LVBhdGggKCdDOlxXaW5kb3dzXFN5c3RlbUFwcHNcJyArICRfICsgJ1xhcHB4bWFuaWZlc3QueG1sJykgfQpmb3JlYWNoICgkYSBpbiAkYXBwcykgewogIGZvciAoJGkgPSAwOyAkaSAtbHQgMzY7ICRpKyspIHsKICAgIHRyeSB7CiAgICAgIEFkZC1BcHB4UGFja2FnZSAtUmVnaXN0ZXIgLVBhdGggKCdDOlxXaW5kb3dzXFN5c3RlbUFwcHNcJyArICRhICsgJ1xhcHB4bWFuaWZlc3QueG1sJykgLURpc2FibGVEZXZlbG9wbWVudE1vZGUgLUVycm9yQWN0aW9uIFN0b3AKICAgICAgYnJlYWsKICAgIH0gY2F0Y2ggewogICAgICBTdGFydC1TbGVlcCAtU2Vjb25kcyA1CiAgICB9CiAgfQp9CiR1cHRpbWUgPSAoKEdldC1EYXRlKSAtIChHZXQtQ2ltSW5zdGFuY2UgV2luMzJfT3BlcmF0aW5nU3lzdGVtKS5MYXN0Qm9vdFVwVGltZSkuVG90YWxTZWNvbmRzCmlmICgkdXB0aW1lIC1sdCAzMDApIHsgU3RhcnQtU2xlZXAgLVNlY29uZHMgKFtpbnRdKDMwMCAtICR1cHRpbWUpKSB9CmV4aXQgMAo="
+    let ps = "$apps = @('MicrosoftWindows.Client.CBS_cw5n1h2txyewy','Microsoft.UI.Xaml.CBS_8wekyb3d8bbwe','MicrosoftWindows.Client.Core_cw5n1h2txyewy') | Where-Object { Test-Path ('C:\\Windows\\SystemApps\\' + $_ + '\\appxmanifest.xml') }; if (-not $apps) { Write-Output 'no XAML CBS packages; hook not needed'; exit 0 }; New-Item -ItemType Directory -Path 'C:\\ProgramData\\vmlab' -Force | Out-Null; [IO.File]::WriteAllBytes('C:\\ProgramData\\vmlab\\register-xaml.ps1', [Convert]::FromBase64String('" + b64 + "')); $k = 'HKLM:\\SOFTWARE\\Microsoft\\Active Setup\\Installed Components\\{b3f2f2c4-vmlab-xaml-0001}'; New-Item -Path $k -Force | Out-Null; Set-ItemProperty -Path $k -Name '(Default)' -Value 'vmlab: register XAML AppX before first shell start'; Set-ItemProperty -Path $k -Name 'StubPath' -Value 'powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File C:\\ProgramData\\vmlab\\register-xaml.ps1'; Set-ItemProperty -Path $k -Name 'Version' -Value '1'; Write-Output ('hook installed for: ' + ($apps -join ', '))"
+    match vm.exec("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", ps]) {
+        Ok(r) => {
+            let out = r.stdout.trim()
+            if out != "" {
+                lab.log("first-boot: xaml: " + out)
+            }
+        }
+        Err(e) => lab.log("first-boot: xaml hook skipped (" + e + ")"),
+    }
+}
+
 // Reboot from inside Windows once specialize has finished, then wait for the
 // clone to come back ready. Same approach as the build provision's reboot: a
 // host stop hard-kills QEMU after ~60s, so `shutdown /r` lets Windows settle;
@@ -95,9 +129,40 @@ fn reboot_guest(lab: Lab, vm: Vm) -> Result[unit, string] {
     vm.wait_ready(1800)
 }
 
+// Hold `ready` until the guest is ~5 minutes past its final boot. On
+// 24H2/Server 2025 images sysprepped as Local System, a PROFILE-CREATING
+// logon in the first minutes after boot permanently breaks that profile's
+// shell (explorer fail-fasts or never launches) — even with the XAML
+// packages registered and the shell start gated (all variants verified live
+// 2026-07-17). Warm-machine first logons are reliably fine, so make "ready"
+// imply "warm". The XAML hook above still covers users who race the console
+// before ready.
+fn hold_until_warm(lab: Lab, vm: Vm) {
+    lab.log("first-boot: holding ready until the guest settles (early first logons break the 24H2 shell)")
+    let ps = "[int]((Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime).TotalSeconds"
+    for i in 0..40 {
+        match vm.exec("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", ps]) {
+            Ok(r) => {
+                let up = r.stdout.trim()
+                if r.exit_code == 0 && up != "" {
+                    if up.parse_int().unwrap_or(0) >= 300 {
+                        lab.log("first-boot: guest settled (uptime " + up + "s)")
+                        return
+                    }
+                }
+            }
+            Err(e) => lab.log("first-boot: uptime probe failed (" + e + "); still waiting"),
+        }
+        vmlab::sleep_ms(15000)
+    }
+    lab.log("first-boot: warm-up wait capped; continuing")
+}
+
 fn main(lab: Lab) {
     let vm = lab.this_vm().expect("first-boot: no target VM")
     wait_first_boot(lab, vm).expect("windows first-boot failed")
     settle_appx(lab, vm)
+    install_xaml_hook(lab, vm)
     reboot_guest(lab, vm).expect("first-boot reboot failed")
+    hold_until_warm(lab, vm)
 }

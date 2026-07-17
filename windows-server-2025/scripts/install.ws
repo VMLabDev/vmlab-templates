@@ -182,8 +182,17 @@ fn disable_updates(lab: Lab, vm: Vm) -> Result[unit, string] {
 // (0x80073cf2), and those consumer packages register asynchronously after first
 // logon, so the script runs sysprep in a loop, removing exactly the package each
 // failed pass names until sysprep writes its success tag. It judges success by
-// that tag, never by sysprep.exe's (unreliable) exit code — and its OWN exit code
-// IS reliable, so we gate the build on it.
+// that tag, never by sysprep.exe's (unreliable) exit code.
+//
+// CRITICAL (issue #1, root cause found 2026-07-17): sysprep must NOT run as
+// Local System. The agent execs as SYSTEM, and on 24H2/Server 2025 a
+// SYSTEM-context sysprep skips AppX registration for the XAML CBS packages —
+// every clone's early first logon then permanently breaks that profile's
+// shell (explorer 0xc0000409 fail-fast or a shell that never launches):
+// https://learn.microsoft.com/en-us/troubleshoot/windows-client/setup-upgrade-and-drivers/sysprep-as-system-windows-11
+// So generalize.ps1 runs through a one-shot scheduled task as Administrator
+// (batch logon = a real user context), and the build polls the task + the
+// log it writes.
 fn sysprep(lab: Lab, vm: Vm) -> Result[unit, string] {
     let copy = vm.exec("cmd.exe", [
         "/c",
@@ -193,14 +202,51 @@ fn sysprep(lab: Lab, vm: Vm) -> Result[unit, string] {
         return Err("could not stage sysprep files: " + copy.stderr)
     }
 
-    lab.log("generalizing (sysprep /generalize with AppX-blocker retry, 5-15 min)...")
-    let gen = vm.exec_timeout("powershell.exe", [
-        "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
-        "-File", "C:\\Windows\\Temp\\generalize.ps1",
-    ], 2400)?
-    lab.log("generalize.ps1: " + gen.stdout.trim())
-    if gen.exit_code != 0 {
-        return Err("sysprep generalize failed (exit " + fmt("{}", gen.exit_code) + "): " + gen.stdout.trim() + " " + gen.stderr.trim())
+    lab.log("generalizing (sysprep /generalize as Administrator via task, 5-15 min)...")
+    let del = vm.exec("cmd.exe", ["/c", "del /f /q C:\\Windows\\Temp\\generalize.log C:\\Windows\\Temp\\generalize.rc 2>nul & exit 0"])
+    // A wrapper batch file: %errorlevel% on its own LINE expands at run time
+    // (inline `cmd /c ... & echo %errorlevel%` would expand at parse time).
+    let wrap = vm.exec("powershell.exe", [
+        "-NoProfile", "-NonInteractive", "-Command",
+        "Set-Content -Path 'C:\\Windows\\Temp\\generalize.cmd' -Value @('@echo off', 'powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Windows\\Temp\\generalize.ps1 > C:\\Windows\\Temp\\generalize.log 2>&1', 'echo %errorlevel% > C:\\Windows\\Temp\\generalize.rc')",
+    ])?
+    if wrap.exit_code != 0 {
+        return Err("could not write the generalize wrapper: " + wrap.stderr)
+    }
+    let create = vm.exec("cmd.exe", [
+        "/c",
+        "schtasks /Create /F /TN vmlab-generalize /RU Administrator /RP vmlab123! /RL HIGHEST /SC ONCE /ST 23:59 /TR C:\\Windows\\Temp\\generalize.cmd",
+    ])?
+    if create.exit_code != 0 {
+        return Err("could not create the generalize task: " + create.stdout + " " + create.stderr)
+    }
+    let run = vm.exec("cmd.exe", ["/c", "schtasks /Run /TN vmlab-generalize"])?
+    if run.exit_code != 0 {
+        return Err("could not start the generalize task: " + run.stdout + " " + run.stderr)
+    }
+
+    // Poll for the task's exit-code file (written when generalize.ps1 ends);
+    // sysprep + AppX retries usually take 5-15 minutes.
+    let rc = ""
+    for i in 0..240 {
+        vmlab::sleep_ms(10000)
+        match vm.exec("cmd.exe", ["/c", "type C:\\Windows\\Temp\\generalize.rc"]) {
+            Ok(r) => {
+                if r.exit_code == 0 && r.stdout.trim() != "" {
+                    rc = r.stdout.trim()
+                    break
+                }
+            }
+            Err(e) => lab.log("generalize poll blip (" + e + ")"),
+        }
+    }
+    let out = vm.exec("cmd.exe", ["/c", "type C:\\Windows\\Temp\\generalize.log"])?
+    lab.log("generalize.ps1: " + out.stdout.trim())
+    if rc == "" {
+        return Err("generalize task never finished (~40 min)")
+    }
+    if rc != "0" {
+        return Err("sysprep generalize failed (exit " + rc + ")")
     }
 
     lab.log("sysprep generalized OK (success tag present); powering off to seal")
