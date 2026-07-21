@@ -4,7 +4,7 @@
 // for UEFI (GRUB2), so it boots on the QEMU `virt` machine — this is the
 // image HA documents for QEMU/KVM. Runs under TCG on x86 hosts (no KVM).
 //
-// HAOS is a sealed appliance: no QEMU guest agent and no cloud-init, so
+// HAOS is a sealed appliance: no vmlab guest agent and no cloud-init, so
 // vmlab cannot `exec`/provision into it. You drive it through its web UI —
 // in a lab, forward a host port to the guest's :8123. This build just boots
 // the pristine image once and seals it (first-boot setup re-runs in the lab).
@@ -20,6 +20,8 @@ template "home-assistant" {
   version  = "17.3"
   registry = "ghcr.io/vmlabdev/vmlab-templates/home-assistant"
   profile  = "linux-modern"
+  // Sealed appliance: no way to install the vmlab agent (no ready/exec).
+  agent    = false
   firmware = "ovmf"
   cpus     = 2
   memory   = 2GiB

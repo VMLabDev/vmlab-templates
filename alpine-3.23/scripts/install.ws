@@ -1,5 +1,5 @@
 // Build provision for the alpine-3.23 template. cloud-init (present in
-// the "cloudinit" image variant) installs the QEMU guest agent on first
+// the "cloudinit" image variant) installs the vmlab guest agent (VMLAB bootstrap ISO) on first
 // boot; once it answers we block on `cloud-init status --wait` so the
 // image is only sealed after first-boot configuration fully finished.
 // The build shuts the VM down gracefully after the provision returns.

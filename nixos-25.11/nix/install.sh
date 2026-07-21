@@ -26,4 +26,21 @@ cp "$(dirname "$0")/configuration.nix" /mnt/etc/nixos/configuration.nix
 
 nixos-install --no-root-passwd
 
+# Stage the vmlab guest agent binary from the VMLAB bootstrap ISO (the
+# systemd unit is declared in configuration.nix; it starts on first boot,
+# and the build verifies the handshake with an extra boot after sealing
+# the install).
+mkdir -p /media/vmlab
+if ! mount -o ro LABEL=VMLAB /media/vmlab; then
+  for d in /dev/sr0 /dev/sr1 /dev/sr2; do
+    mount -o ro "$d" /media/vmlab 2>/dev/null || continue
+    [ -e /media/vmlab/install.sh ] && break
+    umount /media/vmlab
+  done
+fi
+mkdir -p /mnt/usr/local/lib/vmlab
+cp "/media/vmlab/linux/$(uname -m)/vmlab-agent" /mnt/usr/local/lib/vmlab/vmlab-agent
+chmod 0755 /mnt/usr/local/lib/vmlab/vmlab-agent
+umount /media/vmlab
+
 poweroff

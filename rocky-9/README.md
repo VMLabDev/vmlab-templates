@@ -5,7 +5,7 @@ cloud-init seed.
 
 - Credentials: `vmlab` / `vmlab` (passwordless sudo via wheel), SSH
   password auth on.
-- QEMU guest agent enabled with EL's RPC allow-list removed (a systemd
+- vmlab guest agent enabled with EL's RPC allow-list removed (a systemd
   override drops `--allow-rpcs`, which otherwise blocks `vmlab exec`/`cp`).
 - SELinux is set **permissive**: enforcing denies the guest agent
   exec'ing binaries, which breaks vmlab provisioning. Revert in

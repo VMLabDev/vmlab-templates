@@ -5,7 +5,7 @@
 //   ./fetch-deps.sh             # one-time: ~3.5G download into disk/
 //   vmlab template build        (run from this directory)
 //
-// The provision script waits for the QEMU guest agent (preinstalled in
+// The provision script waits for the vmlab guest agent (preinstalled in
 // Kali's QEMU image), adds the vmlab user and enables SSH.
 
 import <vmlab.wcl>

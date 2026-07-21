@@ -1,5 +1,5 @@
 // Build provision for the debian-13 template. The genericcloud image
-// boots straight into cloud-init, which installs the QEMU guest agent —
+// boots straight into cloud-init, which installs the vmlab guest agent (VMLAB bootstrap ISO) —
 // so "the agent answers" doubles as "cloud-init got far enough". We then
 // block on `cloud-init status --wait` so the image is only sealed after
 // first-boot configuration fully finished. The build shuts the VM down

@@ -14,7 +14,7 @@ fn console_fallback(lab: Lab, vm: Vm) -> Result[unit, string] {
     vmlab::sleep_ms(5000)
     vm.type_text("parrot\n")?
     vmlab::sleep_ms(8000)
-    vm.type_text("sudo sh -c 'apt-get update && apt-get install -y qemu-guest-agent && systemctl enable --now qemu-guest-agent'\n")?
+    vm.type_text("sudo sh -c 'mkdir -p /media/vmlab && mount -o ro LABEL=VMLAB /media/vmlab && /media/vmlab/install.sh && umount /media/vmlab'\n")?
     vmlab::sleep_ms(3000)
     // sudo may prompt for the password depending on image policy.
     vm.type_text("parrot\n")?

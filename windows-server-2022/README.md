@@ -18,7 +18,7 @@ What happens (`scripts/install.ws` narrates it in the build log):
 2. `autounattend.xml` (on the UNATTEND ISO built from `unattend/`) loads
    the virtio storage/net drivers in WinPE, partitions UEFI/GPT, installs
    **Standard Evaluation (Desktop Experience)**, sets `Administrator` / `vmlab123!`, and on first logon installs
-   the virtio guest tools and the QEMU guest agent.
+   the virtio guest tools and the vmlab guest agent.
 3. The script waits for the guest agent — that's the "install finished" signal.
 4. The script stages `unattend/sysprep-unattend.xml` onto the disk and runs
    `sysprep /generalize /oobe /shutdown`, which powers the VM off; vmlab seals

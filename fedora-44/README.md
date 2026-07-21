@@ -5,7 +5,7 @@ cloud-init seed.
 
 - Credentials: `vmlab` / `vmlab` (passwordless sudo via wheel), SSH
   password auth on.
-- QEMU guest agent enabled with Fedora's RPC filter removed (a systemd
+- vmlab guest agent enabled with Fedora's RPC filter removed (a systemd
   override drops `--allow-rpcs`/blocklists, which otherwise block
   `vmlab exec`/`cp`).
 - SELinux is set **permissive**: enforcing denies the guest agent

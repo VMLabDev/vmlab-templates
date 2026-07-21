@@ -4,7 +4,7 @@
 // under TCG and consistent with the other arm64 cloud-image templates.
 // Runs under TCG on x86 hosts (no KVM) — slow but functional. cloud-init
 // picks up the CIDATA seed (NoCloud), creates vmlab/vmlab and installs the
-// QEMU guest agent. Build with:
+// vmlab guest agent. Build with:
 //
 //   vmlab template build        (run from this directory)
 //

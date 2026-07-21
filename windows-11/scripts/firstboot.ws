@@ -1,7 +1,7 @@
 // First-boot provision for sysprep-generalized Windows templates (PRD §6.1).
 //
 // These templates are sysprep-generalized, so every clone replays the
-// specialize/OOBE pass on first boot. The QEMU guest agent survives generalize
+// specialize/OOBE pass on first boot. The vmlab guest agent survives generalize
 // and can answer guest-ping WHILE specialize is still running — too early to
 // treat the VM as ready. sysprep-unattend.xml writes the marker
 // C:\Windows\Temp\vmlab-firstboot.done from a specialize-pass command (as

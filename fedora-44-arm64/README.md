@@ -5,7 +5,7 @@ with a NoCloud cloud-init seed. Store ref: `aarch64/fedora-44`.
 
 - Credentials: `vmlab` / `vmlab` (passwordless sudo via wheel), SSH
   password auth on.
-- QEMU guest agent enabled with Fedora's RPC filter removed (a systemd
+- vmlab guest agent enabled with Fedora's RPC filter removed (a systemd
   override drops the blocklist, which otherwise blocks `vmlab exec`/`cp`).
 - SELinux is set **permissive**: enforcing denies the guest agent
   exec'ing binaries, which breaks vmlab provisioning. Revert in

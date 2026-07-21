@@ -16,7 +16,7 @@ On x86 hosts it runs under **TCG** (no KVM), so it is slow.
 
 HAOS is a sealed appliance:
 
-- **No QEMU guest agent and no cloud-init** — `vmlab exec`/`cp`/provisioning
+- **No vmlab guest agent and no cloud-init** — `vmlab exec`/`cp`/provisioning
   do not work against it, and there is no SSH login by default.
 - Drive it through its **web UI on port 8123**. In a lab, forward a host port
   to the guest:

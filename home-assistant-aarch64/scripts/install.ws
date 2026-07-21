@@ -1,5 +1,5 @@
 // Build provision for the home-assistant (aarch64) template. HAOS is a sealed
-// appliance with no QEMU guest agent, so we cannot wait_ready/exec against it.
+// appliance with no vmlab guest agent, so we cannot wait_ready/exec against it.
 // vmlab's builder always boots the VM and then does a graceful ACPI shutdown
 // before sealing, so the only job here is to give HAOS enough time to reach a
 // state where it honours the ACPI power button (systemd up) before that

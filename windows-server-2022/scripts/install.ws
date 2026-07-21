@@ -1,7 +1,7 @@
 // Build provision for the windows-server-2022 template (PRD §6.1, §10.4).
 // Two human moments to automate: the ISO's "Press any key to boot from CD
 // or DVD" prompt right after power-on, and knowing when the unattended
-// install is done — autounattend.xml installs the QEMU guest agent as its
+// install is done — autounattend.xml installs the vmlab guest agent (VMLAB bootstrap ISO) as its
 // last first-logon command, so "agent responding" means finished.
 //
 // The image is then generalized. Client SKUs make sysprep /generalize abort

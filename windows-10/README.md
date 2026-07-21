@@ -18,7 +18,7 @@ What happens (`scripts/install.ws` narrates it in the build log):
 2. `autounattend.xml` (on the UNATTEND ISO built from `unattend/`) loads
    the virtio storage/net drivers in WinPE, partitions UEFI/GPT, installs
    the single **Enterprise Evaluation** image, sets `Administrator` / `vmlab123!`, and on first logon installs
-   the virtio guest tools and the QEMU guest agent.
+   the virtio guest tools and the vmlab guest agent.
 3. The script waits for the guest agent — that's the "install finished" signal.
 4. It strips per-user + provisioned AppX packages (otherwise `sysprep
    /generalize` aborts on client SKUs), runs `sysprep /generalize /oobe`

@@ -2,7 +2,7 @@
 // (RISC-V is a Fedora alternative-architecture port, currently at 42 —
 // behind the primary aarch64/x86_64 which are at 44). Runs under TCG on x86
 // hosts (no KVM) — slow but functional. cloud-init picks up the CIDATA seed
-// (NoCloud), creates vmlab/vmlab and installs the QEMU guest agent. Build:
+// (NoCloud), creates vmlab/vmlab and installs the vmlab guest agent (VMLAB bootstrap ISO). Build:
 //
 //   vmlab template build        (run from this directory)
 //

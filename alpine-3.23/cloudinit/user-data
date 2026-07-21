@@ -11,8 +11,17 @@ users:
     passwd: "$6$msm7717SQBFhDWd8$Or75iQS6wZyqEqcm3QhWTz8gktMIHyvDmqWhs8rATckOUtgRZyTfuQ5C2lPMKnN9PQGF5FxJwYDaU6wGafA/z0"
 ssh_pwauth: true
 packages:
-  - qemu-guest-agent
   - sudo
 runcmd:
-  - rc-update add qemu-guest-agent default
-  - rc-service qemu-guest-agent start
+  - |
+    set -e
+    mkdir -p /media/vmlab
+    if ! mount -o ro LABEL=VMLAB /media/vmlab; then
+      for d in /dev/sr0 /dev/sr1 /dev/sr2 /dev/vdb /dev/vdc /dev/vdd; do
+        mount -o ro "$d" /media/vmlab 2>/dev/null || continue
+        [ -e /media/vmlab/install.sh ] && break
+        umount /media/vmlab
+      done
+    fi
+    /media/vmlab/install.sh
+    umount /media/vmlab

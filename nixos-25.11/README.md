@@ -5,7 +5,7 @@ NixOS 25.11 installed from the official minimal ISO with a scripted
 
 - Credentials: `vmlab` / `vmlab` (passwordless sudo via wheel); root login
   locked. SSH password auth on.
-- QEMU guest agent enabled (`services.qemuGuest`).
+- vmlab guest agent enabled (`services.qemuGuest`).
 - System config baked from `nix/configuration.nix`
   (`system.stateVersion = "25.11"`); the generated
   `hardware-configuration.nix` is kept.

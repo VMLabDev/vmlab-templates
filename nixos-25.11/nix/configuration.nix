@@ -11,7 +11,17 @@
   networking.hostName = "nixos";
   networking.useDHCP = true;
 
-  services.qemuGuest.enable = true;
+  # vmlab guest agent: static musl binary copied from the VMLAB bootstrap
+  # ISO by nix/install.sh; declared here so activation owns the unit.
+  systemd.services.vmlab-agent = {
+    description = "vmlab guest agent (terminals/exec/files over virtio-serial)";
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      ExecStart = "/usr/local/lib/vmlab/vmlab-agent";
+      Restart = "always";
+      RestartSec = 2;
+    };
+  };
 
   services.openssh.enable = true;
   services.openssh.settings.PasswordAuthentication = true;

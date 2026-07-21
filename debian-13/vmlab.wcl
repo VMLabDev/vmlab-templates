@@ -1,6 +1,6 @@
 // Debian 13 (trixie) template built from the official genericcloud qcow2.
 // cloud-init picks up the CIDATA ISO (NoCloud), creates vmlab/vmlab,
-// installs the QEMU guest agent and the provision script confirms the
+// installs the vmlab guest agent (VMLAB bootstrap ISO) and the provision script confirms the
 // agent answers before the image is sealed. Build with:
 //
 //   vmlab template build        (run from this directory)

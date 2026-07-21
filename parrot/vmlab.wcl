@@ -5,7 +5,7 @@
 //   ./fetch-deps.sh             # one-time: ~3G download into disk/
 //   vmlab template build        (run from this directory)
 //
-// The provision script waits for the QEMU guest agent, falling back to a
+// The provision script waits for the vmlab guest agent, falling back to a
 // blind text-console login (parrot/parrot) to install it if missing.
 
 import <vmlab.wcl>

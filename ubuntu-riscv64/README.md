@@ -8,7 +8,7 @@ Uses the cloud image + cloud-init (like the arm64 templates) — far faster
 under TCG than an installer ISO.
 
 - Credentials: `vmlab` / `vmlab` (passwordless sudo), SSH password auth on.
-- QEMU guest agent installed and enabled.
+- vmlab guest agent installed and enabled.
 - Boots UEFI (EDK2 RiscVVirt) on the QEMU `virt` machine (`acpi=off`). On
   x86 hosts it runs under **TCG** (no KVM), so the build is slow.
 - Host needs `qemu-system-riscv64` (QEMU ≥ 8.1) and the riscv64 UEFI

@@ -2,7 +2,6 @@
 # Pull the virtio-win bits the unattended install needs into unattend/:
 #   unattend/drivers/{viostor,netkvm}/   boot-critical virtio drivers (WinPE)
 #   unattend/virtio-win-gt-x64.msi       full guest driver/tool package
-#   unattend/qemu-ga-x86_64.msi          QEMU guest agent
 # These are redistributable binaries and stay out of git (.gitignore).
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -47,7 +46,6 @@ for drv in viostor NetKVM; do
 done
 
 cp "$tmp/virtio-win-gt-x64.msi" unattend/
-cp "$tmp/guest-agent/qemu-ga-x86_64.msi" unattend/
 # WinFsp: the user-mode filesystem framework the virtio-win virtiofs
 # service needs — enables the virtiofs share transport (vmlab §7.5).
 # Pinned release; redistributable (GPLv3 with FLOSS exception).

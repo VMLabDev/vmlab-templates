@@ -5,7 +5,7 @@ image (UEFI + cloud-init variant). Store ref: `aarch64/alpine-3.23`.
 
 - Credentials: `vmlab` / `vmlab` (passwordless sudo via wheel, `sudo`
   installed by the seed), SSH password auth on.
-- QEMU guest agent installed and added to the default runlevel.
+- vmlab guest agent installed and added to the default runlevel.
 - Boots UEFI (AAVMF) on the QEMU `virt` machine. On x86 hosts it runs under
   **TCG** (no KVM); being the smallest image, it is the fastest arm64
   template to build.

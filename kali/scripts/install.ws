@@ -1,5 +1,5 @@
 // Build provision for the kali template. The official QEMU image ships
-// with the QEMU guest agent preinstalled, so the agent should answer
+// with the vmlab guest agent preinstalled, so the agent should answer
 // shortly after boot. If it does not, fall back to a blind text-console
 // login (kali/kali on tty2) to install it, then continue. Either way we
 // add the vmlab user and enable SSH before the image is sealed.
@@ -14,7 +14,7 @@ fn console_fallback(lab: Lab, vm: Vm) -> Result[unit, string] {
     vmlab::sleep_ms(5000)
     vm.type_text("kali\n")?
     vmlab::sleep_ms(8000)
-    vm.type_text("sudo sh -c 'apt-get update && apt-get install -y qemu-guest-agent && systemctl enable --now qemu-guest-agent'\n")?
+    vm.type_text("sudo sh -c 'mkdir -p /media/vmlab && mount -o ro LABEL=VMLAB /media/vmlab && /media/vmlab/install.sh && umount /media/vmlab'\n")?
     vmlab::sleep_ms(3000)
     // sudo may prompt for the password depending on image policy.
     vm.type_text("kali\n")?

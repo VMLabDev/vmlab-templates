@@ -1,6 +1,6 @@
 // Rocky Linux 9 template built from the official GenericCloud qcow2.
 // cloud-init picks up the CIDATA ISO (NoCloud), creates vmlab/vmlab and
-// installs the QEMU guest agent. Build with:
+// installs the vmlab guest agent (VMLAB bootstrap ISO). Build with:
 //
 //   vmlab template build        (run from this directory)
 //
