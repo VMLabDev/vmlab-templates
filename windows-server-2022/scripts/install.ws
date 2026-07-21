@@ -76,13 +76,22 @@ fn stage_script(vm: Vm, name: string) -> Result[string, string] {
 // long post-update "Working on updates" finalize and drops the next boot into
 // WinRE. `shutdown /r` lets Windows finalize at its own pace; we then wait for
 // the guest agent to drop (so we don't race ahead while it's still up) and come
-// back. Falls back to a host restart only if the agent never goes away.
+// back. The drop-watch MUST be the live `agent_answering()` probe — `is_ready`
+// outside first-boot is the sticky flag and never goes false while QEMU runs,
+// which silently turned every reboot here into the forced host restart (and a
+// heavy cumulative then hard-killed mid-finalize lands the guest in WinRE).
+// Falls back to a host restart only if the agent never goes away.
 fn reboot_guest(lab: Lab, vm: Vm) -> Result[unit, string] {
-    let r = vm.exec("cmd.exe", ["/c", "shutdown /r /t 0 /f"])
+    // The shutdown can tear the agent down before the exec reply arrives, so
+    // an exec error here usually means the reboot is already underway.
+    match vm.exec("cmd.exe", ["/c", "shutdown /r /t 0 /f"]) {
+        Ok(r) => lab.log("in-guest reboot requested"),
+        Err(e) => lab.log("shutdown exec did not return cleanly (reboot likely underway): " + e),
+    }
     let dropped = false
-    for i in 0..60 {                 // up to ~5 min for the agent to disappear
+    for i in 0..120 {                // up to ~10 min: update finalize runs before services stop
         vmlab::sleep_ms(5000)
-        if !vm.is_ready() {
+        if !vm.agent_answering() {
             dropped = true
             break
         }
