@@ -88,16 +88,25 @@ fn reboot_guest(lab: Lab, vm: Vm) -> Result[unit, string] {
         Ok(r) => lab.log("in-guest reboot requested"),
         Err(e) => lab.log("shutdown exec did not return cleanly (reboot likely underway): " + e),
     }
+    // Post-update "Working on updates" runs BEFORE services stop, so the
+    // agent can legitimately keep answering for a long time (Server rollups:
+    // 10-30+ min observed). The probe is live, so a generous cap costs
+    // nothing — the loop exits the moment the guest actually goes down. The
+    // forced host restart is a true last resort: its hard-kill rung is what
+    // corrupts a finalize and lands the guest in WinRE.
     let dropped = false
-    for i in 0..120 {                // up to ~10 min: update finalize runs before services stop
+    for i in 0..720 {                // up to 60 min
         vmlab::sleep_ms(5000)
         if !vm.agent_answering() {
             dropped = true
             break
         }
+        if i == 120 {
+            lab.log("guest still finalizing updates before its reboot (10 min); waiting up to 60")
+        }
     }
     if !dropped {
-        lab.log("guest agent still up after reboot request; forcing host restart")
+        lab.log("guest agent still up 60 min after reboot request; forcing host restart")
         vm.restart()?
     }
     vm.wait_ready(7200)              // finalize+boot can be long for big cumulatives
