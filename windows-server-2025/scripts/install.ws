@@ -159,7 +159,7 @@ fn reboot_guest(lab: Lab, vm: Vm) -> Result[unit, string] {
 // pass is never enough. WU is flaky, so a FAILED pass is retried, not fatal.
 // Run one Windows Update pass and classify the outcome. The WU agent (notably
 // Server 2019/2022 on a big backlog) can hang a search/install for a very long
-// time, so each pass is capped at 1h; an exec error/timeout is reported as
+// time, so each pass is capped at 2h; an exec error/timeout is reported as
 // "FAILED" so the caller reboots (which clears the stuck agent) and retries
 // rather than aborting the whole build. Returns "NONE" / "INSTALLED" / "FAILED".
 fn classify_wu(lab: Lab, out: string) -> string {
@@ -190,7 +190,7 @@ fn run_wu_pass(lab: Lab, vm: Vm, script: string) -> string {
     }
     match vm.exec_timeout("powershell.exe", [
         "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script,
-    ], 3600) {
+    ], 7200) {
         Ok(r)  => classify_wu(lab, r.stdout),
         Err(e) => wu_err(lab, e),
     }
