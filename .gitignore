@@ -20,3 +20,4 @@ parrot/disk/
 
 # Generated docs site
 /docs/_site
+home-assistant-aarch64/haos_generic-aarch64-*.qcow2
