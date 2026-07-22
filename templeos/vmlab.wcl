@@ -1,0 +1,37 @@
+// TempleOS template (PRD §6.1). Terry A. Davis's public-domain 64-bit hobby
+// OS (templeos.org), booted from the official ISO and auto-installed onto a
+// blank RedSea disk.
+//
+// TempleOS is public domain, so — unlike the proprietary/MS vintage entries —
+// it is freely redistributable and carries a `registry`. The ISO is downloaded
+// and sha256-verified into the artefact cache; no fetch-deps step.
+//
+// It has no networking and no way to run the vmlab guest agent, so the template
+// carries `agent = false`: clones never report `ready` and have no exec/cp/
+// terminal. The CD's `#include "Once"` installer is driven over the live screen
+// (VNC keystrokes + image matching — TempleOS's bitmap font defeats OCR); see
+// scripts/install.ws.
+//
+// The windows-legacy profile fits it well: i440fx + SeaBIOS (TempleOS wants a
+// legacy-BIOS MBR boot), an IDE/ATA disk (its only disk driver), and plain std
+// VGA (it drives VBE directly). The e1000 NIC the profile adds is unused.
+
+import <vmlab.wcl>
+
+template "templeos" {
+  arch     = "x86_64"
+  version  = "5.03"
+  registry = "ghcr.io/vmlabdev/vmlab-templates/templeos"
+  profile  = "windows-legacy"
+  agent    = false
+  cpus     = 2
+  memory   = 512MiB
+  disk     = 2GiB
+
+  source "iso" {
+    url    = "https://templeos.org/Downloads/TempleOS.ISO"
+    sha256 = "5d0fc944e5d89c155c0fc17c148646715bc1db6fa5750c0b913772cfec19ba26"
+  }
+
+  provision "scripts/install.ws" { }
+}

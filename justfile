@@ -85,6 +85,12 @@ windows-11-build: (template-build 'windows-11' 'x86_64/windows-11')
 [group('build')]
 windows-10-build: (template-build 'windows-10' 'x86_64/windows-10')
 
+# Build the TempleOS template (public-domain hobby OS; ISO installer driven
+# over the live screen — agent = false, so clones need a console keypress at
+# the boot menu; see templeos/README.md)
+[group('build')]
+templeos-build: (template-build 'templeos' 'x86_64/templeos')
+
 # Build every download-backed template on a clean machine: x86_64 natively,
 # then the slower TCG arm64 + riscv64 groups. Everything here fetches its own
 # media (URL sources / fetch-deps.sh), so no files need to be placed by hand.
@@ -268,6 +274,11 @@ ubuntu-push: (template-push 'x86_64/ubuntu-24.04')
 # Push the FreeDOS 1.3 template to its registry
 [group('push')]
 freedos-push: (template-push 'x86/freedos-1.3')
+
+# Push the TempleOS template to its registry (public domain — safe to publish;
+# kept standalone, not in the `push` aggregate)
+[group('push')]
+templeos-push: (template-push 'x86_64/templeos')
 
 [group('push')]
 alpine-arm64-push: (template-push 'aarch64/alpine-3.23')
