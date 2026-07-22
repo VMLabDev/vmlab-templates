@@ -1,34 +1,18 @@
-// Build provision for the parrot template. Whether Parrot's QEMU image
-// bundles the guest agent varies by release, so: wait for the agent, and
-// if it never answers do a blind text-console login (parrot/parrot on
-// tty2) to install it. Either way we add the vmlab user and enable SSH
+// Build provision for the parrot template. Parrot's prebuilt QEMU image has no
+// cloud-init or unattended-install hook, so fetch-deps.sh offline-injects a
+// virt-customize firstboot command that runs the VMLAB bootstrap ISO's
+// install.sh — vmlab-agent is therefore up and verified before this provision
+// runs. Here we just wait for the agent, add the vmlab user and enable SSH
 // before the image is sealed.
 
 use vmlab
 
-fn console_fallback(lab: Lab, vm: Vm) -> Result[unit, string] {
-    lab.log("guest agent never answered; trying a blind console install via tty2")
-    vm.send_keys("ctrl-alt-f2")?
-    vmlab::sleep_ms(5000)
-    vm.type_text("parrot\n")?
-    vmlab::sleep_ms(5000)
-    vm.type_text("parrot\n")?
-    vmlab::sleep_ms(8000)
-    vm.type_text("sudo sh -c 'mkdir -p /media/vmlab && mount -o ro LABEL=VMLAB /media/vmlab && /media/vmlab/install.sh && umount /media/vmlab'\n")?
-    vmlab::sleep_ms(3000)
-    // sudo may prompt for the password depending on image policy.
-    vm.type_text("parrot\n")?
-    vm.wait_ready(900)
-}
-
 fn provision(lab: Lab) -> Result[unit, string] {
     let vm = lab.vm("build")?
 
-    lab.log("waiting for the guest agent...")
-    match vm.wait_ready(600) {
-        Ok(_)  => lab.log("guest agent is up"),
-        Err(e) => console_fallback(lab, vm)?,
-    }
+    lab.log("waiting for the vmlab-agent (installed by the firstboot bootstrap)...")
+    vm.wait_ready(900)?
+    lab.log("guest agent is up")
 
     let r = vm.exec_timeout("/bin/sh", [
         "-c",

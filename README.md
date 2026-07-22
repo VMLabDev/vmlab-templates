@@ -47,7 +47,10 @@ RISC-V builds still use TCG inside vmlab and can take substantially longer.
 | Directory | OS | Source strategy |
 |---|---|---|
 | `ubuntu-24.04/` | Ubuntu Server 24.04 LTS | Installer ISO + subiquity autoinstall |
+| `ubuntu-26.04/` | Ubuntu Server 26.04 LTS | Cloud qcow2 + cloud-init |
 | `debian-13/` | Debian 13 (trixie) | Cloud qcow2 + cloud-init |
+| `arch/` | Arch Linux (rolling) | Cloud qcow2 + cloud-init |
+| `almalinux-10/` | AlmaLinux 10 | GenericCloud qcow2 + cloud-init |
 | `fedora-44/` | Fedora 44 | Cloud Base qcow2 + cloud-init |
 | `rocky-9/` | Rocky Linux 9 | GenericCloud qcow2 + cloud-init |
 | `alpine-3.23/` | Alpine Linux 3.23 | NoCloud qcow2 + cloud-init |

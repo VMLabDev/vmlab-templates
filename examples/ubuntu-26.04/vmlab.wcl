@@ -1,0 +1,22 @@
+// Smoke-test the ubuntu-26.04 template: boot x86_64/ubuntu-26.04 on a NAT'd segment
+// and watch the console. Build or pull the template first, then from the repo root:
+//
+//   just example-up ubuntu-26.04       # bring it up and open the console
+//   just example-down ubuntu-26.04     # tear it down
+//
+// Hardware (cpus / memory / firmware) is inherited from the template.
+
+import <vmlab.wcl>
+
+lab "ubuntu-26-04" {
+
+  segment "lan" {
+    subnet = "10.99.0.0/24"
+    nat    = true
+  }
+
+  vm "guest" {
+    template = "x86_64/ubuntu-26.04"
+    nic { segment = "lan" }
+  }
+}

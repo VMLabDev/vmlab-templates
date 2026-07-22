@@ -33,6 +33,14 @@ template-build dir ref:
 	if [ -x fetch-deps.sh ]; then ./fetch-deps.sh; fi
 	vmlab template build
 
+# Build the Arch Linux template (official cloud image + cloud-init)
+[group('build')]
+arch-build: (template-build 'arch' 'x86_64/arch')
+
+# Build the AlmaLinux 10 template (GenericCloud image + cloud-init)
+[group('build')]
+almalinux-build: (template-build 'almalinux-10' 'x86_64/almalinux-10')
+
 # Build the Alpine Linux 3.23 template
 [group('build')]
 alpine-build: (template-build 'alpine-3.23' 'x86_64/alpine-3.23')
@@ -64,6 +72,10 @@ rocky-build: (template-build 'rocky-9' 'x86_64/rocky-9')
 # Build the Ubuntu Server 24.04 template
 [group('build')]
 ubuntu-build: (template-build 'ubuntu-24.04' 'x86_64/ubuntu-24.04')
+
+# Build the Ubuntu Server 26.04 LTS template (cloud image + cloud-init)
+[group('build')]
+ubuntu-26-04-build: (template-build 'ubuntu-26.04' 'x86_64/ubuntu-26.04')
 
 # Build the Windows Server 2025 template (sysprep-generalized)
 [group('build')]
@@ -97,7 +109,7 @@ templeos-build: (template-build 'templeos' 'x86_64/templeos')
 # The local-media Windows (`build-windows-local`) and vintage (`build-vintage`)
 # groups are NOT included — those need their ISOs copied into iso/ first.
 [group('build')]
-build: alpine-build debian-build fedora-build kali-build nixos-build parrot-build rocky-build ubuntu-build windows-build windows-server-2022-build windows-server-2019-build windows-11-build windows-10-build build-arm64 build-riscv64
+build: arch-build almalinux-build alpine-build debian-build fedora-build kali-build nixos-build parrot-build rocky-build ubuntu-build ubuntu-26-04-build windows-build windows-server-2022-build windows-server-2019-build windows-11-build windows-10-build build-arm64 build-riscv64
 
 # --- Local-media Windows (Vista–2016, keyless, sysprep-generalized) ---
 # These install from the MSDN/VL ISOs you place in iso/ (gitignored, see
@@ -252,6 +264,10 @@ prerelease ref:
 	vmlab template push --prerelease '{{ ref }}'
 
 [group('push')]
+arch-push: (template-push 'x86_64/arch')
+[group('push')]
+almalinux-push: (template-push 'x86_64/almalinux-10')
+[group('push')]
 alpine-push: (template-push 'x86_64/alpine-3.23')
 [group('push')]
 debian-push: (template-push 'x86_64/debian-13')
@@ -267,6 +283,8 @@ parrot-push: (template-push 'x86_64/parrot')
 rocky-push: (template-push 'x86_64/rocky-9')
 [group('push')]
 ubuntu-push: (template-push 'x86_64/ubuntu-24.04')
+[group('push')]
+ubuntu-26-04-push: (template-push 'x86_64/ubuntu-26.04')
 
 # FreeDOS 1.3 is FOSS/redistributable (unlike the other vintage + Windows media),
 # so it is safe to publish; kept standalone, not in the `push` aggregate.
@@ -308,7 +326,7 @@ push-riscv64: debian-riscv64-push fedora-riscv64-push ubuntu-riscv64-push
 
 # Push every download-backed Linux template (x86_64 + arm64 + riscv64) to the registry
 [group('push')]
-push: alpine-push debian-push fedora-push kali-push nixos-push parrot-push rocky-push ubuntu-push push-arm64 push-riscv64
+push: arch-push almalinux-push alpine-push debian-push fedora-push kali-push nixos-push parrot-push rocky-push ubuntu-push ubuntu-26-04-push push-arm64 push-riscv64
 
 # Build everything `just build` covers, then push the Linux templates upstream
 [group('push')]
@@ -327,6 +345,20 @@ example-up name:
 [private]
 example-destroy name:
 	cd examples/{{ name }} && vmlab destroy
+
+# Boot the arch example (up + console)
+[group('example')]
+arch-example-up: (example-up 'arch')
+# Destroy the arch example
+[group('example')]
+arch-example-destroy: (example-destroy 'arch')
+
+# Boot the almalinux-10 example (up + console)
+[group('example')]
+almalinux-10-example-up: (example-up 'almalinux-10')
+# Destroy the almalinux-10 example
+[group('example')]
+almalinux-10-example-destroy: (example-destroy 'almalinux-10')
 
 # Boot the alpine-3.23 example (up + console)
 [group('example')]
@@ -439,6 +471,13 @@ ubuntu-24-04-example-up: (example-up 'ubuntu-24.04')
 # Destroy the ubuntu-24.04 example
 [group('example')]
 ubuntu-24-04-example-destroy: (example-destroy 'ubuntu-24.04')
+
+# Boot the ubuntu-26.04 example (up + console)
+[group('example')]
+ubuntu-26-04-example-up: (example-up 'ubuntu-26.04')
+# Destroy the ubuntu-26.04 example
+[group('example')]
+ubuntu-26-04-example-destroy: (example-destroy 'ubuntu-26.04')
 
 # Boot the ubuntu-arm64 example (up + console)
 [group('example')]

@@ -8,12 +8,49 @@ import <vmlab.wcl>
 lab "templates" { }
 
 // -----------------------------------------------------------------------------
+// almalinux-10
+
+// AlmaLinux 10 template (PRD §6.1), built from the official GenericCloud
+// image + cloud-init. One of the two community RHEL rebuilds (alongside
+// Rocky). The qcow2 is downloaded and sha256-verified into the artefact
+// cache; cloudinit/ is packed into a CIDATA ISO (NoCloud datasource) that
+// creates the vmlab login and installs the vmlab guest agent on first boot.
+//
+//   vmlab template build        (run from this directory)
+//
+// Point-release bumps: update the url, sha256 (from the CHECKSUM beside the
+// image under https://repo.almalinux.org/almalinux/10/cloud/x86_64/images/),
+// and version.
+
+
+template "almalinux-10" {
+  arch     = "x86_64"
+  version  = "10.2"
+  registry = "ghcr.io/vmlabdev/vmlab-templates/almalinux-10"
+  profile  = "linux-modern"
+  firmware = "seabios"
+  cpus     = 2
+  memory   = 4GiB
+  disk     = 20GiB
+
+  source "qcow2" {
+    url    = "https://repo.almalinux.org/almalinux/10/cloud/x86_64/images/AlmaLinux-10-GenericCloud-10.2-20260526.0.x86_64.qcow2"
+    sha256 = "47f2218668dd4776be140dd92fa3bea700be1766e2c7d88bdfd6a4b50f477b4d"
+  }
+
+  media { kind = "iso" from = "./almalinux-10/cloudinit/" label = "CIDATA" }
+  nic { nat = true }
+
+  provision "almalinux-10/scripts/install.ws" { }
+}
+
+// -----------------------------------------------------------------------------
 // alpine-3.23-arm64
 
 // Alpine Linux 3.23 for arm64/aarch64, built from the official NoCloud
 // cloud image (UEFI, cloud-init variant). Runs under TCG on x86 hosts (no
 // KVM) — slow but functional. cloud-init picks up the CIDATA seed, creates
-// vmlab/vmlab and installs the QEMU guest agent. Build with:
+// vmlab/vmlab and installs the vmlab guest agent (VMLAB bootstrap ISO). Build with:
 //
 //   vmlab template build        (run from this directory)
 //
@@ -47,7 +84,7 @@ template "alpine-3.23" {
 
 // Alpine Linux 3.23 template built from the official NoCloud cloud image
 // (UEFI, cloud-init variant). cloud-init picks up the CIDATA ISO, creates
-// vmlab/vmlab and installs the QEMU guest agent. Build with:
+// vmlab/vmlab and installs the vmlab guest agent (VMLAB bootstrap ISO). Build with:
 //
 //   vmlab template build        (run from this directory)
 //
@@ -76,12 +113,50 @@ template "alpine-3.23" {
 }
 
 // -----------------------------------------------------------------------------
+// arch
+
+// Arch Linux template (PRD §6.1), built from the official cloud image
+// rather than an installer ISO — Arch has no unattended ISO installer, and
+// the cloud image carries cloud-init. The qcow2 is downloaded and
+// sha256-verified into the artefact cache; cloudinit/ is packed into a
+// CIDATA ISO (NoCloud datasource) that creates the vmlab login and installs
+// the vmlab guest agent (VMLAB ISO) on first boot. SeaBIOS — cloud images boot BIOS.
+//
+//   vmlab template build        (run from this directory)
+//
+// Arch is rolling: this pins a dated image. To refresh, pick a newer
+// vYYYYMMDD.N from https://geo.mirror.pkgbuild.com/images/ and update the
+// url, sha256 (from the .SHA256 beside it), and version.
+
+
+template "arch" {
+  arch     = "x86_64"
+  version  = "20260601"
+  registry = "ghcr.io/vmlabdev/vmlab-templates/arch"
+  profile  = "linux-modern"
+  firmware = "seabios"
+  cpus     = 2
+  memory   = 4GiB
+  disk     = 20GiB
+
+  source "qcow2" {
+    url    = "https://geo.mirror.pkgbuild.com/images/v20260601.539459/Arch-Linux-x86_64-cloudimg-20260601.539459.qcow2"
+    sha256 = "9cfe4bf9bd2abd6b459fae480e6168523ce9c8728734b02a21638abf9eb6a486"
+  }
+
+  media { kind = "iso" from = "./arch/cloudinit/" label = "CIDATA" }
+  nic { nat = true }
+
+  provision "arch/scripts/install.ws" { }
+}
+
+// -----------------------------------------------------------------------------
 // debian-13-arm64
 
 // Debian 13 (trixie) for arm64/aarch64, built from the official
 // genericcloud qcow2. Runs under TCG on x86 hosts (no KVM) — slow but
 // functional. cloud-init picks up the CIDATA seed (NoCloud), creates
-// vmlab/vmlab, installs the QEMU guest agent and the provision script
+// vmlab/vmlab, installs the vmlab guest agent (VMLAB bootstrap ISO) and the provision script
 // confirms the agent answers before the image is sealed. Build with:
 //
 //   vmlab template build        (run from this directory)
@@ -116,7 +191,7 @@ template "debian-13" {
 
 // Debian 13 (trixie) template built from the official genericcloud qcow2.
 // cloud-init picks up the CIDATA ISO (NoCloud), creates vmlab/vmlab,
-// installs the QEMU guest agent and the provision script confirms the
+// installs the vmlab guest agent (VMLAB bootstrap ISO) and the provision script confirms the
 // agent answers before the image is sealed. Build with:
 //
 //   vmlab template build        (run from this directory)
@@ -151,7 +226,7 @@ template "debian-13" {
 // Debian 13 (trixie) for riscv64, built from the official `generic` cloud
 // qcow2. Runs under TCG on x86 hosts (no KVM) — slow but functional.
 // cloud-init picks up the CIDATA seed (NoCloud), creates vmlab/vmlab,
-// installs the QEMU guest agent and the provision confirms the agent
+// installs the vmlab guest agent (VMLAB bootstrap ISO) and the provision confirms the agent
 // answers before the image is sealed. Build with:
 //
 //   vmlab template build        (run from this directory)
@@ -209,7 +284,7 @@ template "dos-6.22" {
 // Fedora 44 for arm64/aarch64, built from the official Cloud Base Generic
 // qcow2. Runs under TCG on x86 hosts (no KVM) — slow but functional.
 // cloud-init picks up the CIDATA seed (NoCloud), creates vmlab/vmlab and
-// installs the QEMU guest agent. Build with:
+// installs the vmlab guest agent (VMLAB bootstrap ISO). Build with:
 //
 //   vmlab template build        (run from this directory)
 //
@@ -242,7 +317,7 @@ template "fedora-44" {
 
 // Fedora 44 template built from the official Cloud Base Generic qcow2.
 // cloud-init picks up the CIDATA ISO (NoCloud), creates vmlab/vmlab and
-// installs the QEMU guest agent. Build with:
+// installs the vmlab guest agent (VMLAB bootstrap ISO). Build with:
 //
 //   vmlab template build        (run from this directory)
 //
@@ -276,7 +351,7 @@ template "fedora-44" {
 // (RISC-V is a Fedora alternative-architecture port, currently at 42 —
 // behind the primary aarch64/x86_64 which are at 44). Runs under TCG on x86
 // hosts (no KVM) — slow but functional. cloud-init picks up the CIDATA seed
-// (NoCloud), creates vmlab/vmlab and installs the QEMU guest agent. Build:
+// (NoCloud), creates vmlab/vmlab and installs the vmlab guest agent (VMLAB bootstrap ISO). Build:
 //
 //   vmlab template build        (run from this directory)
 //
@@ -340,7 +415,7 @@ template "freedos-1.3" {
 // for UEFI (GRUB2), so it boots on the QEMU `virt` machine — this is the
 // image HA documents for QEMU/KVM. Runs under TCG on x86 hosts (no KVM).
 //
-// HAOS is a sealed appliance: no QEMU guest agent and no cloud-init, so
+// HAOS is a sealed appliance: no vmlab guest agent and no cloud-init, so
 // vmlab cannot `exec`/provision into it. You drive it through its web UI —
 // in a lab, forward a host port to the guest's :8123. This build just boots
 // the pristine image once and seals it (first-boot setup re-runs in the lab).
@@ -355,6 +430,8 @@ template "home-assistant" {
   version  = "17.3"
   registry = "ghcr.io/vmlabdev/vmlab-templates/home-assistant"
   profile  = "linux-modern"
+  // Sealed appliance: no way to install the vmlab agent (no ready/exec).
+  agent    = false
   firmware = "ovmf"
   cpus     = 2
   memory   = 2GiB
@@ -380,7 +457,7 @@ template "home-assistant" {
 //   ./fetch-deps.sh             # one-time: ~3.5G download into disk/
 //   vmlab template build        (run from this directory)
 //
-// The provision script waits for the QEMU guest agent (preinstalled in
+// The provision script waits for the vmlab guest agent (preinstalled in
 // Kali's QEMU image), adds the vmlab user and enables SSH.
 
 
@@ -445,7 +522,7 @@ template "nixos-25.11" {
 //   ./fetch-deps.sh             # one-time: ~3G download into disk/
 //   vmlab template build        (run from this directory)
 //
-// The provision script waits for the QEMU guest agent, falling back to a
+// The provision script waits for the vmlab guest agent, falling back to a
 // blind text-console login (parrot/parrot) to install it if missing.
 
 
@@ -470,7 +547,7 @@ template "parrot" {
 
 // Rocky Linux 9 template built from the official GenericCloud qcow2.
 // cloud-init picks up the CIDATA ISO (NoCloud), creates vmlab/vmlab and
-// installs the QEMU guest agent. Build with:
+// installs the vmlab guest agent (VMLAB bootstrap ISO). Build with:
 //
 //   vmlab template build        (run from this directory)
 //
@@ -498,6 +575,46 @@ template "rocky-9" {
 }
 
 // -----------------------------------------------------------------------------
+// templeos
+
+// TempleOS template (PRD §6.1). Terry A. Davis's public-domain 64-bit hobby
+// OS (templeos.org), booted from the official ISO and auto-installed onto a
+// blank RedSea disk.
+//
+// TempleOS is public domain, so — unlike the proprietary/MS vintage entries —
+// it is freely redistributable and carries a `registry`. The ISO is downloaded
+// and sha256-verified into the artefact cache; no fetch-deps step.
+//
+// It has no networking and no way to run the vmlab guest agent, so the template
+// carries `agent = false`: clones never report `ready` and have no exec/cp/
+// terminal. The CD's `#include "Once"` installer is driven over the live screen
+// (VNC keystrokes + image matching — TempleOS's bitmap font defeats OCR); see
+// scripts/install.ws.
+//
+// The windows-legacy profile fits it well: i440fx + SeaBIOS (TempleOS wants a
+// legacy-BIOS MBR boot), an IDE/ATA disk (its only disk driver), and plain std
+// VGA (it drives VBE directly). The e1000 NIC the profile adds is unused.
+
+
+template "templeos" {
+  arch     = "x86_64"
+  version  = "5.03"
+  registry = "ghcr.io/vmlabdev/vmlab-templates/templeos"
+  profile  = "windows-legacy"
+  agent    = false
+  cpus     = 2
+  memory   = 512MiB
+  disk     = 2GiB
+
+  source "iso" {
+    url    = "https://templeos.org/Downloads/TempleOS.ISO"
+    sha256 = "5d0fc944e5d89c155c0fc17c148646715bc1db6fa5750c0b913772cfec19ba26"
+  }
+
+  provision "templeos/scripts/install.ws" { }
+}
+
+// -----------------------------------------------------------------------------
 // ubuntu-24.04
 
 // Ubuntu Server 24.04 template (PRD §6.1). The installer ISO is downloaded
@@ -511,7 +628,7 @@ template "rocky-9" {
 
 template "ubuntu-24.04" {
   arch    = "x86_64"
-  version = "24.04"
+  version = "24.04.4"
   registry = "ghcr.io/vmlabdev/vmlab-templates/ubuntu-24.04"
   profile = "linux-modern"
   cpus    = 2
@@ -530,6 +647,43 @@ template "ubuntu-24.04" {
 }
 
 // -----------------------------------------------------------------------------
+// ubuntu-26.04
+
+// Ubuntu Server 26.04 LTS template (PRD §6.1), built from the official
+// cloud image + cloud-init (simpler than the 24.04 subiquity ISO install).
+// The qcow2 is downloaded and sha256-verified into the artefact cache;
+// cloudinit/ is packed into a CIDATA ISO (NoCloud datasource) that creates
+// the vmlab login and installs the vmlab guest agent on first boot.
+//
+//   vmlab template build        (run from this directory)
+//
+// The cloud image in releases/26.04/release/ is periodically respun; if the
+// sha256 stops matching, refresh it from
+// https://cloud-images.ubuntu.com/releases/26.04/release/SHA256SUMS
+
+
+template "ubuntu-26.04" {
+  arch     = "x86_64"
+  version  = "26.04"
+  registry = "ghcr.io/vmlabdev/vmlab-templates/ubuntu-26.04"
+  profile  = "linux-modern"
+  firmware = "seabios"
+  cpus     = 2
+  memory   = 4GiB
+  disk     = 20GiB
+
+  source "qcow2" {
+    url    = "https://cloud-images.ubuntu.com/releases/26.04/release/ubuntu-26.04-server-cloudimg-amd64.img"
+    sha256 = "dced94c031cc1f23dee14419a3723a5b110df9938de0ac31913a2bfd07c755b4"
+  }
+
+  media { kind = "iso" from = "./ubuntu-26.04/cloudinit/" label = "CIDATA" }
+  nic { nat = true }
+
+  provision "ubuntu-26.04/scripts/install.ws" { }
+}
+
+// -----------------------------------------------------------------------------
 // ubuntu-arm64
 
 // Ubuntu Server 24.04 LTS (noble) for arm64/aarch64. Unlike the x86
@@ -538,7 +692,7 @@ template "ubuntu-24.04" {
 // under TCG and consistent with the other arm64 cloud-image templates.
 // Runs under TCG on x86 hosts (no KVM) — slow but functional. cloud-init
 // picks up the CIDATA seed (NoCloud), creates vmlab/vmlab and installs the
-// QEMU guest agent. Build with:
+// vmlab guest agent. Build with:
 //
 //   vmlab template build        (run from this directory)
 //
@@ -790,36 +944,6 @@ template "windows-3.11" {
 }
 
 // -----------------------------------------------------------------------------
-// windows-7-x86
-
-// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
-// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
-// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
-//
-// These old releases have no qemu guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`).
-
-
-template "windows-7" {
-  arch    = "x86"
-  version = "7600.0"
-  profile = "windows-legacy"
-  cpus    = 2
-  memory  = 3GiB
-  disk    = 40GiB
-
-  source "iso" { path = "./iso/en_windows_7_enterprise_x86_dvd_x15-70745.iso" }
-
-  media { kind = "floppy" from = "./windows-7-x86/unattend/" label = "UNATTEND" }
-  nic { nat = true }
-
-  provision "windows-7-x86/scripts/install.ws" { }
-}
-
-// -----------------------------------------------------------------------------
 // windows-7
 
 // Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
@@ -850,7 +974,7 @@ template "windows-7" {
 }
 
 // -----------------------------------------------------------------------------
-// windows-8-x86
+// windows-7-x86
 
 // Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
 // (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
@@ -863,50 +987,20 @@ template "windows-7" {
 // but without the vmlab guest agent (no `ready`/`exec`).
 
 
-template "windows-8" {
+template "windows-7" {
   arch    = "x86"
-  version = "9200.0"
+  version = "7600.0"
   profile = "windows-legacy"
   cpus    = 2
   memory  = 3GiB
   disk    = 40GiB
 
-  source "iso" { path = "./iso/en_windows_8_enterprise_x86_dvd_917587.iso" }
+  source "iso" { path = "./iso/en_windows_7_enterprise_x86_dvd_x15-70745.iso" }
 
-  media { kind = "floppy" from = "./windows-8-x86/unattend/" label = "UNATTEND" }
+  media { kind = "floppy" from = "./windows-7-x86/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
-  provision "windows-8-x86/scripts/install.ws" { }
-}
-
-// -----------------------------------------------------------------------------
-// windows-8.1-x86
-
-// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
-// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
-// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
-//
-// These old releases have no qemu guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`).
-
-
-template "windows-8.1" {
-  arch    = "x86"
-  version = "9600.0"
-  profile = "windows-legacy"
-  cpus    = 2
-  memory  = 3GiB
-  disk    = 40GiB
-
-  source "iso" { path = "./iso/en_windows_8_1_enterprise_x86_dvd_2972289.iso" }
-
-  media { kind = "floppy" from = "./windows-8.1-x86/unattend/" label = "UNATTEND" }
-  nic { nat = true }
-
-  provision "windows-8.1-x86/scripts/install.ws" { }
+  provision "windows-7-x86/scripts/install.ws" { }
 }
 
 // -----------------------------------------------------------------------------
@@ -940,6 +1034,36 @@ template "windows-8.1" {
 }
 
 // -----------------------------------------------------------------------------
+// windows-8.1-x86
+
+// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
+// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
+// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
+//
+// These old releases have no qemu guest agent, so the install is agent-free:
+// autounattend.xml installs Windows and, on first logon, runs
+// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
+// power off and seals the generalized disk. Clones therefore boot generalized
+// but without the vmlab guest agent (no `ready`/`exec`).
+
+
+template "windows-8.1" {
+  arch    = "x86"
+  version = "9600.0"
+  profile = "windows-legacy"
+  cpus    = 2
+  memory  = 3GiB
+  disk    = 40GiB
+
+  source "iso" { path = "./iso/en_windows_8_1_enterprise_x86_dvd_2972289.iso" }
+
+  media { kind = "floppy" from = "./windows-8.1-x86/unattend/" label = "UNATTEND" }
+  nic { nat = true }
+
+  provision "windows-8.1-x86/scripts/install.ws" { }
+}
+
+// -----------------------------------------------------------------------------
 // windows-8
 
 // Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
@@ -967,6 +1091,36 @@ template "windows-8" {
   nic { nat = true }
 
   provision "windows-8/scripts/install.ws" { }
+}
+
+// -----------------------------------------------------------------------------
+// windows-8-x86
+
+// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
+// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
+// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
+//
+// These old releases have no qemu guest agent, so the install is agent-free:
+// autounattend.xml installs Windows and, on first logon, runs
+// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
+// power off and seals the generalized disk. Clones therefore boot generalized
+// but without the vmlab guest agent (no `ready`/`exec`).
+
+
+template "windows-8" {
+  arch    = "x86"
+  version = "9200.0"
+  profile = "windows-legacy"
+  cpus    = 2
+  memory  = 3GiB
+  disk    = 40GiB
+
+  source "iso" { path = "./iso/en_windows_8_enterprise_x86_dvd_917587.iso" }
+
+  media { kind = "floppy" from = "./windows-8-x86/unattend/" label = "UNATTEND" }
+  nic { nat = true }
+
+  provision "windows-8-x86/scripts/install.ws" { }
 }
 
 // -----------------------------------------------------------------------------
@@ -1000,36 +1154,6 @@ template "windows-server-2008-r2" {
 }
 
 // -----------------------------------------------------------------------------
-// windows-server-2008-x86
-
-// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
-// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
-// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
-//
-// These old releases have no qemu guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`).
-
-
-template "windows-server-2008" {
-  arch    = "x86"
-  version = "6001.0"
-  profile = "windows-legacy"
-  cpus    = 2
-  memory  = 3GiB
-  disk    = 40GiB
-
-  source "iso" { path = "./iso/en_windows_server_2008_x86_dvd_x14-26710.iso" }
-
-  media { kind = "floppy" from = "./windows-server-2008-x86/unattend/" label = "UNATTEND" }
-  nic { nat = true }
-
-  provision "windows-server-2008-x86/scripts/install.ws" { }
-}
-
-// -----------------------------------------------------------------------------
 // windows-server-2008
 
 // Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
@@ -1057,6 +1181,36 @@ template "windows-server-2008" {
   nic { nat = true }
 
   provision "windows-server-2008/scripts/install.ws" { }
+}
+
+// -----------------------------------------------------------------------------
+// windows-server-2008-x86
+
+// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
+// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
+// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
+//
+// These old releases have no qemu guest agent, so the install is agent-free:
+// autounattend.xml installs Windows and, on first logon, runs
+// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
+// power off and seals the generalized disk. Clones therefore boot generalized
+// but without the vmlab guest agent (no `ready`/`exec`).
+
+
+template "windows-server-2008" {
+  arch    = "x86"
+  version = "6001.0"
+  profile = "windows-legacy"
+  cpus    = 2
+  memory  = 3GiB
+  disk    = 40GiB
+
+  source "iso" { path = "./iso/en_windows_server_2008_x86_dvd_x14-26710.iso" }
+
+  media { kind = "floppy" from = "./windows-server-2008-x86/unattend/" label = "UNATTEND" }
+  nic { nat = true }
+
+  provision "windows-server-2008-x86/scripts/install.ws" { }
 }
 
 // -----------------------------------------------------------------------------
@@ -1267,36 +1421,6 @@ template "windows-server-2025" {
 }
 
 // -----------------------------------------------------------------------------
-// windows-vista-x86
-
-// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
-// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
-// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
-//
-// These old releases have no qemu guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`).
-
-
-template "windows-vista" {
-  arch    = "x86"
-  version = "6002.0"
-  profile = "windows-legacy"
-  cpus    = 2
-  memory  = 3GiB
-  disk    = 40GiB
-
-  source "iso" { path = "./iso/en_windows_vista_ee_x86_dvd_vl_x13-17271.iso" }
-
-  media { kind = "floppy" from = "./windows-vista-x86/unattend/" label = "UNATTEND" }
-  nic { nat = true }
-
-  provision "windows-vista-x86/scripts/install.ws" { }
-}
-
-// -----------------------------------------------------------------------------
 // windows-vista
 
 // Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
@@ -1324,4 +1448,34 @@ template "windows-vista" {
   nic { nat = true }
 
   provision "windows-vista/scripts/install.ws" { }
+}
+
+// -----------------------------------------------------------------------------
+// windows-vista-x86
+
+// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
+// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
+// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
+//
+// These old releases have no qemu guest agent, so the install is agent-free:
+// autounattend.xml installs Windows and, on first logon, runs
+// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
+// power off and seals the generalized disk. Clones therefore boot generalized
+// but without the vmlab guest agent (no `ready`/`exec`).
+
+
+template "windows-vista" {
+  arch    = "x86"
+  version = "6002.0"
+  profile = "windows-legacy"
+  cpus    = 2
+  memory  = 3GiB
+  disk    = 40GiB
+
+  source "iso" { path = "./iso/en_windows_vista_ee_x86_dvd_vl_x13-17271.iso" }
+
+  media { kind = "floppy" from = "./windows-vista-x86/unattend/" label = "UNATTEND" }
+  nic { nat = true }
+
+  provision "windows-vista-x86/scripts/install.ws" { }
 }

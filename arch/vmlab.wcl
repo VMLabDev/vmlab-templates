@@ -1,0 +1,35 @@
+// Arch Linux template (PRD §6.1), built from the official cloud image
+// rather than an installer ISO — Arch has no unattended ISO installer, and
+// the cloud image carries cloud-init. The qcow2 is downloaded and
+// sha256-verified into the artefact cache; cloudinit/ is packed into a
+// CIDATA ISO (NoCloud datasource) that creates the vmlab login and installs
+// the vmlab guest agent (VMLAB ISO) on first boot. SeaBIOS — cloud images boot BIOS.
+//
+//   vmlab template build        (run from this directory)
+//
+// Arch is rolling: this pins a dated image. To refresh, pick a newer
+// vYYYYMMDD.N from https://geo.mirror.pkgbuild.com/images/ and update the
+// url, sha256 (from the .SHA256 beside it), and version.
+
+import <vmlab.wcl>
+
+template "arch" {
+  arch     = "x86_64"
+  version  = "20260601"
+  registry = "ghcr.io/vmlabdev/vmlab-templates/arch"
+  profile  = "linux-modern"
+  firmware = "seabios"
+  cpus     = 2
+  memory   = 4GiB
+  disk     = 20GiB
+
+  source "qcow2" {
+    url    = "https://geo.mirror.pkgbuild.com/images/v20260601.539459/Arch-Linux-x86_64-cloudimg-20260601.539459.qcow2"
+    sha256 = "9cfe4bf9bd2abd6b459fae480e6168523ce9c8728734b02a21638abf9eb6a486"
+  }
+
+  media { kind = "iso" from = "./cloudinit/" label = "CIDATA" }
+  nic { nat = true }
+
+  provision "scripts/install.ws" { }
+}

@@ -1,0 +1,29 @@
+#cloud-config
+# NoCloud seed (picked up from the CIDATA ISO) for the AlmaLinux build VM.
+# Creates the vmlab/vmlab login and installs the vmlab guest agent from
+# the VMLAB bootstrap ISO so lab clones come up "ready". cloud-init disables itself afterwards so clones
+# (which boot without this seed) don't re-run it.
+hostname: almalinux
+users:
+  - name: vmlab
+    lock_passwd: false
+    plain_text_passwd: vmlab
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    shell: /bin/bash
+ssh_pwauth: true
+chpasswd:
+  expire: false
+runcmd:
+  - |
+    set -e
+    mkdir -p /media/vmlab
+    if ! mount -o ro LABEL=VMLAB /media/vmlab; then
+      for d in /dev/sr0 /dev/sr1 /dev/sr2 /dev/vdb /dev/vdc /dev/vdd; do
+        mount -o ro "$d" /media/vmlab 2>/dev/null || continue
+        [ -e /media/vmlab/install.sh ] && break
+        umount /media/vmlab
+      done
+    fi
+    /media/vmlab/install.sh
+    umount /media/vmlab
+  - [touch, /etc/cloud/cloud-init.disabled]
