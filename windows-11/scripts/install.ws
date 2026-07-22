@@ -159,6 +159,15 @@ fn wu_err(lab: Lab, e: string) -> string {
 }
 
 fn run_wu_pass(lab: Lab, vm: Vm, script: string) -> string {
+    // Settle first: Windows can chain automatic reboots while finishing
+    // updates, and readiness can catch the brief agent-up window between
+    // them — a pass issued right then races the next auto-reboot and reads
+    // as a failure. A short wait plus a fresh readiness check rides that out.
+    vmlab::sleep_ms(30000)
+    match vm.wait_ready(600) {
+        Ok(u)  => lab.log("guest settled; starting the update pass"),
+        Err(e) => lab.log("guest not ready before the update pass: " + e),
+    }
     match vm.exec_timeout("powershell.exe", [
         "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script,
     ], 3600) {
