@@ -71,45 +71,65 @@ fn stage_script(vm: Vm, name: string) -> Result[string, string] {
     Ok(dst)
 }
 
+// The guest's boot stamp — the proof a reboot actually happened. A
+// `shutdown /r` request can be silently swallowed (observed live on Server
+// 2022: exit 0 semantics but the desktop still up an hour later while
+// servicing was busy), so reboot_guest compares this before/after instead
+// of trusting the request.
+fn boot_stamp(vm: Vm) -> Result[string, string] {
+    let r = vm.exec("powershell.exe", [
+        "-NoProfile", "-NonInteractive", "-Command",
+        "(Get-CimInstance Win32_OperatingSystem).LastBootUpTime.ToString('o')",
+    ])?
+    if r.exit_code != 0 {
+        return Err("boot-stamp query failed: " + r.stderr)
+    }
+    Ok(r.stdout.trim())
+}
+
 // Reboot from INSIDE Windows, not via a host restart. A host-side stop waits
 // only ~60s (agent powerdown + ACPI) before hard-killing QEMU, which corrupts a
 // long post-update "Working on updates" finalize and drops the next boot into
-// WinRE. `shutdown /r` lets Windows finalize at its own pace; we then wait for
-// the guest agent to drop (so we don't race ahead while it's still up) and come
-// back. The drop-watch MUST be the live `agent_answering()` probe — `is_ready`
-// outside first-boot is the sticky flag and never goes false while QEMU runs,
-// which silently turned every reboot here into the forced host restart (and a
-// heavy cumulative then hard-killed mid-finalize lands the guest in WinRE).
-// Falls back to a host restart only if the agent never goes away.
+// WinRE. `shutdown /r` lets Windows finalize at its own pace. The drop-watch is
+// the live `agent_answering()` probe, and a changed boot stamp is the only
+// accepted proof: Windows sometimes swallows the shutdown request outright
+// while servicing is busy, so an unchanged stamp re-requests it. Only when
+// three rounds (up to ~20 min of still-up waiting each) never produce a real
+// reboot does the host restart run as the true last resort.
 fn reboot_guest(lab: Lab, vm: Vm) -> Result[unit, string] {
-    // The shutdown can tear the agent down before the exec reply arrives, so
-    // an exec error here usually means the reboot is already underway.
-    match vm.exec("cmd.exe", ["/c", "shutdown /r /t 0 /f"]) {
-        Ok(r) => lab.log("in-guest reboot requested"),
-        Err(e) => lab.log("shutdown exec did not return cleanly (reboot likely underway): " + e),
-    }
-    // Post-update "Working on updates" runs BEFORE services stop, so the
-    // agent can legitimately keep answering for a long time (Server rollups:
-    // 10-30+ min observed). The probe is live, so a generous cap costs
-    // nothing — the loop exits the moment the guest actually goes down. The
-    // forced host restart is a true last resort: its hard-kill rung is what
-    // corrupts a finalize and lands the guest in WinRE.
-    let dropped = false
-    for i in 0..720 {                // up to 60 min
-        vmlab::sleep_ms(5000)
-        if !vm.agent_answering() {
-            dropped = true
-            break
+    let before = boot_stamp(vm)?
+    for round in 0..3 {
+        // The shutdown can tear the agent down before the exec reply
+        // arrives, so an exec error usually means the reboot is underway.
+        match vm.exec("cmd.exe", ["/c", "shutdown /r /t 0 /f"]) {
+            Ok(r) => lab.log(fmt("in-guest reboot requested (shutdown exit {})", r.exit_code)),
+            Err(e) => lab.log("shutdown exec did not return cleanly (reboot likely underway): " + e),
         }
-        if i == 120 {
-            lab.log("guest still finalizing updates before its reboot (10 min); waiting up to 60")
+        // Post-update "Working on updates" runs BEFORE services stop, so the
+        // agent can keep answering for a long while; the probe is live, so
+        // waiting is free and we move on the moment the guest goes down.
+        for i in 0..240 {            // up to 20 min per round
+            vmlab::sleep_ms(5000)
+            if !vm.agent_answering() {
+                break
+            }
+        }
+        vm.wait_ready(7200)?         // finalize+boot can be long for big cumulatives
+        match boot_stamp(vm) {
+            Ok(after) => {
+                if after != before {
+                    return Ok(())
+                }
+                lab.log("boot stamp unchanged — the guest never rebooted; requesting again")
+            },
+            // A failed check usually means the guest is mid-transition
+            // after all — loop around rather than failing the build.
+            Err(e) => lab.log("boot-stamp check failed (guest mid-transition?); retrying: " + e),
         }
     }
-    if !dropped {
-        lab.log("guest agent still up 60 min after reboot request; forcing host restart")
-        vm.restart()?
-    }
-    vm.wait_ready(7200)              // finalize+boot can be long for big cumulatives
+    lab.log("in-guest reboot never took after 3 rounds; forcing host restart")
+    vm.restart()?
+    vm.wait_ready(7200)
 }
 
 // Patch the image fully before sealing: windows-update.ps1 does one search/
