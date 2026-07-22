@@ -64,7 +64,7 @@ fn install(lab: Lab) -> Result[unit, string] {
 // its exec channel is fully ready, so the first few execs can fail with
 // "agent did not open the channel in time" even though the guest is fine.
 // A short retry absorbs that window instead of failing a multi-hour build.
-fn exec_ok(lab: Lab, vm: Vm, cmd: string, args: [string]) -> Result[ExecResult, string] {
+fn exec_ok(lab: Lab, vm: Vm, cmd: string, args: List[string]) -> Result[ExecResult, string] {
     let last = "exec never ran"
     for i in 0..12 {                 // up to ~1 min of transient-blip tolerance
         match vm.exec(cmd, args) {
