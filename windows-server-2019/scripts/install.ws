@@ -59,9 +59,29 @@ fn install(lab: Lab) -> Result[unit, string] {
 
 // Copy a script that rode the UNATTEND ISO onto the disk. The ISO drive letter
 // shifts (D/E/F/G), so probe a few. Returns the guest path under Temp.
-fn stage_script(vm: Vm, name: string) -> Result[string, string] {
+// Run a guest exec, retrying transient agent hiccups. Right after Windows
+// first logon the agent answers its handshake (so wait_ready returns) before
+// its exec channel is fully ready, so the first few execs can fail with
+// "agent did not open the channel in time" even though the guest is fine.
+// A short retry absorbs that window instead of failing a multi-hour build.
+fn exec_ok(lab: Lab, vm: Vm, cmd: string, args: [string]) -> Result[ExecResult, string] {
+    let last = "exec never ran"
+    for i in 0..12 {                 // up to ~1 min of transient-blip tolerance
+        match vm.exec(cmd, args) {
+            Ok(r)  => return Ok(r),
+            Err(e) => {
+                last = e
+                lab.log(fmt("exec transient failure (try {}); retrying: {}", i, e))
+                vmlab::sleep_ms(5000)
+            },
+        }
+    }
+    Err("exec failed after retries: " + last)
+}
+
+fn stage_script(lab: Lab, vm: Vm, name: string) -> Result[string, string] {
     let dst = "C:\\Windows\\Temp\\" + name
-    let copy = vm.exec("cmd.exe", [
+    let copy = exec_ok(lab, vm, "cmd.exe", [
         "/c",
         "for %d in (D E F G) do if exist %d:\\" + name + " copy /y %d:\\" + name + " " + dst,
     ])?
@@ -177,7 +197,7 @@ fn run_wu_pass(lab: Lab, vm: Vm, script: string) -> string {
 }
 
 fn apply_updates(lab: Lab, vm: Vm) -> Result[unit, string] {
-    let script = stage_script(vm, "windows-update.ps1")?
+    let script = stage_script(lab, vm, "windows-update.ps1")?
     let fails = 0
     for pass in 0..20 {
         lab.log(fmt("windows update pass {} (search/download/install, may take a while)...", pass))
@@ -208,7 +228,7 @@ fn apply_updates(lab: Lab, vm: Vm) -> Result[unit, string] {
 // after patching, before sysprep — the HKLM policy keys and service start type
 // survive generalize.
 fn disable_updates(lab: Lab, vm: Vm) -> Result[unit, string] {
-    let script = stage_script(vm, "disable-windows-update.ps1")?
+    let script = stage_script(lab, vm, "disable-windows-update.ps1")?
     lab.log("disabling Windows Update in the image (clones won't auto-update)...")
     let r = vm.exec_timeout("powershell.exe", [
         "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script,
