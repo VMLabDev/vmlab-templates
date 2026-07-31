@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
+#
+# Usage: generate-unified-wcl.sh [destination]
+#
+# Regenerates the unified vmlab.wcl from the standalone template definitions.
+# With no argument it rewrites the repo's own vmlab.wcl; with one it writes there
+# instead, which is how `just ci::wcl-sync-check` diffs a fresh generation
+# against the committed file without touching the working tree.
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
+dest=${1:-$root/vmlab.wcl}
 out=$(mktemp)
 trap 'rm -f "$out"' EXIT
 
@@ -34,5 +42,5 @@ while IFS= read -r file; do
 done < <(cd "$root" && find . -mindepth 2 -maxdepth 2 -name vmlab.wcl \
   -not -path './examples/*' -print | sort)
 
-mv "$out" "$root/vmlab.wcl"
+mv "$out" "$dest"
 trap - EXIT
