@@ -123,40 +123,48 @@ build: arch-build almalinux-build alpine-build debian-build fedora-build kali-bu
 # Build Windows Vista Enterprise (x64 + x86)
 [group('build-windows-local')]
 windows-vista-build: (template-build 'windows-vista' 'x86_64/windows-vista')
+# Build the 32-bit Windows Vista Enterprise template (sysprep-generalized)
 [group('build-windows-local')]
 windows-vista-x86-build: (template-build 'windows-vista-x86' 'x86/windows-vista')
 
 # Build Windows 7 Enterprise (x64 + x86)
 [group('build-windows-local')]
 windows-7-build: (template-build 'windows-7' 'x86_64/windows-7')
+# Build the 32-bit Windows 7 Enterprise template (sysprep-generalized)
 [group('build-windows-local')]
 windows-7-x86-build: (template-build 'windows-7-x86' 'x86/windows-7')
 
 # Build Windows 8 Enterprise (x64 + x86)
 [group('build-windows-local')]
 windows-8-build: (template-build 'windows-8' 'x86_64/windows-8')
+# Build the 32-bit Windows 8 Enterprise template (sysprep-generalized)
 [group('build-windows-local')]
 windows-8-x86-build: (template-build 'windows-8-x86' 'x86/windows-8')
 
 # Build Windows 8.1 Enterprise (x64 + x86)
 [group('build-windows-local')]
 windows-8-1-build: (template-build 'windows-8.1' 'x86_64/windows-8.1')
+# Build the 32-bit Windows 8.1 Enterprise template (sysprep-generalized)
 [group('build-windows-local')]
 windows-8-1-x86-build: (template-build 'windows-8.1-x86' 'x86/windows-8.1')
 
 # Build Windows Server 2008 (x64 + x86)
 [group('build-windows-local')]
 windows-server-2008-build: (template-build 'windows-server-2008' 'x86_64/windows-server-2008')
+# Build the 32-bit Windows Server 2008 template (sysprep-generalized)
 [group('build-windows-local')]
 windows-server-2008-x86-build: (template-build 'windows-server-2008-x86' 'x86/windows-server-2008')
 
 # Build Windows Server 2008 R2 / 2012 / 2012 R2 / 2016 (x64)
 [group('build-windows-local')]
 windows-server-2008-r2-build: (template-build 'windows-server-2008-r2' 'x86_64/windows-server-2008-r2')
+# Build the Windows Server 2012 template (sysprep-generalized)
 [group('build-windows-local')]
 windows-server-2012-build: (template-build 'windows-server-2012' 'x86_64/windows-server-2012')
+# Build the Windows Server 2012 R2 template (sysprep-generalized)
 [group('build-windows-local')]
 windows-server-2012-r2-build: (template-build 'windows-server-2012-r2' 'x86_64/windows-server-2012-r2')
+# Build the Windows Server 2016 template (sysprep-generalized)
 [group('build-windows-local')]
 windows-server-2016-build: (template-build 'windows-server-2016' 'x86_64/windows-server-2016')
 
@@ -266,26 +274,37 @@ template-push ref:
 prerelease ref:
 	vmlab template push --prerelease '{{ ref }}'
 
+# Push the Arch Linux template to its registry
 [group('push')]
 arch-push: (template-push 'x86_64/arch')
+# Push the AlmaLinux 10 template to its registry
 [group('push')]
 almalinux-push: (template-push 'x86_64/almalinux-10')
+# Push the Alpine Linux 3.23 template to its registry
 [group('push')]
 alpine-push: (template-push 'x86_64/alpine-3.23')
+# Push the Debian 13 template to its registry
 [group('push')]
 debian-push: (template-push 'x86_64/debian-13')
+# Push the Fedora 44 template to its registry
 [group('push')]
 fedora-push: (template-push 'x86_64/fedora-44')
+# Push the Kali Linux template to its registry
 [group('push')]
 kali-push: (template-push 'x86_64/kali')
+# Push the NixOS 25.11 template to its registry
 [group('push')]
 nixos-push: (template-push 'x86_64/nixos-25.11')
+# Push the Parrot OS Security template to its registry
 [group('push')]
 parrot-push: (template-push 'x86_64/parrot')
+# Push the Rocky Linux 9 template to its registry
 [group('push')]
 rocky-push: (template-push 'x86_64/rocky-9')
+# Push the Ubuntu Server 24.04 template to its registry
 [group('push')]
 ubuntu-push: (template-push 'x86_64/ubuntu-24.04')
+# Push the Ubuntu Server 26.04 LTS template to its registry
 [group('push')]
 ubuntu-26-04-push: (template-push 'x86_64/ubuntu-26.04')
 
@@ -301,21 +320,29 @@ freedos-push: (template-push 'x86/freedos-1.3')
 [group('push')]
 templeos-push: (template-push 'x86_64/templeos')
 
+# Push the Alpine Linux 3.23 arm64 template to its registry
 [group('push')]
 alpine-arm64-push: (template-push 'aarch64/alpine-3.23')
+# Push the Debian 13 arm64 template to its registry
 [group('push')]
 debian-arm64-push: (template-push 'aarch64/debian-13')
+# Push the Fedora 44 arm64 template to its registry
 [group('push')]
 fedora-arm64-push: (template-push 'aarch64/fedora-44')
+# Push the Home Assistant OS aarch64 template to its registry
 [group('push')]
 home-assistant-arm64-push: (template-push 'aarch64/home-assistant')
+# Push the Ubuntu Server 24.04 arm64 template to its registry
 [group('push')]
 ubuntu-arm64-push: (template-push 'aarch64/ubuntu-24.04')
 
+# Push the Debian 13 riscv64 template to its registry
 [group('push')]
 debian-riscv64-push: (template-push 'riscv64/debian-13')
+# Push the Fedora 42 riscv64 template to its registry
 [group('push')]
 fedora-riscv64-push: (template-push 'riscv64/fedora-42')
+# Push the Ubuntu Server 24.04 riscv64 template to its registry
 [group('push')]
 ubuntu-riscv64-push: (template-push 'riscv64/ubuntu-24.04')
 
