@@ -18,7 +18,7 @@ main:
 
 # Everything a change must pass before it can merge
 [group('ci')]
-check: wcl-sync-check wcl-check docs-build
+check: wcl-sync-check wcl-check examples-check docs-build
 
 # Regenerating from the per-template definitions and diffing keeps an edit to
 # <template>/vmlab.wcl from landing unpropagated — and is what makes wcl-check
@@ -46,7 +46,15 @@ wcl-sync-check:
 # Parse and schema-check every template definition
 [group('ci')]
 wcl-check: require-vmlab require-uv require-git
-	uv run python scripts/validate-templates.py
+	uv run python scripts/validate-templates.py templates
+
+# A lab whose template is not in this machine's store is tolerated — the gate
+# builds nothing — so this catches a malformed example, not a wrong ref.
+
+# Parse and schema-check every examples/<name>/ lab
+[group('ci')]
+examples-check: require-vmlab require-uv require-git
+	uv run python scripts/validate-templates.py examples
 
 # The same build deploy-site.yml deploys, so a broken docs change fails here
 # rather than on main. Writes the gitignored docs/_site (`just docs-clean`

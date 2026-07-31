@@ -157,6 +157,7 @@ just ci                 # list the parts
 just ci::check          # the whole gate
 just ci::wcl-sync-check # vmlab.wcl matches a regen from the per-template files
 just ci::wcl-check      # parse + schema-check every template definition
+just ci::examples-check # parse + schema-check every examples/<name>/ lab
 just ci::docs-build     # build the docs site (what deploy-site.yml deploys)
 ```
 
@@ -166,6 +167,12 @@ plain `wcl check` fails on all of them), and `vmlab validate` wants a `lab`
 block. `ci::wcl-check` therefore validates them through the generated unified
 `vmlab.wcl`, which is why `ci::wcl-sync-check` runs first — a per-template edit
 that was never regenerated would otherwise go unchecked.
+
+Because the gate builds and downloads nothing, two classes of `vmlab validate`
+error are tolerated, and only these: a reference to a **gitignored** local
+artefact (the `iso/` media, the `fetch-deps.sh` payloads) and a lab whose
+template is **not in this machine's store**. Anything else fails — including a
+diagnostic the checker cannot parse.
 
 Building templates is **not** in the gate: hours of runtime, KVM, and
 hand-supplied ISOs. Neither is `just docs-data`, which needs GHCR auth and a
