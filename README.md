@@ -131,7 +131,6 @@ Or by hand:
 
 ```sh
 cd debian-13
-vmlab validate          # sanity-check the definition
 vmlab template build    # download, install, seal into the local store
 vmlab template list     # confirm it landed
 ```
@@ -146,3 +145,29 @@ Reference a built template from a lab:
 ```wcl
 vm "box" { template = "x86_64/debian-13" }
 ```
+
+## Verification
+
+`just ci::check` is the merge bar — everything a change must pass before it
+lands. It runs in under a second from a clean checkout, needs no network, and
+needs only `vmlab`, `wcl`, `git` and `uv`:
+
+```sh
+just ci                 # list the parts
+just ci::check          # the whole gate
+just ci::wcl-sync-check # vmlab.wcl matches a regen from the per-template files
+just ci::wcl-check      # parse + schema-check every template definition
+just ci::docs-build     # build the docs site (what deploy-site.yml deploys)
+```
+
+A single template definition cannot be checked on its own: each one begins
+`import <vmlab.wcl>`, a system import that only the `vmlab` binary registers (so
+plain `wcl check` fails on all of them), and `vmlab validate` wants a `lab`
+block. `ci::wcl-check` therefore validates them through the generated unified
+`vmlab.wcl`, which is why `ci::wcl-sync-check` runs first — a per-template edit
+that was never regenerated would otherwise go unchecked.
+
+Building templates is **not** in the gate: hours of runtime, KVM, and
+hand-supplied ISOs. Neither is `just docs-data`, which needs GHCR auth and a
+network. The `autounattend.xml`, `.ps1` and `.sh` files are not verified by
+anything yet.

@@ -6,6 +6,9 @@
 main:
 	@just --list
 
+# Verification gate — `just ci::check` is everything a change must pass to merge
+mod ci '.just/ci'
+
 # Start the unified template catalog in the vmlab Web UI
 [group('web')]
 web:
@@ -654,10 +657,12 @@ windows-vista-x86-example-destroy: (example-destroy 'windows-vista-x86')
 docs-data:
 	bash docs/gen-data.sh
 
+# The build itself lives in the ci module (it is part of the merge bar); this is
+# the alias for it in the docs group.
+
 # Build the template-library website to docs/_site
 [group('docs')]
-docs-build:
-	wcl wdoc build docs/main.wcl --out docs/_site
+docs-build: ci::docs-build
 
 # Serve the website locally with live reload
 [group('docs')]
