@@ -100,9 +100,11 @@ windows-11-build: (template-build 'windows-11' 'x86_64/windows-11')
 [group('build')]
 windows-10-build: (template-build 'windows-10' 'x86_64/windows-10')
 
-# Build the TempleOS template (public-domain hobby OS; ISO installer driven
-# over the live screen — agent = false, so clones need a console keypress at
-# the boot menu; see templeos/README.md)
+# TempleOS is a public-domain hobby OS; its ISO installer is driven over the
+# live screen — agent = false, so clones need a console keypress at the boot
+# menu; see templeos/README.md.
+
+# Build the TempleOS template (public-domain hobby OS, screen-driven install)
 [group('build')]
 templeos-build: (template-build 'templeos' 'x86_64/templeos')
 
@@ -111,6 +113,8 @@ templeos-build: (template-build 'templeos' 'x86_64/templeos')
 # media (URL sources / fetch-deps.sh), so no files need to be placed by hand.
 # The local-media Windows (`build-windows-local`) and vintage (`build-vintage`)
 # groups are NOT included — those need their ISOs copied into iso/ first.
+
+# Build every download-backed template (x86_64, then arm64 + riscv64)
 [group('build')]
 build: arch-build almalinux-build alpine-build debian-build fedora-build kali-build nixos-build parrot-build rocky-build ubuntu-build ubuntu-26-04-build windows-build windows-server-2022-build windows-server-2019-build windows-11-build windows-10-build build-arm64 build-riscv64
 
@@ -230,6 +234,8 @@ ubuntu-arm64-build: (template-build 'ubuntu-arm64' 'aarch64/ubuntu-24.04')
 
 # EXPERIMENTAL Windows 11 arm64 — excluded from `build-arm64`: needs a
 # hand-supplied ARM64 eval ISO in its vmlab.wcl, very slow under TCG (README)
+
+# Build the experimental Windows 11 arm64 template (needs a local ARM64 eval ISO)
 [group('build-arm64')]
 windows-11-arm64-build: (template-build 'windows-11-arm64' 'aarch64/windows-11-arm64')
 
@@ -315,8 +321,10 @@ ubuntu-26-04-push: (template-push 'x86_64/ubuntu-26.04')
 [group('push')]
 freedos-push: (template-push 'x86/freedos-1.3')
 
-# Push the TempleOS template to its registry (public domain — safe to publish;
-# kept standalone, not in the `push` aggregate)
+# TempleOS is public domain (unlike the Windows media), so it is safe to
+# publish; kept standalone, not in the `push` aggregate.
+
+# Push the TempleOS template to its registry
 [group('push')]
 templeos-push: (template-push 'x86_64/templeos')
 
