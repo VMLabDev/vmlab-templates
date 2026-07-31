@@ -15,7 +15,7 @@ template "alpine-3.23" {
   registry = "ghcr.io/vmlabdev/vmlab-templates/alpine-3.23"
   profile = "linux-modern"
   cpus    = 1
-  memory  = 1GiB
+  memory  = 2GiB
   disk    = 10GiB
 
   source "qcow2" {
