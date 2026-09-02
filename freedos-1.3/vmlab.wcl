@@ -19,6 +19,11 @@ template "freedos-1.3" {
                           // drive even at 256M, so the bump buys nothing
   disk     = 2GiB         // Full install (BASE + apps/bonus) needs the room
 
+  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
+  // target — so this guest carries none: no ready, exec or cp, and the
+  // install is driven over the screen instead.
+  agent    = false
+
   source "iso" { path = "./FD13LIVE.iso" }
   provision "scripts/install.ws" { }
 }

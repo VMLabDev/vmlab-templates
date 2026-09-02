@@ -15,6 +15,11 @@ template "windows-2000" {
   memory  = 512MiB
   disk    = 10GiB
 
+  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
+  // target — so this guest carries none: no ready, exec or cp, and the
+  // install is driven over the screen instead.
+  agent   = false
+
   source "iso" { path = "../iso/Windows-2000-Professional-SP4.iso" }
   // Unattended answer file: CD-boot Setup auto-reads A:\winnt.sif.
   media { kind = "floppy" from = "./answer/" label = "WINNT" }

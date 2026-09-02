@@ -18,6 +18,11 @@ template "windows-8.1" {
   memory  = 3GiB
   disk    = 40GiB
 
+  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
+  // target — so this guest carries none: no ready, exec or cp, and the
+  // install is driven over the screen instead.
+  agent   = false
+
   source "iso" { path = "../iso/en_windows_8_1_enterprise_x86_dvd_2972289.iso" }
 
   media { kind = "floppy" from = "./unattend/" label = "UNATTEND" }

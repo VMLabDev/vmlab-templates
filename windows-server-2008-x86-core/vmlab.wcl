@@ -21,6 +21,11 @@ template "windows-server-2008-core" {
   memory  = 3GiB
   disk    = 40GiB
 
+  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
+  // target — so this guest carries none: no ready, exec or cp, and the
+  // install is driven over the screen instead.
+  agent   = false
+
   source "iso" { path = "../iso/en_windows_server_2008_x86_dvd_x14-26710.iso" }
 
   media { kind = "floppy" from = "./unattend/" label = "UNATTEND" }

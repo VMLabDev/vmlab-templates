@@ -18,6 +18,11 @@ template "windows-3.11" {
   memory  = 64MiB
   disk    = 1GiB
 
+  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
+  // target — so this guest carries none: no ready, exec or cp, and the
+  // install is driven over the screen instead.
+  agent   = false
+
   // Seed from the bootable MS-DOS 6.22 disk; its C:\DOS already holds the Oak
   // CD driver (cd1.sys) + MSCDEX that the install wscript uses to read the media.
   source "template" { from = "x86/dos-6.22" }

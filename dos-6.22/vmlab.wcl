@@ -13,6 +13,11 @@ template "dos-6.22" {
   memory  = 32MiB
   disk    = 1GiB
 
+  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
+  // target — so this guest carries none: no ready, exec or cp, and the
+  // install is driven over the screen instead.
+  agent   = false
+
   source "iso" { path = "../iso/MS-DOS-6.22-bootable.iso" }
   provision "scripts/install.ws" { }
 }

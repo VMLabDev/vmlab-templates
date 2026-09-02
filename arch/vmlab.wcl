@@ -15,7 +15,7 @@ import <vmlab.wcl>
 
 template "arch" {
   arch     = "x86_64"
-  version  = "20260601"
+  version  = "20260901"
   registry = "ghcr.io/vmlabdev/vmlab-templates/arch"
   profile  = "linux-modern"
   firmware = "seabios"
@@ -24,8 +24,8 @@ template "arch" {
   disk     = 20GiB
 
   source "qcow2" {
-    url    = "https://geo.mirror.pkgbuild.com/images/v20260601.539459/Arch-Linux-x86_64-cloudimg-20260601.539459.qcow2"
-    sha256 = "9cfe4bf9bd2abd6b459fae480e6168523ce9c8728734b02a21638abf9eb6a486"
+    url    = "https://geo.mirror.pkgbuild.com/images/v20260901.583572/Arch-Linux-x86_64-cloudimg-20260901.583572.qcow2"
+    sha256 = "e3e688f97a71b265ce202905a504253f60f3680cf57d011a45411c43bedfa930"
   }
 
   media { kind = "iso" from = "./cloudinit/" label = "CIDATA" }
