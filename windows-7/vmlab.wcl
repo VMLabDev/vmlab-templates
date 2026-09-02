@@ -18,6 +18,12 @@ template "windows-7" {
   memory  = 4GiB
   disk    = 40GiB
 
+  // The unattended install never runs the bootstrap ISO's install.cmd —
+  // this answer file predates it — so no agent ever appears and the
+  // build fails its verification boot waiting for one. The install is
+  // screen-driven and needs none; clones get no ready, exec or cp.
+  agent   = false
+
   source "iso" { path = "../iso/en_windows_7_enterprise_x64_dvd_x15-70749.iso" }
 
   media { kind = "floppy" from = "./unattend/" label = "UNATTEND" }
