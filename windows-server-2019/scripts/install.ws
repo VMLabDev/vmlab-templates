@@ -128,13 +128,31 @@ fn reboot_guest(lab: Lab, vm: Vm) -> Result[unit, string] {
         // Post-update "Working on updates" runs BEFORE services stop, so the
         // agent can keep answering for a long while; the probe is live, so
         // waiting is free and we move on the moment the guest goes down.
+        let dropped = false
         for i in 0..240 {            // up to 20 min per round
             vmlab::sleep_ms(5000)
             if !vm.agent_answering() {
+                dropped = true
                 break
             }
         }
-        vm.wait_ready(7200)?         // finalize+boot can be long for big cumulatives
+        // Then wait for it to come BACK, on the same live probe. Readiness is
+        // sticky — a guest that has been ready once reports ready again at
+        // once, across a reboot it has not performed yet — so waiting on it
+        // here returns immediately and hands the boot-stamp check below a
+        // guest whose agent is still down. That reads as "the reboot never
+        // happened", and all three rounds burn in seconds (Server 2019,
+        // 2026-09-02: three rounds and the host-restart fallback inside four
+        // minutes, while the guest was rebooting perfectly well).
+        if dropped {
+            for i in 0..1440 {       // up to 2h; a big cumulative finalizes slowly
+                vmlab::sleep_ms(5000)
+                if vm.agent_answering() {
+                    break
+                }
+            }
+        }
+        vm.wait_ready(7200)?         // the agent answers again; let ready settle
         match boot_stamp(vm) {
             Ok(after) => {
                 if after != before {

@@ -114,10 +114,14 @@ fn install_xaml_hook(lab: Lab, vm: Vm) {
 fn reboot_guest(lab: Lab, vm: Vm) -> Result[unit, string] {
     lab.log("first-boot: rebooting once to settle shell reconciliation")
     let r = vm.exec("cmd.exe", ["/c", "shutdown /r /t 0 /f"])
+    // The live agent probe, never `is_ready`: readiness is sticky, so it stays
+    // true across a reboot the guest has not performed yet, this loop would
+    // never see the guest go down, and every clone would take the host-restart
+    // fallback below instead of the graceful reboot it just asked for.
     let dropped = false
     for i in 0..60 {                 // up to ~5 min for the agent to disappear
         vmlab::sleep_ms(5000)
-        if !vm.is_ready() {
+        if !vm.agent_answering() {
             dropped = true
             break
         }
@@ -125,6 +129,14 @@ fn reboot_guest(lab: Lab, vm: Vm) -> Result[unit, string] {
     if !dropped {
         lab.log("first-boot: agent still up after reboot request; forcing host restart")
         vm.restart()?
+    }
+    // And back up again — sticky readiness would otherwise let first-boot
+    // finish while the clone is still rebooting.
+    for i in 0..360 {                // up to 30 min for the clone to return
+        vmlab::sleep_ms(5000)
+        if vm.agent_answering() {
+            break
+        }
     }
     vm.wait_ready(1800)
 }

@@ -131,7 +131,7 @@ template "alpine-3.23" {
 
 template "arch" {
   arch     = "x86_64"
-  version  = "20260601"
+  version  = "20260901"
   registry = "ghcr.io/vmlabdev/vmlab-templates/arch"
   profile  = "linux-modern"
   firmware = "seabios"
@@ -140,8 +140,8 @@ template "arch" {
   disk     = 20GiB
 
   source "qcow2" {
-    url    = "https://geo.mirror.pkgbuild.com/images/v20260601.539459/Arch-Linux-x86_64-cloudimg-20260601.539459.qcow2"
-    sha256 = "9cfe4bf9bd2abd6b459fae480e6168523ce9c8728734b02a21638abf9eb6a486"
+    url    = "https://geo.mirror.pkgbuild.com/images/v20260901.583572/Arch-Linux-x86_64-cloudimg-20260901.583572.qcow2"
+    sha256 = "e3e688f97a71b265ce202905a504253f60f3680cf57d011a45411c43bedfa930"
   }
 
   media { kind = "iso" from = "./arch/cloudinit/" label = "CIDATA" }
@@ -274,6 +274,11 @@ template "dos-6.22" {
   memory  = 32MiB
   disk    = 1GiB
 
+  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
+  // target — so this guest carries none: no ready, exec or cp, and the
+  // install is driven over the screen instead.
+  agent   = false
+
   source "iso" { path = "./iso/MS-DOS-6.22-bootable.iso" }
   provision "dos-6.22/scripts/install.ws" { }
 }
@@ -401,6 +406,11 @@ template "freedos-1.3" {
   memory   = 64MiB        // FreeDOS is happy small; the LiveCD warns about its RAM
                           // drive even at 256M, so the bump buys nothing
   disk     = 2GiB         // Full install (BASE + apps/bonus) needs the room
+
+  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
+  // target — so this guest carries none: no ready, exec or cp, and the
+  // install is driven over the screen instead.
+  agent    = false
 
   source "iso" { path = "./freedos-1.3/FD13LIVE.iso" }
   provision "freedos-1.3/scripts/install.ws" { }
@@ -674,7 +684,7 @@ template "ubuntu-26.04" {
 
   source "qcow2" {
     url    = "https://cloud-images.ubuntu.com/releases/26.04/release/ubuntu-26.04-server-cloudimg-amd64.img"
-    sha256 = "dced94c031cc1f23dee14419a3723a5b110df9938de0ac31913a2bfd07c755b4"
+    sha256 = "8196be9d7958059cb56c6c75c80fdf6cee8a8885bc149ea791d7db1c7ef93035"
   }
 
   media { kind = "iso" from = "./ubuntu-26.04/cloudinit/" label = "CIDATA" }
@@ -905,6 +915,11 @@ template "windows-2000" {
   memory  = 512MiB
   disk    = 10GiB
 
+  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
+  // target — so this guest carries none: no ready, exec or cp, and the
+  // install is driven over the screen instead.
+  agent   = false
+
   source "iso" { path = "./iso/Windows-2000-Professional-SP4.iso" }
   // Unattended answer file: CD-boot Setup auto-reads A:\winnt.sif.
   media { kind = "floppy" from = "./windows-2000/answer/" label = "WINNT" }
@@ -932,6 +947,11 @@ template "windows-3.11" {
   cpus    = 1
   memory  = 64MiB
   disk    = 1GiB
+
+  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
+  // target — so this guest carries none: no ready, exec or cp, and the
+  // install is driven over the screen instead.
+  agent   = false
 
   // Seed from the bootable MS-DOS 6.22 disk; its C:\DOS already holds the Oak
   // CD driver (cd1.sys) + MSCDEX that the install wscript uses to read the media.
@@ -995,6 +1015,11 @@ template "windows-7" {
   memory  = 3GiB
   disk    = 40GiB
 
+  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
+  // target — so this guest carries none: no ready, exec or cp, and the
+  // install is driven over the screen instead.
+  agent   = false
+
   source "iso" { path = "./iso/en_windows_7_enterprise_x86_dvd_x15-70745.iso" }
 
   media { kind = "floppy" from = "./windows-7-x86/unattend/" label = "UNATTEND" }
@@ -1055,6 +1080,11 @@ template "windows-8.1" {
   memory  = 3GiB
   disk    = 40GiB
 
+  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
+  // target — so this guest carries none: no ready, exec or cp, and the
+  // install is driven over the screen instead.
+  agent   = false
+
   source "iso" { path = "./iso/en_windows_8_1_enterprise_x86_dvd_2972289.iso" }
 
   media { kind = "floppy" from = "./windows-8.1-x86/unattend/" label = "UNATTEND" }
@@ -1114,6 +1144,11 @@ template "windows-8" {
   cpus    = 2
   memory  = 3GiB
   disk    = 40GiB
+
+  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
+  // target — so this guest carries none: no ready, exec or cp, and the
+  // install is driven over the screen instead.
+  agent   = false
 
   source "iso" { path = "./iso/en_windows_8_enterprise_x86_dvd_917587.iso" }
 
@@ -1274,6 +1309,11 @@ template "windows-server-2008-core" {
   memory  = 3GiB
   disk    = 40GiB
 
+  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
+  // target — so this guest carries none: no ready, exec or cp, and the
+  // install is driven over the screen instead.
+  agent   = false
+
   source "iso" { path = "./iso/en_windows_server_2008_x86_dvd_x14-26710.iso" }
 
   media { kind = "floppy" from = "./windows-server-2008-x86-core/unattend/" label = "UNATTEND" }
@@ -1303,6 +1343,11 @@ template "windows-server-2008" {
   cpus    = 2
   memory  = 3GiB
   disk    = 40GiB
+
+  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
+  // target — so this guest carries none: no ready, exec or cp, and the
+  // install is driven over the screen instead.
+  agent   = false
 
   source "iso" { path = "./iso/en_windows_server_2008_x86_dvd_x14-26710.iso" }
 
@@ -1804,6 +1849,11 @@ template "windows-vista" {
   cpus    = 2
   memory  = 3GiB
   disk    = 40GiB
+
+  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
+  // target — so this guest carries none: no ready, exec or cp, and the
+  // install is driven over the screen instead.
+  agent   = false
 
   source "iso" { path = "./iso/en_windows_vista_ee_x86_dvd_vl_x13-17271.iso" }
 
