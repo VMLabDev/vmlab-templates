@@ -1,0 +1,30 @@
+// Windows Server 2008 Server Core template (PRD §6.1). Legacy guest: SeaBIOS +
+// IDE + e1000 (the windows-legacy profile), installed from the same local
+// MSDN/VL ISO as windows-server-2008 — the answer file just selects image
+// index 2, the Server Core image, instead of the full/GUI one.
+//
+// These old releases have no vmlab guest agent, so the install is agent-free:
+// autounattend.xml installs Windows and, on first logon, runs
+// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
+// power off and seals the generalized disk. Clones therefore boot generalized
+// but without the vmlab guest agent (no `ready`/`exec`) — on Core that leaves
+// the console cmd.exe as the only way in, so treat this as a target for
+// testing Core itself, not for driving from the host.
+
+import <vmlab.wcl>
+
+template "windows-server-2008-core" {
+  arch    = "x86_64"
+  version = "6001.0"
+  profile = "windows-legacy"
+  cpus    = 2
+  memory  = 4GiB
+  disk    = 40GiB
+
+  source "iso" { path = "../iso/en_windows_server_2008_x64_dvd_x14-26714.iso" }
+
+  media { kind = "floppy" from = "./unattend/" label = "UNATTEND" }
+  nic { nat = true }
+
+  provision "scripts/install.ws" { }
+}

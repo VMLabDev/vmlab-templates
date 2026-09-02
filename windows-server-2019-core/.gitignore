@@ -1,0 +1,3 @@
+# fetch-deps.sh payloads — redistributable binaries, never committed
+unattend/drivers/
+unattend/*.msi

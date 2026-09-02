@@ -99,6 +99,30 @@ tmeta "windows-10" {
   tags = ["windows", "win10", "virtio", "guest-agent"]
 }
 
+tmeta "windows-server-2025-core" {
+  description = "Windows Server 2025 evaluation image, Server Core — no desktop, driven entirely through the guest agent."
+  category  = "os"
+  os_family = "windows"
+  license   = "Microsoft Software License Terms (evaluation)"
+  tags = ["windows", "server", "2025", "server-core", "active-directory"]
+}
+
+tmeta "windows-server-2022-core" {
+  description = "Windows Server 2022 evaluation image, Server Core — no desktop, with VirtIO drivers and the guest agent."
+  category  = "os"
+  os_family = "windows"
+  license   = "Microsoft Software License Terms (evaluation)"
+  tags = ["windows", "server", "2022", "server-core"]
+}
+
+tmeta "windows-server-2019-core" {
+  description = "Windows Server 2019 evaluation image, Server Core — no desktop, with VirtIO drivers and the guest agent."
+  category  = "os"
+  os_family = "windows"
+  license   = "Microsoft Software License Terms (evaluation)"
+  tags = ["windows", "server", "2019", "server-core"]
+}
+
 tmeta "windows-server-2025" {
   description = "Windows Server 2025 evaluation image — domain controllers and Windows server labs."
   category  = "os"

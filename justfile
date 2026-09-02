@@ -92,6 +92,22 @@ windows-server-2022-build: (template-build 'windows-server-2022' 'x86_64/windows
 [group('build')]
 windows-server-2019-build: (template-build 'windows-server-2019' 'x86_64/windows-server-2019')
 
+# Server Core variants: same ISO and build, image index 1 (no Desktop
+# Experience). vmlab drives a Core guest through the agent exactly as it does a
+# Desktop one; only the console differs.
+
+# Build the Windows Server 2025 Server Core template (sysprep-generalized)
+[group('build')]
+windows-server-2025-core-build: (template-build 'windows-server-2025-core' 'x86_64/windows-server-2025-core')
+
+# Build the Windows Server 2022 Server Core template (sysprep-generalized)
+[group('build')]
+windows-server-2022-core-build: (template-build 'windows-server-2022-core' 'x86_64/windows-server-2022-core')
+
+# Build the Windows Server 2019 Server Core template (sysprep-generalized)
+[group('build')]
+windows-server-2019-core-build: (template-build 'windows-server-2019-core' 'x86_64/windows-server-2019-core')
+
 # Build the Windows 11 Enterprise template (sysprep-generalized)
 [group('build')]
 windows-11-build: (template-build 'windows-11' 'x86_64/windows-11')
@@ -116,7 +132,7 @@ templeos-build: (template-build 'templeos' 'x86_64/templeos')
 
 # Build every download-backed template (x86_64, then arm64 + riscv64)
 [group('build')]
-build: arch-build almalinux-build alpine-build debian-build fedora-build kali-build nixos-build parrot-build rocky-build ubuntu-build ubuntu-26-04-build windows-build windows-server-2022-build windows-server-2019-build windows-11-build windows-10-build build-arm64 build-riscv64
+build: arch-build almalinux-build alpine-build debian-build fedora-build kali-build nixos-build parrot-build rocky-build ubuntu-build ubuntu-26-04-build windows-build windows-server-2022-build windows-server-2019-build windows-server-2025-core-build windows-server-2022-core-build windows-server-2019-core-build windows-11-build windows-10-build build-arm64 build-riscv64
 
 # --- Local-media Windows (Vista–2016, keyless, sysprep-generalized) ---
 # These install from the MSDN/VL ISOs you place in iso/ (gitignored, see
@@ -172,9 +188,30 @@ windows-server-2012-r2-build: (template-build 'windows-server-2012-r2' 'x86_64/w
 [group('build-windows-local')]
 windows-server-2016-build: (template-build 'windows-server-2016' 'x86_64/windows-server-2016')
 
+# Server Core variants of the same ISOs (image index 1 on 2012+, 2 on 2008)
+
+# Build the Windows Server 2008 Server Core template (sysprep-generalized)
+[group('build-windows-local')]
+windows-server-2008-core-build: (template-build 'windows-server-2008-core' 'x86_64/windows-server-2008-core')
+# Build the 32-bit Windows Server 2008 Server Core template (sysprep-generalized)
+[group('build-windows-local')]
+windows-server-2008-x86-core-build: (template-build 'windows-server-2008-x86-core' 'x86/windows-server-2008-core')
+# Build the Windows Server 2008 R2 Server Core template (sysprep-generalized)
+[group('build-windows-local')]
+windows-server-2008-r2-core-build: (template-build 'windows-server-2008-r2-core' 'x86_64/windows-server-2008-r2-core')
+# Build the Windows Server 2012 Server Core template (sysprep-generalized)
+[group('build-windows-local')]
+windows-server-2012-core-build: (template-build 'windows-server-2012-core' 'x86_64/windows-server-2012-core')
+# Build the Windows Server 2012 R2 Server Core template (sysprep-generalized)
+[group('build-windows-local')]
+windows-server-2012-r2-core-build: (template-build 'windows-server-2012-r2-core' 'x86_64/windows-server-2012-r2-core')
+# Build the Windows Server 2016 Server Core template (sysprep-generalized)
+[group('build-windows-local')]
+windows-server-2016-core-build: (template-build 'windows-server-2016-core' 'x86_64/windows-server-2016-core')
+
 # Build every local-media Windows template (needs the iso/ files)
 [group('build-windows-local')]
-build-windows-local: windows-vista-build windows-vista-x86-build windows-7-build windows-7-x86-build windows-8-build windows-8-x86-build windows-8-1-build windows-8-1-x86-build windows-server-2008-build windows-server-2008-x86-build windows-server-2008-r2-build windows-server-2012-build windows-server-2012-r2-build windows-server-2016-build
+build-windows-local: windows-vista-build windows-vista-x86-build windows-7-build windows-7-x86-build windows-8-build windows-8-x86-build windows-8-1-build windows-8-1-x86-build windows-server-2008-build windows-server-2008-x86-build windows-server-2008-r2-build windows-server-2012-build windows-server-2012-r2-build windows-server-2016-build windows-server-2008-core-build windows-server-2008-x86-core-build windows-server-2008-r2-core-build windows-server-2012-core-build windows-server-2012-r2-core-build windows-server-2016-core-build
 
 # --- Vintage x86 (DOS / Windows 3.x–ME / 2000), driven by wscript UI automation ---
 # These layer or install from local media in iso/ (gitignored) and are driven
@@ -615,12 +652,26 @@ windows-server-2008-example-up: (example-up 'windows-server-2008')
 [group('example')]
 windows-server-2008-example-destroy: (example-destroy 'windows-server-2008')
 
+# Boot the windows-server-2008-core example (up + console)
+[group('example')]
+windows-server-2008-core-example-up: (example-up 'windows-server-2008-core')
+# Destroy the windows-server-2008-core example
+[group('example')]
+windows-server-2008-core-example-destroy: (example-destroy 'windows-server-2008-core')
+
 # Boot the windows-server-2008-r2 example (up + console)
 [group('example')]
 windows-server-2008-r2-example-up: (example-up 'windows-server-2008-r2')
 # Destroy the windows-server-2008-r2 example
 [group('example')]
 windows-server-2008-r2-example-destroy: (example-destroy 'windows-server-2008-r2')
+
+# Boot the windows-server-2008-r2-core example (up + console)
+[group('example')]
+windows-server-2008-r2-core-example-up: (example-up 'windows-server-2008-r2-core')
+# Destroy the windows-server-2008-r2-core example
+[group('example')]
+windows-server-2008-r2-core-example-destroy: (example-destroy 'windows-server-2008-r2-core')
 
 # Boot the windows-server-2008-x86 example (up + console)
 [group('example')]
@@ -629,12 +680,26 @@ windows-server-2008-x86-example-up: (example-up 'windows-server-2008-x86')
 [group('example')]
 windows-server-2008-x86-example-destroy: (example-destroy 'windows-server-2008-x86')
 
+# Boot the windows-server-2008-x86-core example (up + console)
+[group('example')]
+windows-server-2008-x86-core-example-up: (example-up 'windows-server-2008-x86-core')
+# Destroy the windows-server-2008-x86-core example
+[group('example')]
+windows-server-2008-x86-core-example-destroy: (example-destroy 'windows-server-2008-x86-core')
+
 # Boot the windows-server-2012 example (up + console)
 [group('example')]
 windows-server-2012-example-up: (example-up 'windows-server-2012')
 # Destroy the windows-server-2012 example
 [group('example')]
 windows-server-2012-example-destroy: (example-destroy 'windows-server-2012')
+
+# Boot the windows-server-2012-core example (up + console)
+[group('example')]
+windows-server-2012-core-example-up: (example-up 'windows-server-2012-core')
+# Destroy the windows-server-2012-core example
+[group('example')]
+windows-server-2012-core-example-destroy: (example-destroy 'windows-server-2012-core')
 
 # Boot the windows-server-2012-r2 example (up + console)
 [group('example')]
@@ -643,12 +708,26 @@ windows-server-2012-r2-example-up: (example-up 'windows-server-2012-r2')
 [group('example')]
 windows-server-2012-r2-example-destroy: (example-destroy 'windows-server-2012-r2')
 
+# Boot the windows-server-2012-r2-core example (up + console)
+[group('example')]
+windows-server-2012-r2-core-example-up: (example-up 'windows-server-2012-r2-core')
+# Destroy the windows-server-2012-r2-core example
+[group('example')]
+windows-server-2012-r2-core-example-destroy: (example-destroy 'windows-server-2012-r2-core')
+
 # Boot the windows-server-2016 example (up + console)
 [group('example')]
 windows-server-2016-example-up: (example-up 'windows-server-2016')
 # Destroy the windows-server-2016 example
 [group('example')]
 windows-server-2016-example-destroy: (example-destroy 'windows-server-2016')
+
+# Boot the windows-server-2016-core example (up + console)
+[group('example')]
+windows-server-2016-core-example-up: (example-up 'windows-server-2016-core')
+# Destroy the windows-server-2016-core example
+[group('example')]
+windows-server-2016-core-example-destroy: (example-destroy 'windows-server-2016-core')
 
 # Boot the windows-server-2019 example (up + console)
 [group('example')]
@@ -657,6 +736,13 @@ windows-server-2019-example-up: (example-up 'windows-server-2019')
 [group('example')]
 windows-server-2019-example-destroy: (example-destroy 'windows-server-2019')
 
+# Boot the windows-server-2019-core example (up + console)
+[group('example')]
+windows-server-2019-core-example-up: (example-up 'windows-server-2019-core')
+# Destroy the windows-server-2019-core example
+[group('example')]
+windows-server-2019-core-example-destroy: (example-destroy 'windows-server-2019-core')
+
 # Boot the windows-server-2022 example (up + console)
 [group('example')]
 windows-server-2022-example-up: (example-up 'windows-server-2022')
@@ -664,12 +750,26 @@ windows-server-2022-example-up: (example-up 'windows-server-2022')
 [group('example')]
 windows-server-2022-example-destroy: (example-destroy 'windows-server-2022')
 
+# Boot the windows-server-2022-core example (up + console)
+[group('example')]
+windows-server-2022-core-example-up: (example-up 'windows-server-2022-core')
+# Destroy the windows-server-2022-core example
+[group('example')]
+windows-server-2022-core-example-destroy: (example-destroy 'windows-server-2022-core')
+
 # Boot the windows-server-2025 example (up + console)
 [group('example')]
 windows-server-2025-example-up: (example-up 'windows-server-2025')
 # Destroy the windows-server-2025 example
 [group('example')]
 windows-server-2025-example-destroy: (example-destroy 'windows-server-2025')
+
+# Boot the windows-server-2025-core example (up + console)
+[group('example')]
+windows-server-2025-core-example-up: (example-up 'windows-server-2025-core')
+# Destroy the windows-server-2025-core example
+[group('example')]
+windows-server-2025-core-example-destroy: (example-destroy 'windows-server-2025-core')
 
 # Boot the windows-vista example (up + console)
 [group('example')]

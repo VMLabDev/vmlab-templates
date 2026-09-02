@@ -1,0 +1,42 @@
+// Windows Server 2025 (Evaluation, Server Core) template (PRD §6.1). The same build as
+// windows-server-2025, differing in one line of the answer file: it installs
+// image index 1, the Server Core image — no Desktop Experience, no
+// explorer, no MMC, and a smaller patch surface.
+//
+// Fully unattended: unattend/ is packed into an ISO carrying autounattend.xml,
+// the virtio storage/net drivers Windows Setup needs (the windows-server
+// profile uses virtio disk + NIC), and the guest tooling MSIs installed on
+// first logon. The guest agent is how vmlab drives a Core guest, so there is
+// nothing a shell-less image takes away.
+//
+//   ./fetch-deps.sh        # one-time: pull virtio drivers + MSIs into unattend/
+//   vmlab template build   # ~30-45 minutes
+//
+// The eval ISO is licensed for 180 days of evaluation — see README.md.
+
+import <vmlab.wcl>
+
+template "windows-server-2025-core" {
+  arch    = "x86_64"
+  version = "26100.1742"
+  registry = "ghcr.io/vmlabdev/vmlab-templates/windows-server-2025-core"
+  profile = "windows-server"
+  cpus    = 4
+  memory  = 8GiB
+  disk    = 60GiB
+
+  source "iso" {
+    url    = "https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/26100.1742.240906-0331.ge_release_svc_refresh_SERVER_EVAL_x64FRE_en-us.iso"
+    sha256 = "d0ef4502e350e3c6c53c15b1b3020d38a5ded011bf04998e950720ac8579b23d"
+  }
+
+  media { kind = "iso" from = "./unattend/" label = "UNATTEND" }
+  nic { nat = true }
+
+  provision "scripts/install.ws" { }
+
+  // Runs on every clone's first boot, before the VM is reported ready: waits
+  // for sysprep specialize/OOBE to finish (the FirstLogonCommands marker), then
+  // clears it. So labs using this template never see a half-specialized clone.
+  first_boot = "scripts/firstboot.ws"
+}

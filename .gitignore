@@ -9,6 +9,9 @@
 
 # staged by each template's fetch-deps.sh
 windows-server-2025/unattend/drivers/
+windows-server-2025-core/unattend/drivers/
+windows-server-2022-core/unattend/drivers/
+windows-server-2019-core/unattend/drivers/
 kali/disk/
 parrot/disk/
 

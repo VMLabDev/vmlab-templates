@@ -60,8 +60,18 @@ RISC-V builds still use TCG inside vmlab and can take substantially longer.
 | `windows-server-2025/` | Windows Server 2025 Eval | Installer ISO + autounattend, sysprep-generalized (run `fetch-deps.sh` first) |
 | `windows-server-2022/` | Windows Server 2022 Eval | Installer ISO + autounattend, sysprep-generalized (run `fetch-deps.sh` first) |
 | `windows-server-2019/` | Windows Server 2019 Eval | Installer ISO + autounattend, sysprep-generalized (run `fetch-deps.sh` first) |
+| `windows-server-2025-core/` | Windows Server 2025 Eval (Server Core) | As above, installing the Server Core image (no Desktop Experience) |
+| `windows-server-2022-core/` | Windows Server 2022 Eval (Server Core) | As above, installing the Server Core image (no Desktop Experience) |
+| `windows-server-2019-core/` | Windows Server 2019 Eval (Server Core) | As above, installing the Server Core image (no Desktop Experience) |
 | `windows-11/` | Windows 11 Enterprise Eval | Installer ISO + autounattend, sysprep-generalized (run `fetch-deps.sh` first) |
 | `windows-10/` | Windows 10 Enterprise Eval | Installer ISO + autounattend, sysprep-generalized (run `fetch-deps.sh` first) |
+
+The `-core` templates build from the same ISO and answer file as the template
+they are named after, selecting the Server Core image instead of the Desktop
+Experience one. vmlab drives them through the guest agent exactly the same way;
+only the console differs. Server Core variants of the local-media servers
+(`windows-server-2008-core/` … `windows-server-2016-core/`) exist too and build
+with `just build-windows-local`.
 
 All Windows eval ISOs are downloaded and sha256-verified by vmlab just like the
 Linux ones; `fetch-deps.sh` only fetches the virtio guest drivers that get baked
