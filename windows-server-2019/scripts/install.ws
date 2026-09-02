@@ -96,6 +96,21 @@ fn stage_script(lab: Lab, vm: Vm, name: string) -> Result[string, string] {
 // 2022: exit 0 semantics but the desktop still up an hour later while
 // servicing was busy), so reboot_guest compares this before/after instead
 // of trusting the request.
+// Wait for the agent to answer, on the live probe. Readiness is sticky — it
+// stays true across a reboot the guest has not performed yet — so it cannot
+// tell "back up" from "on its way down", which is the only question worth
+// asking between a reboot request and the next thing that talks to the guest.
+fn wait_agent(lab: Lab, vm: Vm, rounds: int) -> bool {
+    for i in 0..rounds {
+        if vm.agent_answering() {
+            return true
+        }
+        vmlab::sleep_ms(5000)
+    }
+    lab.log("agent never answered while waiting for the guest to come back")
+    false
+}
+
 fn boot_stamp(vm: Vm) -> Result[string, string] {
     let r = vm.exec("powershell.exe", [
         "-NoProfile", "-NonInteractive", "-Command",
@@ -117,7 +132,20 @@ fn boot_stamp(vm: Vm) -> Result[string, string] {
 // three rounds (up to ~20 min of still-up waiting each) never produce a real
 // reboot does the host restart run as the true last resort.
 fn reboot_guest(lab: Lab, vm: Vm) -> Result[unit, string] {
-    let before = boot_stamp(vm)?
+    // The guest can already be mid-restart when we arrive — a failed update
+    // pass often leaves it that way — so wait for the agent before taking the
+    // reference stamp. An unreadable stamp is not worth failing a multi-hour
+    // build over: with no reference, a guest seen to drop and come back has
+    // demonstrably rebooted, which is all this proves anyway. (Windows 11,
+    // 2026-09-02: `let before = boot_stamp(vm)?` aborted the whole build.)
+    let ok = wait_agent(lab, vm, 720)          // up to 1h
+    let before = match boot_stamp(vm) {
+        Ok(s) => s,
+        Err(e) => {
+            lab.log("no reference boot stamp (" + e + "); a drop and return will do instead")
+            ""
+        },
+    }
     for round in 0..3 {
         // The shutdown can tear the agent down before the exec reply
         // arrives, so an exec error usually means the reboot is underway.
@@ -156,6 +184,10 @@ fn reboot_guest(lab: Lab, vm: Vm) -> Result[unit, string] {
         match boot_stamp(vm) {
             Ok(after) => {
                 if after != before {
+                    return Ok(())
+                }
+                if before == "" && dropped {
+                    lab.log("no reference stamp, but the guest dropped and came back — rebooted")
                     return Ok(())
                 }
                 lab.log("boot stamp unchanged — the guest never rebooted; requesting again")
@@ -202,9 +234,13 @@ fn run_wu_pass(lab: Lab, vm: Vm, script: string) -> string {
     // them — a pass issued right then races the next auto-reboot and reads
     // as a failure. A short wait plus a fresh readiness check rides that out.
     vmlab::sleep_ms(30000)
-    match vm.wait_ready(600) {
-        Ok(u)  => lab.log("guest settled; starting the update pass"),
-        Err(e) => lab.log("guest not ready before the update pass: " + e),
+    // The live probe, not readiness: a pass issued while the guest is still
+    // going down answers WU_E_SERVICE_STOP (0x8024001E) and reads as a failed
+    // pass (Windows 11, 2026-09-02).
+    if wait_agent(lab, vm, 360) {
+        lab.log("guest settled; starting the update pass")
+    } else {
+        lab.log("guest never came back before the update pass; trying it anyway")
     }
     match vm.exec_timeout("powershell.exe", [
         "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script,
