@@ -1184,13 +1184,12 @@ template "windows-8" {
 // MSDN/VL ISO as windows-server-2008 — the answer file just selects image
 // index 2, the Server Core image, instead of the full/GUI one.
 //
-// These old releases have no vmlab guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`) — on Core that leaves
-// the console cmd.exe as the only way in, so treat this as a target for
-// testing Core itself, not for driving from the host.
+// autounattend.xml installs Windows and then, on first logon, runs the vmlab
+// bootstrap ISO's install.cmd and `sysprep /generalize /oobe /shutdown` — in
+// that order, because the build's verification boot waits for the agent's
+// handshake and an image sealed without one fails. Clones come up generalized
+// and agent-carrying, which matters more here than anywhere: on Core the agent
+// is how a host drives the machine at all.
 
 
 template "windows-server-2008-core" {
@@ -1217,13 +1216,12 @@ template "windows-server-2008-core" {
 // MSDN/VL ISO as windows-server-2008-r2 — the answer file just selects image
 // index 2, the Server Core image, instead of the full/GUI one.
 //
-// These old releases have no vmlab guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`) — on Core that leaves
-// the console cmd.exe as the only way in, so treat this as a target for
-// testing Core itself, not for driving from the host.
+// autounattend.xml installs Windows and then, on first logon, runs the vmlab
+// bootstrap ISO's install.cmd and `sysprep /generalize /oobe /shutdown` — in
+// that order, because the build's verification boot waits for the agent's
+// handshake and an image sealed without one fails. Clones come up generalized
+// and agent-carrying, which matters more here than anywhere: on Core the agent
+// is how a host drives the machine at all.
 
 
 template "windows-server-2008-r2-core" {
@@ -1245,15 +1243,16 @@ template "windows-server-2008-r2-core" {
 // -----------------------------------------------------------------------------
 // windows-server-2008-r2
 
-// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
-// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
-// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
+// Windows Server 2008 R2 template (PRD §6.1). Legacy guest: SeaBIOS + IDE +
+// e1000 (the windows-legacy profile), installed from a local MSDN/VL ISO in
+// ../iso/. It installs keyless (no product key needed), so no .env entry.
 //
-// These old releases have no qemu guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`).
+// autounattend.xml installs Windows and then, on first logon, runs the vmlab
+// bootstrap ISO's install.cmd and `sysprep /generalize /oobe /shutdown` — in
+// that order, because the build's verification boot waits for the agent's
+// handshake and an image sealed without one fails. The build waits for the VM
+// to power off and seals the generalized disk, so clones come up generalized
+// AND agent-carrying: `ready`, `exec` and `cp` all work.
 
 
 template "windows-server-2008-r2" {
@@ -1275,15 +1274,16 @@ template "windows-server-2008-r2" {
 // -----------------------------------------------------------------------------
 // windows-server-2008
 
-// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
-// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
-// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
+// Windows Server 2008 template (PRD §6.1). Legacy guest: SeaBIOS + IDE +
+// e1000 (the windows-legacy profile), installed from a local MSDN/VL ISO in
+// ../iso/. It installs keyless (no product key needed), so no .env entry.
 //
-// These old releases have no qemu guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`).
+// autounattend.xml installs Windows and then, on first logon, runs the vmlab
+// bootstrap ISO's install.cmd and `sysprep /generalize /oobe /shutdown` — in
+// that order, because the build's verification boot waits for the agent's
+// handshake and an image sealed without one fails. The build waits for the VM
+// to power off and seals the generalized disk, so clones come up generalized
+// AND agent-carrying: `ready`, `exec` and `cp` all work.
 
 
 template "windows-server-2008" {
@@ -1383,13 +1383,12 @@ template "windows-server-2008" {
 // MSDN/VL ISO as windows-server-2012 — the answer file just selects image
 // index 1, the Server Core image, instead of the full/GUI one.
 //
-// These old releases have no vmlab guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`) — on Core that leaves
-// the console cmd.exe as the only way in, so treat this as a target for
-// testing Core itself, not for driving from the host.
+// autounattend.xml installs Windows and then, on first logon, runs the vmlab
+// bootstrap ISO's install.cmd and `sysprep /generalize /oobe /shutdown` — in
+// that order, because the build's verification boot waits for the agent's
+// handshake and an image sealed without one fails. Clones come up generalized
+// and agent-carrying, which matters more here than anywhere: on Core the agent
+// is how a host drives the machine at all.
 
 
 template "windows-server-2012-core" {
@@ -1416,13 +1415,12 @@ template "windows-server-2012-core" {
 // MSDN/VL ISO as windows-server-2012-r2 — the answer file just selects image
 // index 1, the Server Core image, instead of the full/GUI one.
 //
-// These old releases have no vmlab guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`) — on Core that leaves
-// the console cmd.exe as the only way in, so treat this as a target for
-// testing Core itself, not for driving from the host.
+// autounattend.xml installs Windows and then, on first logon, runs the vmlab
+// bootstrap ISO's install.cmd and `sysprep /generalize /oobe /shutdown` — in
+// that order, because the build's verification boot waits for the agent's
+// handshake and an image sealed without one fails. Clones come up generalized
+// and agent-carrying, which matters more here than anywhere: on Core the agent
+// is how a host drives the machine at all.
 
 
 template "windows-server-2012-r2-core" {
@@ -1444,15 +1442,16 @@ template "windows-server-2012-r2-core" {
 // -----------------------------------------------------------------------------
 // windows-server-2012-r2
 
-// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
-// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
-// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
+// Windows Server 2012 R2 template (PRD §6.1). Legacy guest: SeaBIOS + IDE +
+// e1000 (the windows-legacy profile), installed from a local MSDN/VL ISO in
+// ../iso/. It installs keyless (no product key needed), so no .env entry.
 //
-// These old releases have no qemu guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`).
+// autounattend.xml installs Windows and then, on first logon, runs the vmlab
+// bootstrap ISO's install.cmd and `sysprep /generalize /oobe /shutdown` — in
+// that order, because the build's verification boot waits for the agent's
+// handshake and an image sealed without one fails. The build waits for the VM
+// to power off and seals the generalized disk, so clones come up generalized
+// AND agent-carrying: `ready`, `exec` and `cp` all work.
 
 
 template "windows-server-2012-r2" {
@@ -1474,15 +1473,16 @@ template "windows-server-2012-r2" {
 // -----------------------------------------------------------------------------
 // windows-server-2012
 
-// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
-// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
-// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
+// Windows Server 2012 template (PRD §6.1). Legacy guest: SeaBIOS + IDE +
+// e1000 (the windows-legacy profile), installed from a local MSDN/VL ISO in
+// ../iso/. It installs keyless (no product key needed), so no .env entry.
 //
-// These old releases have no qemu guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`).
+// autounattend.xml installs Windows and then, on first logon, runs the vmlab
+// bootstrap ISO's install.cmd and `sysprep /generalize /oobe /shutdown` — in
+// that order, because the build's verification boot waits for the agent's
+// handshake and an image sealed without one fails. The build waits for the VM
+// to power off and seals the generalized disk, so clones come up generalized
+// AND agent-carrying: `ready`, `exec` and `cp` all work.
 
 
 template "windows-server-2012" {
@@ -1509,13 +1509,12 @@ template "windows-server-2012" {
 // MSDN/VL ISO as windows-server-2016 — the answer file just selects image
 // index 1, the Server Core image, instead of the full/GUI one.
 //
-// These old releases have no vmlab guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`) — on Core that leaves
-// the console cmd.exe as the only way in, so treat this as a target for
-// testing Core itself, not for driving from the host.
+// autounattend.xml installs Windows and then, on first logon, runs the vmlab
+// bootstrap ISO's install.cmd and `sysprep /generalize /oobe /shutdown` — in
+// that order, because the build's verification boot waits for the agent's
+// handshake and an image sealed without one fails. Clones come up generalized
+// and agent-carrying, which matters more here than anywhere: on Core the agent
+// is how a host drives the machine at all.
 
 
 template "windows-server-2016-core" {
@@ -1537,15 +1536,16 @@ template "windows-server-2016-core" {
 // -----------------------------------------------------------------------------
 // windows-server-2016
 
-// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
-// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
-// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
+// Windows Server 2016 template (PRD §6.1). Legacy guest: SeaBIOS + IDE +
+// e1000 (the windows-legacy profile), installed from a local MSDN/VL ISO in
+// ../iso/. It installs keyless (no product key needed), so no .env entry.
 //
-// These old releases have no qemu guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`).
+// autounattend.xml installs Windows and then, on first logon, runs the vmlab
+// bootstrap ISO's install.cmd and `sysprep /generalize /oobe /shutdown` — in
+// that order, because the build's verification boot waits for the agent's
+// handshake and an image sealed without one fails. The build waits for the VM
+// to power off and seals the generalized disk, so clones come up generalized
+// AND agent-carrying: `ready`, `exec` and `cp` all work.
 
 
 template "windows-server-2016" {

@@ -3,13 +3,12 @@
 // MSDN/VL ISO as windows-server-2012-r2 — the answer file just selects image
 // index 1, the Server Core image, instead of the full/GUI one.
 //
-// These old releases have no vmlab guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`) — on Core that leaves
-// the console cmd.exe as the only way in, so treat this as a target for
-// testing Core itself, not for driving from the host.
+// autounattend.xml installs Windows and then, on first logon, runs the vmlab
+// bootstrap ISO's install.cmd and `sysprep /generalize /oobe /shutdown` — in
+// that order, because the build's verification boot waits for the agent's
+// handshake and an image sealed without one fails. Clones come up generalized
+// and agent-carrying, which matters more here than anywhere: on Core the agent
+// is how a host drives the machine at all.
 
 import <vmlab.wcl>
 
