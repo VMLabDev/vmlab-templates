@@ -1,8 +1,9 @@
-// Build provision for the windows-8.1 template (PRD §6.1, §10.4). Legacy Windows
-// has no qemu guest agent, so this is agent-free: autounattend.xml installs
-// Windows and runs `sysprep /generalize /oobe /shutdown` on first logon, which
-// powers the VM off. We type past the BIOS "boot from CD" prompt and then wait
-// for that poweroff — vmlab seals the generalized disk.
+// Build provision for the windows-8.1 template (PRD §6.1, §10.4). The whole
+// install is guest-driven: autounattend.xml lays down Windows, installs the
+// vmlab agent from the bootstrap ISO, and runs `sysprep /generalize /oobe
+// /shutdown` on first logon, which powers the VM off. This side types past the
+// BIOS "boot from CD" prompt and waits for that poweroff; vmlab then seals the
+// generalized disk and proves the agent on a verification boot.
 
 use vmlab
 
@@ -21,7 +22,7 @@ fn install(lab: Lab) -> Result[unit, string] {
     let vm = lab.vm("build")?
     boot_from_cd(lab, vm)?
 
-    lab.log("installing Windows 7 + sysprep; the answer file powers off when done (20-50 min)...")
+    lab.log("installing Windows 8.1 (x86) + sysprep; the answer file powers off when done (20-50 min)...")
     // The guest powers itself off after install -> agent install -> first-logon
     // sysprep. Budget three hours: these run two-up on one host, and a Windows 7
     // x64 install that took 93 minutes overran the old 90-minute wait (2026-09-03).
