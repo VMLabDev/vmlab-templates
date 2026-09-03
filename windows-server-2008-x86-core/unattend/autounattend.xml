@@ -20,35 +20,6 @@
       <UserLocale>en-US</UserLocale>
     </component>
 
-    <!-- virtio-serial is the agent's channel and this Windows has no driver
-         for it. Setup searches this path recursively and reflects what it
-         loads into the installed image, so the agent finds its port on first
-         boot. The UNATTEND ISO's letter shifts with how many CD-ROMs are
-         attached, so name every one it could take; Setup skips the paths that
-         do not exist. -->
-    <component name="Microsoft-Windows-PnpCustomizationsWinPE"
-               processorArchitecture="x86" publicKeyToken="31bf3856ad364e35"
-               language="neutral" versionScope="nonSxS">
-      <DriverPaths>
-        <PathAndCredentials wcm:action="add" wcm:keyValue="1"
-            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
-          <Path>D:\drivers</Path>
-        </PathAndCredentials>
-        <PathAndCredentials wcm:action="add" wcm:keyValue="2"
-            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
-          <Path>E:\drivers</Path>
-        </PathAndCredentials>
-        <PathAndCredentials wcm:action="add" wcm:keyValue="3"
-            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
-          <Path>F:\drivers</Path>
-        </PathAndCredentials>
-        <PathAndCredentials wcm:action="add" wcm:keyValue="4"
-            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
-          <Path>G:\drivers</Path>
-        </PathAndCredentials>
-      </DriverPaths>
-    </component>
-
     <component name="Microsoft-Windows-Setup"
                processorArchitecture="x86" publicKeyToken="31bf3856ad364e35"
                language="neutral" versionScope="nonSxS">

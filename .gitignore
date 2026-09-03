@@ -14,16 +14,10 @@ windows-server-2022-core/unattend/drivers/
 windows-server-2019-core/unattend/drivers/
 windows-7-x86/unattend/drivers/
 windows-7/unattend/drivers/
-windows-vista-x86/unattend/drivers/
 windows-8-x86/unattend/drivers/
 windows-8.1-x86/unattend/drivers/
-windows-server-2008-x86/unattend/drivers/
-windows-server-2008-x86-core/unattend/drivers/
-windows-vista/unattend/drivers/
 windows-8/unattend/drivers/
 windows-8.1/unattend/drivers/
-windows-server-2008/unattend/drivers/
-windows-server-2008-core/unattend/drivers/
 windows-server-2008-r2/unattend/drivers/
 windows-server-2008-r2-core/unattend/drivers/
 windows-server-2012/unattend/drivers/

@@ -18,6 +18,16 @@ template "windows-vista" {
   memory  = 4GiB
   disk    = 40GiB
 
+  // No agent: the channel would be virtio-serial, and Vista-era Setup
+  // refuses to install the driver for it — "Windows Setup could not
+  // install one or more boot-critical drivers", because WinPE from this
+  // era validates SHA-1 signatures only and every current virtio-win
+  // driver is signed SHA-256. Injecting it later is no better: 32-bit
+  // Vista prompts (which an unattended install cannot answer) and 64-bit
+  // enforces outright. So these install screen-driven and agent-free,
+  // as they did before — `ready`, `exec` and `cp` are unavailable.
+  agent   = false
+
   source "iso" { path = "../iso/en_windows_vista_enterprise_x64_dvd_vl_x13-17316.iso" }
 
   // An ISO, not a floppy: the answer file now travels with the vioserial
