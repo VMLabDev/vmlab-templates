@@ -12,6 +12,13 @@ windows-server-2025/unattend/drivers/
 windows-server-2025-core/unattend/drivers/
 windows-server-2022-core/unattend/drivers/
 windows-server-2019-core/unattend/drivers/
+windows-7-x86/unattend/drivers/
+windows-7/unattend/drivers/
+windows-vista-x86/unattend/drivers/
+windows-8-x86/unattend/drivers/
+windows-8.1-x86/unattend/drivers/
+windows-server-2008-x86/unattend/drivers/
+windows-server-2008-x86-core/unattend/drivers/
 kali/disk/
 parrot/disk/
 

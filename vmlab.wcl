@@ -985,15 +985,13 @@ template "windows-7" {
   memory  = 4GiB
   disk    = 40GiB
 
-  // The unattended install never runs the bootstrap ISO's install.cmd —
-  // this answer file predates it — so no agent ever appears and the
-  // build fails its verification boot waiting for one. The install is
-  // screen-driven and needs none; clones get no ready, exec or cp.
-  agent   = false
-
   source "iso" { path = "./iso/en_windows_7_enterprise_x64_dvd_x15-70749.iso" }
 
-  media { kind = "floppy" from = "./windows-7/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-7/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-7/scripts/install.ws" { }
@@ -1021,14 +1019,13 @@ template "windows-7" {
   memory  = 3GiB
   disk    = 40GiB
 
-  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
-  // target — so this guest carries none: no ready, exec or cp, and the
-  // install is driven over the screen instead.
-  agent   = false
-
   source "iso" { path = "./iso/en_windows_7_enterprise_x86_dvd_x15-70745.iso" }
 
-  media { kind = "floppy" from = "./windows-7-x86/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-7-x86/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-7-x86/scripts/install.ws" { }
@@ -1092,14 +1089,13 @@ template "windows-8.1" {
   memory  = 3GiB
   disk    = 40GiB
 
-  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
-  // target — so this guest carries none: no ready, exec or cp, and the
-  // install is driven over the screen instead.
-  agent   = false
-
   source "iso" { path = "./iso/en_windows_8_1_enterprise_x86_dvd_2972289.iso" }
 
-  media { kind = "floppy" from = "./windows-8.1-x86/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-8.1-x86/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-8.1-x86/scripts/install.ws" { }
@@ -1163,14 +1159,13 @@ template "windows-8" {
   memory  = 3GiB
   disk    = 40GiB
 
-  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
-  // target — so this guest carries none: no ready, exec or cp, and the
-  // install is driven over the screen instead.
-  agent   = false
-
   source "iso" { path = "./iso/en_windows_8_enterprise_x86_dvd_917587.iso" }
 
-  media { kind = "floppy" from = "./windows-8-x86/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-8-x86/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-8-x86/scripts/install.ws" { }
@@ -1327,14 +1322,13 @@ template "windows-server-2008-core" {
   memory  = 3GiB
   disk    = 40GiB
 
-  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
-  // target — so this guest carries none: no ready, exec or cp, and the
-  // install is driven over the screen instead.
-  agent   = false
-
   source "iso" { path = "./iso/en_windows_server_2008_x86_dvd_x14-26710.iso" }
 
-  media { kind = "floppy" from = "./windows-server-2008-x86-core/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-server-2008-x86-core/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-server-2008-x86-core/scripts/install.ws" { }
@@ -1362,14 +1356,13 @@ template "windows-server-2008" {
   memory  = 3GiB
   disk    = 40GiB
 
-  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
-  // target — so this guest carries none: no ready, exec or cp, and the
-  // install is driven over the screen instead.
-  agent   = false
-
   source "iso" { path = "./iso/en_windows_server_2008_x86_dvd_x14-26710.iso" }
 
-  media { kind = "floppy" from = "./windows-server-2008-x86/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-server-2008-x86/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-server-2008-x86/scripts/install.ws" { }
@@ -1874,14 +1867,13 @@ template "windows-vista" {
   memory  = 3GiB
   disk    = 40GiB
 
-  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
-  // target — so this guest carries none: no ready, exec or cp, and the
-  // install is driven over the screen instead.
-  agent   = false
-
   source "iso" { path = "./iso/en_windows_vista_ee_x86_dvd_vl_x13-17271.iso" }
 
-  media { kind = "floppy" from = "./windows-vista-x86/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-vista-x86/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-vista-x86/scripts/install.ws" { }
