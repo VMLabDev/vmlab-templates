@@ -1053,15 +1053,13 @@ template "windows-8.1" {
   memory  = 4GiB
   disk    = 40GiB
 
-  // The unattended install never runs the bootstrap ISO's install.cmd —
-  // this answer file predates it — so no agent ever appears and the
-  // build fails its verification boot waiting for one. The install is
-  // screen-driven and needs none; clones get no ready, exec or cp.
-  agent   = false
-
   source "iso" { path = "./iso/en_windows_8_1_enterprise_x64_dvd_2971902.iso" }
 
-  media { kind = "floppy" from = "./windows-8.1/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-8.1/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-8.1/scripts/install.ws" { }
@@ -1123,15 +1121,13 @@ template "windows-8" {
   memory  = 4GiB
   disk    = 40GiB
 
-  // The unattended install never runs the bootstrap ISO's install.cmd —
-  // this answer file predates it — so no agent ever appears and the
-  // build fails its verification boot waiting for one. The install is
-  // screen-driven and needs none; clones get no ready, exec or cp.
-  agent   = false
-
   source "iso" { path = "./iso/en_windows_8_enterprise_x64_dvd_917522.iso" }
 
-  media { kind = "floppy" from = "./windows-8/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-8/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-8/scripts/install.ws" { }
@@ -1197,7 +1193,11 @@ template "windows-server-2008-core" {
 
   source "iso" { path = "./iso/en_windows_server_2008_x64_dvd_x14-26714.iso" }
 
-  media { kind = "floppy" from = "./windows-server-2008-core/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-server-2008-core/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-server-2008-core/scripts/install.ws" { }
@@ -1229,7 +1229,11 @@ template "windows-server-2008-r2-core" {
 
   source "iso" { path = "./iso/en_windows_server_2008_r2_x64_dvd_x15-50365.iso" }
 
-  media { kind = "floppy" from = "./windows-server-2008-r2-core/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-server-2008-r2-core/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-server-2008-r2-core/scripts/install.ws" { }
@@ -1260,7 +1264,11 @@ template "windows-server-2008-r2" {
 
   source "iso" { path = "./iso/en_windows_server_2008_r2_x64_dvd_x15-50365.iso" }
 
-  media { kind = "floppy" from = "./windows-server-2008-r2/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-server-2008-r2/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-server-2008-r2/scripts/install.ws" { }
@@ -1291,7 +1299,11 @@ template "windows-server-2008" {
 
   source "iso" { path = "./iso/en_windows_server_2008_x64_dvd_x14-26714.iso" }
 
-  media { kind = "floppy" from = "./windows-server-2008/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-server-2008/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-server-2008/scripts/install.ws" { }
@@ -1394,7 +1406,11 @@ template "windows-server-2012-core" {
 
   source "iso" { path = "./iso/en_windows_server_2012_vl_x64_dvd_917758.iso" }
 
-  media { kind = "floppy" from = "./windows-server-2012-core/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-server-2012-core/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-server-2012-core/scripts/install.ws" { }
@@ -1426,7 +1442,11 @@ template "windows-server-2012-r2-core" {
 
   source "iso" { path = "./iso/en_windows_server_2012_r2_x64_dvd_2707946.iso" }
 
-  media { kind = "floppy" from = "./windows-server-2012-r2-core/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-server-2012-r2-core/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-server-2012-r2-core/scripts/install.ws" { }
@@ -1457,7 +1477,11 @@ template "windows-server-2012-r2" {
 
   source "iso" { path = "./iso/en_windows_server_2012_r2_x64_dvd_2707946.iso" }
 
-  media { kind = "floppy" from = "./windows-server-2012-r2/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-server-2012-r2/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-server-2012-r2/scripts/install.ws" { }
@@ -1488,7 +1512,11 @@ template "windows-server-2012" {
 
   source "iso" { path = "./iso/en_windows_server_2012_vl_x64_dvd_917758.iso" }
 
-  media { kind = "floppy" from = "./windows-server-2012/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-server-2012/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-server-2012/scripts/install.ws" { }
@@ -1520,7 +1548,11 @@ template "windows-server-2016-core" {
 
   source "iso" { path = "./iso/en_windows_server_2016_x64_dvd_9327751.iso" }
 
-  media { kind = "floppy" from = "./windows-server-2016-core/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-server-2016-core/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-server-2016-core/scripts/install.ws" { }
@@ -1551,7 +1583,11 @@ template "windows-server-2016" {
 
   source "iso" { path = "./iso/en_windows_server_2016_x64_dvd_9327751.iso" }
 
-  media { kind = "floppy" from = "./windows-server-2016/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-server-2016/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-server-2016/scripts/install.ws" { }
@@ -1831,15 +1867,13 @@ template "windows-vista" {
   memory  = 4GiB
   disk    = 40GiB
 
-  // The unattended install never runs the bootstrap ISO's install.cmd —
-  // this answer file predates it — so no agent ever appears and the
-  // build fails its verification boot waiting for one. The install is
-  // screen-driven and needs none; clones get no ready, exec or cp.
-  agent   = false
-
   source "iso" { path = "./iso/en_windows_vista_enterprise_x64_dvd_vl_x13-17316.iso" }
 
-  media { kind = "floppy" from = "./windows-vista/unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-vista/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "windows-vista/scripts/install.ws" { }

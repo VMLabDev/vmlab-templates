@@ -21,7 +21,11 @@ template "windows-server-2012" {
 
   source "iso" { path = "../iso/en_windows_server_2012_vl_x64_dvd_917758.iso" }
 
-  media { kind = "floppy" from = "./unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "scripts/install.ws" { }

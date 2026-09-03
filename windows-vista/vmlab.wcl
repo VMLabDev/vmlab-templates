@@ -18,15 +18,13 @@ template "windows-vista" {
   memory  = 4GiB
   disk    = 40GiB
 
-  // The unattended install never runs the bootstrap ISO's install.cmd —
-  // this answer file predates it — so no agent ever appears and the
-  // build fails its verification boot waiting for one. The install is
-  // screen-driven and needs none; clones get no ready, exec or cp.
-  agent   = false
-
   source "iso" { path = "../iso/en_windows_vista_enterprise_x64_dvd_vl_x13-17316.iso" }
 
-  media { kind = "floppy" from = "./unattend/" label = "UNATTEND" }
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./unattend/" label = "UNATTEND" }
   nic { nat = true }
 
   provision "scripts/install.ws" { }
