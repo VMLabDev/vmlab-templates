@@ -22,8 +22,10 @@ fn install(lab: Lab) -> Result[unit, string] {
     boot_from_cd(lab, vm)?
 
     lab.log("installing Windows Server 2008 R2 Server Core + sysprep; the answer file powers off when done (20-50 min)...")
-    // The guest powers itself off after install -> first-logon sysprep.
-    vm.wait_shutdown(2700)?
+    // The guest powers itself off after install -> agent install -> first-logon
+    // sysprep. Budget three hours: these run two-up on one host, and a Windows 7
+    // x64 install that took 93 minutes overran the old 90-minute wait (2026-09-03).
+    vm.wait_shutdown(10800)?
     lab.log("VM powered off; sealing the generalized image")
     Ok(())
 }
