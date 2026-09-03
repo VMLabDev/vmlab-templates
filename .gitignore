@@ -44,3 +44,6 @@ parrot/disk/
 # Generated docs site
 /docs/_site
 home-assistant-aarch64/haos_generic-aarch64-*.qcow2
+
+# Browser-automation scratch (playwright-cli snapshots/logs)
+.playwright-cli/
