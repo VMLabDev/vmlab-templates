@@ -66,7 +66,7 @@ fn sysprep(lab: Lab, vm: Vm) -> Result[unit, string] {
     lab.log("removing AppX packages so sysprep /generalize won't abort...")
     let strip = vm.exec_timeout("powershell.exe", [
         "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command",
-        "Get-AppxPackage -AllUsers | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue; Get-AppxProvisionedPackage -Online | ForEach-Object { Remove-AppxProvisionedPackage -Online -PackageName $_.PackageName -ErrorAction SilentlyContinue }",
+        "Get-AppxPackage -AllUsers | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue; Get-AppxProvisionedPackage -Online | ForEach-Object {{ Remove-AppxProvisionedPackage -Online -PackageName $_.PackageName -ErrorAction SilentlyContinue }}",
     ], 7200)
     match strip {
         Ok(r)  => lab.log("AppX strip done (exit " + fmt("{}", r.exit_code) + ")"),
