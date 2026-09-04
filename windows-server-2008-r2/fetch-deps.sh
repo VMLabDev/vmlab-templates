@@ -12,13 +12,18 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VIRTIO_ISO="${VIRTIO_ISO:-/tmp/vmlab-fetch/virtio-win.iso}"
-URL="https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso"
+VIRTIO_ISO="${VIRTIO_ISO:-/tmp/vmlab-fetch/virtio-win-0.1.221.iso}"
+# Pinned to 0.1.221 (2022): the current release signs its drivers
+# SHA-256 only, and the Setup of every Windows here validates SHA-1.
+URL="https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.221-1/virtio-win.iso"
+SHA256="196817297921be7b65d73dd2ad7fd9a7c825b455eaa218432f351c3300ecacf5"
 
 if [[ ! -f "$VIRTIO_ISO" ]]; then
     mkdir -p "$(dirname "$VIRTIO_ISO")"
     echo "downloading virtio-win.iso..."
     curl -fSL --retry 3 -o "$VIRTIO_ISO" "$URL"
+    echo "$SHA256  $VIRTIO_ISO" | sha256sum -c --quiet - \
+        || { echo "virtio-win.iso failed its checksum" >&2; exit 1; }
 fi
 
 # bsdtar preserves the ISO's read-only modes, so re-add +w before cleanup.

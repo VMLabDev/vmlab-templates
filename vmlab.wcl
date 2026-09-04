@@ -876,6 +876,15 @@ template "windows-11" {
   version = "26100.1742"
   registry = "ghcr.io/vmlabdev/vmlab-templates/windows-11"
   profile = "windows-11"
+  // Secure Boot off, deliberately. Two builds hung after their first
+  // Windows Update pass, frozen in the boot manager with the guest idle
+  // — and windows-11 is the only profile that enables it. Server 2025 is
+  // the same 24H2 codebase without it and patches fine, which points at
+  // an update writing Secure Boot revocations (DBX) into the OVMF vars
+  // that the next boot then refuses. The TPM stays on, so the SKU still
+  // installs. If this build survives its update passes, that is the
+  // cause; if it hangs identically, Secure Boot is exonerated.
+  secure_boot = false
   cpus    = 4
   memory  = 8GiB
   disk    = 60GiB
