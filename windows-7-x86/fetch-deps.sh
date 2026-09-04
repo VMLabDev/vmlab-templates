@@ -29,10 +29,10 @@ fi
 # bsdtar preserves the ISO's read-only modes, so re-add +w before cleanup.
 tmp=$(mktemp -d)
 trap 'chmod -R u+w "$tmp" 2>/dev/null; rm -rf "$tmp"' EXIT
-# fwcfg comes along because some vioserial builds hard-link their KMDF
-# coinstaller out of it, and bsdtar fails an extraction whose link target
-# is not in the same set.
-bsdtar -xf "$VIRTIO_ISO" -C "$tmp" vioserial fwcfg
+# Extract the whole ISO: several vioserial builds hard-link their KMDF
+# coinstaller out of a sibling driver's directory (which one varies by
+# release), and bsdtar fails an extraction whose link target is absent.
+bsdtar -xf "$VIRTIO_ISO" -C "$tmp"
 
 # w7 covers Windows 7 and Server 2008 R2; the x86 tree is the 32-bit build.
 SRC="$tmp/vioserial/w7/x86"

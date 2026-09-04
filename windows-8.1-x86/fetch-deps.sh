@@ -29,10 +29,10 @@ fi
 # bsdtar preserves the ISO's read-only modes, so re-add +w before cleanup.
 tmp=$(mktemp -d)
 trap 'chmod -R u+w "$tmp" 2>/dev/null; rm -rf "$tmp"' EXIT
-# fwcfg comes along because some vioserial builds hard-link their KMDF
-# coinstaller out of it, and bsdtar fails an extraction whose link target
-# is not in the same set.
-bsdtar -xf "$VIRTIO_ISO" -C "$tmp" vioserial fwcfg
+# Extract the whole ISO: several vioserial builds hard-link their KMDF
+# coinstaller out of a sibling driver's directory (which one varies by
+# release), and bsdtar fails an extraction whose link target is absent.
+bsdtar -xf "$VIRTIO_ISO" -C "$tmp"
 
 # w8.1/x86 is this guest's driver build in the virtio-win tree.
 SRC="$tmp/vioserial/w8.1/x86"
