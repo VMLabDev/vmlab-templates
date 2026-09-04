@@ -331,5 +331,14 @@ fn sysprep(lab: Lab, vm: Vm) -> Result[unit, string] {
 }
 
 fn main(lab: Lab) {
-    install(lab).expect("windows-11 build failed")
+    // `expect` drops the Err payload, so a bare expect prints "build failed"
+    // and nothing about why (windows-11, 2026-09-04: a whole failed build
+    // whose cause was never recorded). The cause rides the message instead.
+    match install(lab) {
+        Ok(u)  => u,
+        Err(e) => {
+            let failed: Result[unit, string] = Err(e)
+            failed.expect("windows-11 build failed: " + e)
+        },
+    }
 }

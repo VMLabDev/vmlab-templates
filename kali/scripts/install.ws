@@ -26,5 +26,15 @@ fn provision(lab: Lab) -> Result[unit, string] {
 }
 
 fn main(lab: Lab) {
-    provision(lab).expect("kali build failed")
+    // `expect` drops the Err payload, so a bare expect prints the
+    // failure and nothing about its cause (windows-11, 2026-09-04: a
+    // whole failed build whose reason was never recorded). The cause
+    // rides the message instead.
+    match provision(lab) {
+        Ok(u)  => u,
+        Err(e) => {
+            let failed: Result[unit, string] = Err(e)
+            failed.expect("kali build failed: " + e)
+        },
+    }
 }

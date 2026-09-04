@@ -32,5 +32,15 @@ fn install(lab: Lab) -> Result[unit, string] {
 }
 
 fn main(lab: Lab) {
-    install(lab).expect("windows-server-2012-core build failed")
+    // `expect` drops the Err payload, so a bare expect prints the
+    // failure and nothing about its cause (windows-11, 2026-09-04: a
+    // whole failed build whose reason was never recorded). The cause
+    // rides the message instead.
+    match install(lab) {
+        Ok(u)  => u,
+        Err(e) => {
+            let failed: Result[unit, string] = Err(e)
+            failed.expect("windows-server-2012-core build failed: " + e)
+        },
+    }
 }
