@@ -12,11 +12,14 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VIRTIO_ISO="${VIRTIO_ISO:-/tmp/vmlab-fetch/virtio-win-0.1.221.iso}"
-# Pinned to 0.1.221 (2022): the current release signs its drivers
-# SHA-256 only, and the Setup of every Windows here validates SHA-1.
-URL="https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.221-1/virtio-win.iso"
-SHA256="196817297921be7b65d73dd2ad7fd9a7c825b455eaa218432f351c3300ecacf5"
+VIRTIO_ISO="${VIRTIO_ISO:-/tmp/vmlab-fetch/virtio-win-0.1.190.iso}"
+# Pinned to 0.1.190 (2020), the last release whose drivers are
+# Microsoft cross-signed. Red Hat moved to attestation signing after
+# it, and a pre-Windows-10 kernel refuses to load such a driver —
+# verified on Windows 8 x64, where 2023 drivers are rejected outright,
+# 2022 install but will not load, and these prompt and install.
+URL="https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.190-1/virtio-win.iso"
+SHA256="dc6044e02fa6739881246843287481919ebcd4484f4bf23247741100489e9930"
 
 if [[ ! -f "$VIRTIO_ISO" ]]; then
     mkdir -p "$(dirname "$VIRTIO_ISO")"
