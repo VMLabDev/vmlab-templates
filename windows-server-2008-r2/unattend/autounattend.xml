@@ -137,7 +137,7 @@
         <SynchronousCommand wcm:action="add"
             xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
           <Order>2</Order>
-          <CommandLine>powershell -NoProfile -ExecutionPolicy Bypass -Command "foreach ($d in 'D','E','F','G','H') { $c = \"${d}:\drivers\vioserial\vioser.cat\"; if (Test-Path $c) { $s = (Get-AuthenticodeSignature $c).SignerCertificate; Export-Certificate -Cert $s -FilePath $env:TEMP\vioser.cer | Out-Null; certutil -addstore -f Root $env:TEMP\vioser.cer; certutil -addstore -f TrustedPublisher $env:TEMP\vioser.cer } }"</CommandLine>
+          <CommandLine>cmd /c for %d in (D E F G H) do if exist %d:\trust-driver.ps1 powershell -NoProfile -ExecutionPolicy Bypass -File %d:\trust-driver.ps1</CommandLine>
           <Description>trust the virtio driver's publisher</Description>
         </SynchronousCommand>
         <SynchronousCommand wcm:action="add"
