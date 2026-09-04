@@ -24,7 +24,7 @@ template "debian-13" {
 
   source "qcow2" {
     url    = "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-generic-riscv64.qcow2"
-    sha256 = "706370f37baae93bcd29e18a3e6135a2979696a70b5b37cc422613a31b1a8e2a"
+    sha256 = "665b18b757727a0bbdd5ef7c4bdf9e9df76bd77d3391da0586cb0dd7ed5e794c"
   }
 
   media { kind = "iso" from = "./cloudinit/" label = "CIDATA" }

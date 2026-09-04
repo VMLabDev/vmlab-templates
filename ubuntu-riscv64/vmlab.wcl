@@ -6,7 +6,7 @@
 //
 //   vmlab template build        (run from this directory)
 //
-// Image pinned to cloud build serial 20260518; sha256 from the official
+// Image pinned to cloud build serial 20260826; sha256 from the official
 // cloud-images.ubuntu.com SHA256SUMS.
 
 import <vmlab.wcl>
@@ -22,8 +22,8 @@ template "ubuntu-24.04" {
   disk     = 20GiB
 
   source "qcow2" {
-    url    = "https://cloud-images.ubuntu.com/noble/20260518/noble-server-cloudimg-riscv64.img"
-    sha256 = "5884193cef4e8d55661c6a15105404fa77b124c500d8dfb18051352e75e3bb3e"
+    url    = "https://cloud-images.ubuntu.com/noble/20260826/noble-server-cloudimg-riscv64.img"
+    sha256 = "6d0e58dc153585213020b0ec51112ebd70bedd5d2bc563599207f819586e141f"
   }
 
   media { kind = "iso" from = "./cloudinit/" label = "CIDATA" }

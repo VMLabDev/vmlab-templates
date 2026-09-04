@@ -248,7 +248,7 @@ template "debian-13" {
 
   source "qcow2" {
     url    = "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-generic-riscv64.qcow2"
-    sha256 = "706370f37baae93bcd29e18a3e6135a2979696a70b5b37cc422613a31b1a8e2a"
+    sha256 = "665b18b757727a0bbdd5ef7c4bdf9e9df76bd77d3391da0586cb0dd7ed5e794c"
   }
 
   media { kind = "iso" from = "./debian-riscv64/cloudinit/" label = "CIDATA" }
@@ -706,7 +706,7 @@ template "ubuntu-26.04" {
 //
 //   vmlab template build        (run from this directory)
 //
-// Image pinned to cloud build serial 20260518; sha256 from the official
+// Image pinned to cloud build serial 20260826; sha256 from the official
 // cloud-images.ubuntu.com SHA256SUMS.
 
 
@@ -721,8 +721,8 @@ template "ubuntu-24.04" {
   disk     = 20GiB
 
   source "qcow2" {
-    url    = "https://cloud-images.ubuntu.com/noble/20260518/noble-server-cloudimg-arm64.img"
-    sha256 = "6a61b967ba4a27dd1966f835a67643073ed55c2860ce3dc1cb0517282e6b8bec"
+    url    = "https://cloud-images.ubuntu.com/noble/20260826/noble-server-cloudimg-arm64.img"
+    sha256 = "afa139bac6f2629c1e1f2f8f34215f3a9ad9779801bcb945521ba1a45016743f"
   }
 
   media { kind = "iso" from = "./ubuntu-arm64/cloudinit/" label = "CIDATA" }
@@ -742,7 +742,7 @@ template "ubuntu-24.04" {
 //
 //   vmlab template build        (run from this directory)
 //
-// Image pinned to cloud build serial 20260518; sha256 from the official
+// Image pinned to cloud build serial 20260826; sha256 from the official
 // cloud-images.ubuntu.com SHA256SUMS.
 
 
@@ -757,8 +757,8 @@ template "ubuntu-24.04" {
   disk     = 20GiB
 
   source "qcow2" {
-    url    = "https://cloud-images.ubuntu.com/noble/20260518/noble-server-cloudimg-riscv64.img"
-    sha256 = "5884193cef4e8d55661c6a15105404fa77b124c500d8dfb18051352e75e3bb3e"
+    url    = "https://cloud-images.ubuntu.com/noble/20260826/noble-server-cloudimg-riscv64.img"
+    sha256 = "6d0e58dc153585213020b0ec51112ebd70bedd5d2bc563599207f819586e141f"
   }
 
   media { kind = "iso" from = "./ubuntu-riscv64/cloudinit/" label = "CIDATA" }
