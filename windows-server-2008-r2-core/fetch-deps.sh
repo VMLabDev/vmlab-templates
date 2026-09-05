@@ -12,14 +12,30 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VIRTIO_ISO="${VIRTIO_ISO:-/tmp/vmlab-fetch/virtio-win-0.1.190.iso}"
-# Pinned to 0.1.190 (2020), the last release whose drivers are
-# Microsoft cross-signed. Red Hat moved to attestation signing after
-# it, and a pre-Windows-10 kernel refuses to load such a driver —
-# verified on Windows 8 x64, where 2023 drivers are rejected outright,
-# 2022 install but will not load, and these prompt and install.
-URL="https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.190-1/virtio-win.iso"
-SHA256="dc6044e02fa6739881246843287481919ebcd4484f4bf23247741100489e9930"
+VIRTIO_ISO="${VIRTIO_ISO:-/tmp/vmlab-fetch/virtio-win-0.1.126.iso}"
+# Pinned to 0.1.126 (2016), two constraints deep.
+#
+# The first is the one 8/2012 and later share: 0.1.190 (2020) is the last
+# release Microsoft cross-signed, and a pre-Windows-10 kernel refuses to
+# load an attestation-signed driver — verified on Windows 8 x64, where
+# 2023 drivers are rejected outright and 2022 install but will not load.
+#
+# The second is this family's alone. Windows 7 and Server 2008 R2 RTM
+# (6.1.7600 — our media is pre-SP1) have no SHA-2 code signing support,
+# which arrived in KB3033929 and needs SP1. 0.1.190's catalogs list only
+# SHA-256 member hashes, so the OS computes the INF's SHA-1, finds no
+# entry, and reports the package tampered:
+#
+#   INF hash is not present in the catalog. Driver package appears to be
+#   tampered. ... Error = 0xE000024B
+#
+# which pnputil raises as "Windows can't verify the publisher of this
+# driver software" — the dialog that hung two Server 2008 R2 builds on
+# 2026-09-05, on an image whose publisher was already trusted. 0.1.126
+# still carries SHA-1 catalogs, and verified live on Windows 7 x64:
+# 0.1.190 fails the hash check, 0.1.126 imports.
+URL="https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.126-2/virtio-win.iso"
+SHA256="39890b158664fbfe080ed880a61a81d20c80e0b8762febb8f8e09a82be65dd38"
 
 if [[ ! -f "$VIRTIO_ISO" ]]; then
     mkdir -p "$(dirname "$VIRTIO_ISO")"
