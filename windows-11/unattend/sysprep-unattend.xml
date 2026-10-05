@@ -46,15 +46,27 @@
       <ComputerName>*</ComputerName>
     </component>
 
-    <!-- Write the first-boot marker as SYSTEM during specialize (no logon
-         needed, since there is no autologon). vmlab's first-boot provision
-         waits for it, deletes it, then reports the clone provisioned. -->
+    <!-- Clones run OOBE again, so they get the build's power plan and
+         BitLocker opt-out first. Then the first-boot marker is written as
+         SYSTEM during specialize (no logon needed, since there is no
+         autologon). vmlab's first-boot provision waits for it, deletes it,
+         then reports the clone provisioned. -->
     <component name="Microsoft-Windows-Deployment"
                processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35"
                language="neutral" versionScope="nonSxS">
       <RunSynchronous>
         <RunSynchronousCommand wcm:action="add">
           <Order>1</Order>
+          <Path>cmd /c powercfg /change standby-timeout-ac 0 &amp; powercfg /change standby-timeout-dc 0 &amp; powercfg /change hibernate-timeout-ac 0 &amp; powercfg /change monitor-timeout-ac 0 &amp; powercfg /hibernate off</Path>
+          <Description>vmlab: never sleep or hibernate</Description>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>2</Order>
+          <Path>reg add HKLM\SYSTEM\CurrentControlSet\Control\BitLocker /v PreventDeviceEncryption /t REG_DWORD /d 1 /f</Path>
+          <Description>vmlab: no automatic device encryption</Description>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>3</Order>
           <Path>cmd /c echo ready&gt; C:\Windows\Temp\vmlab-firstboot.done</Path>
           <Description>vmlab first-boot ready marker</Description>
         </RunSynchronousCommand>

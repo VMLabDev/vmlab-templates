@@ -93,6 +93,21 @@
                language="neutral" versionScope="nonSxS">
       <ComputerName>VMLAB-WIN10</ComputerName>
     </component>
+
+    <!-- A sleeping guest stalls the build: the client editions' default
+         power plan suspends an idle machine, and q35 offers S3. -->
+    <component name="Microsoft-Windows-Deployment"
+               processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35"
+               language="neutral" versionScope="nonSxS"
+               xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+      <RunSynchronous>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>1</Order>
+          <Path>cmd /c powercfg /change standby-timeout-ac 0 &amp; powercfg /change standby-timeout-dc 0 &amp; powercfg /change hibernate-timeout-ac 0 &amp; powercfg /change monitor-timeout-ac 0 &amp; powercfg /hibernate off</Path>
+          <Description>vmlab: never sleep or hibernate</Description>
+        </RunSynchronousCommand>
+      </RunSynchronous>
+    </component>
   </settings>
 
   <settings pass="oobeSystem">
