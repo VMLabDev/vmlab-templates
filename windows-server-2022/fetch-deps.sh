@@ -11,13 +11,21 @@ cd "$(dirname "$0")"
 OSDIRS=(2k22 2k19)
 ARCH=amd64
 
-VIRTIO_ISO="${VIRTIO_ISO:-/tmp/vmlab-fetch/virtio-win.iso}"
-URL="https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso"
+VIRTIO_ISO="${VIRTIO_ISO:-/tmp/vmlab-fetch/virtio-win-0.1.285.iso}"
+# Pinned to 0.1.285. Its successor, 0.1.302, fails large virtiofs reads
+# at random ("Error performing inpage operation", vmlab #137): its new
+# zero-copy read path locks the caller's buffer from the wrong process
+# context (virtio-win/kvm-guest-drivers-windows#1659). Move on once a
+# release carries the fix.
+URL="https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.285-1/virtio-win-0.1.285.iso"
+SHA256="e14cf2b94492c3e925f0070ba7fdfedeb2048c91eea9c5a5afb30232a3976331"
 
 if [[ ! -f "$VIRTIO_ISO" ]]; then
     mkdir -p "$(dirname "$VIRTIO_ISO")"
     echo "downloading virtio-win.iso..."
     curl -fSL --retry 3 -o "$VIRTIO_ISO" "$URL"
+    echo "$SHA256  $VIRTIO_ISO" | sha256sum -c --quiet - \
+        || { echo "virtio-win.iso failed its checksum" >&2; exit 1; }
 fi
 
 # bsdtar preserves the ISO's read-only modes, so re-add +w before cleanup.
