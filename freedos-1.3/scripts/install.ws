@@ -1,7 +1,10 @@
 // Drive the FreeDOS 1.3 LiveCD install onto a blank C: with the Full package set
-// (applications + games), then power off to seal the bootable disk. FreeDOS has
-// no answer file and no guest agent, so the FDI installer is driven entirely over
-// the live screen (VNC + OCR), like dos-6.22.
+// (applications + games), install the vmlab legacy agent, then power off to seal
+// the bootable disk. FreeDOS has no answer file, so the FDI installer is driven
+// entirely over the live screen (VNC + OCR), like dos-6.22. The agent comes last:
+// the bootstrap ISO's INSTALL.BAT, typed at the live prompt, copies VMLABAGT.EXE
+// to C:\VMLAB, registers it in C:\FDAUTO.BAT and starts it on COM1, and the rest
+// of the build runs through `exec`.
 //
 // Two quirks shape this script:
 //
@@ -144,6 +147,49 @@ fn install(lab: Lab) -> Result[unit, string] {
     choose_yes(vm)?                                  // Yes - install now
     wait_install_done(vm, lab)?
 
+    // --- Agent ---------------------------------------------------------------
+    // The completion dialog is another reboot dialog defaulting to "No - Return
+    // to DOS": Enter lands at the live prompt with the installed C: mounted.
+    // Should it have rebooted instead, the CD boots first again and the live
+    // environment is just as good a place to run the install from.
+    lab.log("FreeDOS installed; returning to the live prompt for the agent")
+    vm.send_keys("enter")?
+    vmlab::sleep_ms(5000)
+    match try_live_input(vm, lab) {
+        Ok(_)  => {},
+        Err(_) => boot_until_input(vm, lab)?,
+    }
+
+    // The bootstrap ISO is one of the live environment's CD drives; INSTALL.BAT
+    // copies the agent to C:\VMLAB, registers it in C:\FDAUTO.BAT (FreeDOS
+    // boots that, never AUTOEXEC.BAT) and runs it in the foreground on COM1.
+    lab.log("running the VMLAB CD's INSTALL.BAT")
+    vm.type_text("FOR %d IN (D E F G H) DO IF EXIST %d:\\LEGACY\\DOS\\VMLABAGT.EXE CALL %d:\\INSTALL.BAT\n")?
+    match wait_agent(vm, 180) {
+        Ok(_)  => {},
+        Err(e) => {
+            match vm.ocr() {
+                Ok(t)  => lab.log("screen: " + t),
+                Err(_) => {},
+            }
+            return Err(e)
+        },
+    }
+    lab.log("agent answering on COM1")
+
+    // A clone must start the agent from C:\FDAUTO.BAT. vmlab's INSTALL.BAT
+    // registers it there; one older than that wrote AUTOEXEC.BAT, which FreeDOS
+    // never runs, so add the line here if it is missing.
+    if !fdauto_has_agent(vm)? {
+        lab.log("C:\\FDAUTO.BAT does not start the agent; adding it")
+        vm.exec("echo.>>C:\\FDAUTO.BAT", [])?
+        vm.exec("echo", ["C:\\VMLAB\\VMLABAGT.EXE>>C:\\FDAUTO.BAT"])?
+        if !fdauto_has_agent(vm)? {
+            return Err("could not register the agent in C:\\FDAUTO.BAT")
+        }
+    }
+    lab.log("agent registered in C:\\FDAUTO.BAT")
+
     // --- Seal ----------------------------------------------------------------
     // Don't reboot into the installer. FreeDOS has no ACPI, so a clean QMP quit
     // is what flushes the disk (a SIGKILL would drop unflushed qcow2 writes and
@@ -152,6 +198,28 @@ fn install(lab: Lab) -> Result[unit, string] {
     vmlab::sleep_ms(4000)
     vm.poweroff()?
     Ok(())
+}
+
+// Poll for the agent's handshake on COM1, up to `secs` seconds.
+fn wait_agent(vm: Vm, secs: int) -> Result[unit, string] {
+    for i in 0..secs {
+        if vm.agent_answering() {
+            return Ok(())
+        }
+        vmlab::sleep_ms(1000)
+    }
+    Err("the DOS agent never answered on COM1")
+}
+
+// Whether C:\FDAUTO.BAT starts the agent. Each word is its own argv element:
+// the DOS agent quotes an element holding a space, and COMMAND.COM would read
+// "type C:\FDAUTO.BAT" as one command name.
+fn fdauto_has_agent(vm: Vm) -> Result[bool, string] {
+    let r = vm.exec("type", ["C:\\FDAUTO.BAT"])?
+    if r.exit_code != 0 {
+        return Err("type C:\\FDAUTO.BAT failed: " + r.stdout + r.stderr)
+    }
+    Ok(r.stdout.contains("VMLABAGT"))
 }
 
 fn main(lab: Lab) {

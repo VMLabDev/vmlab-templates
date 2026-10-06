@@ -3,9 +3,18 @@
 // FOSS / freely redistributable, so it carries a `registry` and is publishable.
 //
 // fetch-deps.sh downloads + sha256-verifies the official LiveCD zip and extracts
-// FD13LIVE.iso (gitignored). FreeDOS has no answer file and no QEMU guest agent,
-// so the build's FDI installer is driven over the live screen (VNC + OCR) by the
-// provision wscript, just like dos-6.22.
+// FD13LIVE.iso (gitignored). FreeDOS has no answer file, so the build's FDI
+// installer is driven over the live screen (VNC + OCR) by the provision wscript,
+// just like dos-6.22.
+//
+// It carries the vmlab legacy agent's DOS build (PRD §7.4): VMLABAGT.EXE on the
+// profile's COM1 channel (agent_transport = "isa-serial"), exec only. After the
+// install the provision runs the bootstrap ISO's INSTALL.BAT from the live
+// prompt, which copies the agent to C:\VMLAB and starts it from C:\FDAUTO.BAT at
+// every boot. Clones report `ready` and take `vmlab exec <vm> -- <command>`
+// (run through COMMAND.COM, output returned when it exits); there is no `cp` or
+// `shell`, and the agent is the foreground program, so the console shows its
+// banner rather than a prompt.
 
 import <vmlab.wcl>
 
@@ -18,11 +27,6 @@ template "freedos-1.3" {
   memory   = 64MiB        // FreeDOS is happy small; the LiveCD warns about its RAM
                           // drive even at 256M, so the bump buys nothing
   disk     = 2GiB         // Full install (BASE + apps/bonus) needs the room
-
-  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
-  // target — so this guest carries none: no ready, exec or cp, and the
-  // install is driven over the screen instead.
-  agent    = false
 
   source "iso" { path = "./FD13LIVE.iso" }
   provision "scripts/install.ws" { }

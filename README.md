@@ -79,8 +79,9 @@ into the answer-file media (and `just` runs it for you).
 
 ### Vintage x86 (DOS / Windows 3.x–2000)
 
-These predate answer files and have no guest agent, so they install from local
-or downloaded media driven over the live screen (VNC + OCR). They run on the
+These predate answer files, so they install from local or downloaded media
+driven over the live screen (VNC + OCR). `freedos-1.3` then installs vmlab's
+exec-only legacy agent over COM1; the others carry no agent. They run on the
 x86_64 emulator but show as arch `x86`. Built via `just build-vintage` (the
 proprietary entries need their ISOs placed in `iso/` first — see `iso/README.md`).
 
