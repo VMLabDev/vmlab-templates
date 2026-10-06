@@ -117,8 +117,8 @@ windows-11-build: (template-build 'windows-11' 'x86_64/windows-11')
 windows-10-build: (template-build 'windows-10' 'x86_64/windows-10')
 
 # TempleOS is a public-domain hobby OS; its ISO installer is driven over the
-# live screen — agent = false, so clones need a console keypress at the boot
-# menu; see templeos/README.md.
+# live screen and the HolyC agent typed in at its shell (exec only, over COM1);
+# see templeos/README.md.
 
 # Build the TempleOS template (public-domain hobby OS, screen-driven install)
 [group('build')]
