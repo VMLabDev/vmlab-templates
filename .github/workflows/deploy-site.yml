@@ -13,6 +13,7 @@ name: Deploy Site
 # facts locally with `just docs-data` and commit the result.
 
 on:
+  workflow_dispatch: {}
   push:
     branches: [main]
     paths:
