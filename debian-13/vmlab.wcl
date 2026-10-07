@@ -5,14 +5,14 @@
 //
 //   vmlab template build        (run from this directory)
 //
-// Image pinned to cloud build 20260601-2496; sha512-verified against
+// Image pinned to cloud build 20261001-2618; sha512-verified against
 // cloud.debian.org SHA512SUMS, sha256 computed from the verified file.
 
 import <vmlab.wcl>
 
 template "debian-13" {
   arch    = "x86_64"
-  version = "13.20260601"
+  version = "13.20261001"
   registry = "ghcr.io/vmlabdev/vmlab-templates/debian-13"
   profile = "linux-modern"
   cpus    = 2
@@ -20,8 +20,8 @@ template "debian-13" {
   disk    = 20GiB
 
   source "qcow2" {
-    url    = "https://cloud.debian.org/images/cloud/trixie/20260601-2496/debian-13-genericcloud-amd64-20260601-2496.qcow2"
-    sha256 = "e5ef082958bae3763ba664a6365096d2cd29332ae78dc2d03549ab26b6b98ea8"
+    url    = "https://cloud.debian.org/images/cloud/trixie/20261001-2618/debian-13-genericcloud-amd64-20261001-2618.qcow2"
+    sha256 = "b2aca2bee42c7082fd6aba4a5bb1a89612087a405e99896920f3346f7b23b9d1"
   }
 
   media { kind = "iso" from = "./cloudinit/" label = "CIDATA" }

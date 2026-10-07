@@ -5,7 +5,7 @@ NoCloud cloud-init seed.
 
 - Credentials: `vmlab` / `vmlab` (passwordless sudo), SSH password auth on.
 - vmlab guest agent installed and enabled.
-- Image pinned to cloud build `20260601-2496`. To bump: pick a build from
+- Image pinned to cloud build `20261001-2618`. To bump: pick a build from
   <https://cloud.debian.org/images/cloud/trixie/>, verify the file against
   its `SHA512SUMS`, compute the sha256 and update `vmlab.wcl`.
 
