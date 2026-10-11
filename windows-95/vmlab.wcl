@@ -1,0 +1,38 @@
+// windows-95 template (PRD §6.1). Windows 95 (4.00.950) on the windows-9x
+// profile (i440fx/SeaBIOS/IDE, Cirrus VGA, AMD PCnet NIC).
+//
+// The CD's boot floppy runs Setup at once, with no "boot from hard disk"
+// choice. That Setup partitions and formats the blank disk; the build
+// provision then quits to X:\WIN95> and runs B:\VMLAB.BAT, which copies the
+// agent and the install folder (patched for modern CPUs by fetch-deps.sh) from
+// the VMLABSRC CD to C: and runs Setup there with B:\MSBATCH.INF. The CD is
+// ejected when Setup's reboot lands back in the CD's Setup, so the reset boots
+// the disk. MSBATCH.INF registers vmlab's legacy agent under RunServices:
+// exec only, on COM1 (agent_transport = "isa-serial"), answering before logon.
+//
+// Needs vmlab with Machine.eject_cdrom (VMLabDev/vmlab#156).
+
+import <vmlab.wcl>
+
+template "windows-95" {
+  arch    = "x86"
+  version = "4.00.950"
+  profile = "windows-9x"
+  // Windows 9x crashes in Setup and Explorer on a modern host CPU's CPUID;
+  // a period model keeps it on what it was written for. Clones inherit it.
+  cpu_model = "pentium3"
+  // Windows 95 hangs at random under KVM on AMD hosts: its TLB-invalidation
+  // bug, which patcher9x fixes only for 98 and later. TCG emulates the TLB.
+  accel     = "tcg"
+  cpus    = 1
+  memory  = 64MiB
+  disk    = 2GiB
+
+  source "iso" { path = "../iso/win95_en.iso" }
+  // Read as B:\ — the CD's El Torito boot floppy takes A:.
+  media { kind = "floppy" from = "./answer/" label = "MSBATCH" }
+  // The CD's install folder, patched by fetch-deps.sh for modern CPUs
+  // (patcher9x); the build copies it to C: and runs Setup from there.
+  media { kind = "iso" from = "./src/" label = "VMLABSRC" }
+  provision "scripts/install.ws" { }
+}

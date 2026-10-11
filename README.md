@@ -85,12 +85,27 @@ exec-only legacy agent over COM1; the others carry no agent. They run on the
 x86_64 emulator but show as arch `x86`. Built via `just build-vintage` (the
 proprietary entries need their ISOs placed in `iso/` first — see `iso/README.md`).
 
+The Windows 9x entries take the vanilla CD images as they are. Each
+`fetch-deps.sh` (which `just <name>-build` runs) extracts the CD's install
+folder, patches it with [patcher9x](https://github.com/JHRobotics/patcher9x)
+for the CPU speed and TLB invalidation bugs that stop Windows 9x on modern
+CPUs, and stages it with an `MSBATCH.INF` answer floppy. The build installs
+from the patched copy on a period `pentium3` CPU model and bakes in vmlab's
+exec-only legacy agent on COM1. These CDs are OEM media, so they need the OEM
+key variables in `.env`, and a vmlab with `Machine.eject_cdrom` and
+`cpu_model`.
+
 | Directory | OS | Source strategy |
 |---|---|---|
 | `freedos-1.3/` | FreeDOS 1.3 (Full set) | LiveCD download + sha256 (run `fetch-deps.sh` first); **publishable** |
 | `dos-6.22/` | MS-DOS 6.22 | Local bootable ISO, screen-driven install |
 | `windows-3.11/` | Windows for Workgroups 3.11 | Pre-installed tree layered on `dos-6.22` |
 | `windows-2000/` | Windows 2000 Professional SP4 | Local ISO + `winnt.sif` unattend (needs `.env` key) |
+| `windows-95/` | Windows 95 (4.00.950) | Vanilla CD + `MSBATCH.INF`, patched for modern CPUs; legacy agent (needs `.env` OEM ID) |
+| `windows-95-osr2/` | Windows 95 OSR2 (4.00.1111) | Same, from the OSR2 CD |
+| `windows-95-osr25/` | Windows 95 OSR2.5 (4.03.1216) | Same, from the OSR2.5 CD |
+| `windows-98/` | Windows 98 first edition | Vanilla CD + `MSBATCH.INF`, patched for modern CPUs; legacy agent (needs `.env` OEM key) |
+| `windows-98-se/` | Windows 98 Second Edition | Same, from the SE CD |
 
 FreeDOS is the one vintage template that is FOSS / freely redistributable, so it
 is download-backed and can be pushed to the registry (`just freedos-push`); the

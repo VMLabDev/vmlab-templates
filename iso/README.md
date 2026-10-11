@@ -1,6 +1,7 @@
 # Local install ISOs
 
-MSDN / Volume-License Windows ISOs used as `source "iso" { path = "../iso/<file>" }`
+MSDN / Volume-License Windows ISOs (plus retail Win9x from Bob Pony,
+https://dl.bobpony.com/windows/9x/) used as `source "iso" { path = "../iso/<file>" }`
 by the legacy/VL Windows templates. The ISOs themselves are **gitignored**
 (`*.iso`) — only this README is tracked. Drop the ISOs here.
 
@@ -13,6 +14,11 @@ pre-Vista editions force a key at install — put those in the repo-root `.env`
 |---|---|---|
 | `MS-DOS-6.22-bootable.iso` | MS-DOS 6.22 (bootable) | — none |
 | `Windows-3.11-stock.zip` | Windows for Workgroups 3.11 (runs on DOS) | — none |
+| `win95_en.iso` | Windows 95 (4.00.950, OEM media) | **`WINDOWS_95_OEM_KEY`** |
+| `win95_osr2_en.iso` | Windows 95B OSR2 (4.00.1111, OEM media) | **`WINDOWS_95_OEM_KEY`** |
+| `win95c_osr25.iso` | Windows 95C OSR2.5 (4.03.1216, OEM media) | **`WINDOWS_95_OEM_KEY`** |
+| `win98_fe_en.iso` | Windows 98 First Edition (OEM media) | **`WINDOWS_98_OEM_KEY`** |
+| `win98_se_en.iso` | Windows 98 Second Edition (4.10.2222A, OEM media) | **`WINDOWS_98_OEM_KEY`** |
 | `Windows-2000-Professional-SP4.iso` | Windows 2000 Professional SP4 | **`WINDOWS_2000_PRO_KEY`** |
 | `en_winxp_pro_vl_iso.img` | Windows XP Professional x86 (VL) | **`WINDOWS_XP_PRO_X86_KEY`** |
 | `en_win_xp_pro_x64_vl.iso` | Windows XP Professional x64 (VL) | **`WINDOWS_XP_PRO_X64_KEY`** |

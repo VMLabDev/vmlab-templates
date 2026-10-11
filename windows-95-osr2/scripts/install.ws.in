@@ -1,0 +1,264 @@
+// Install Windows 95 from its bootable CD, unattended through B:\MSBATCH.INF,
+// and bake vmlab's legacy agent.
+//
+// The CD's El Torito boot floppy becomes A:, so the answer floppy (built from
+// ./answer/ by fetch-deps.sh) is B:. The boot floppy maps the CD to X: and
+// runs Setup straight away; there is no "boot from hard disk" choice. That
+// Setup partitions and formats the blank disk, but takes no answer file, so it
+// is used for that and quit: at the third welcome screen, F3 twice drops to
+// X:\WIN95>.
+//
+// B:\VMLAB.BAT then copies the agent and the patched \WIN95 tree from the
+// VMLABSRC CD (see fetch-deps.sh) to C: and runs Setup from C:\WIN95 with
+// B:\MSBATCH.INF. When Setup's own reboot lands back in the CD's Setup, the CD
+// is ejected and the machine reset, so it boots the disk.
+//
+// The OEM Product ID is typed into Setup's Product Identification page rather
+// than read from MSBATCH.INF: retail 4.00.950 Setup rejects an OEM ID passed as
+// ProductID= that it accepts when typed. fetch-deps.sh writes it into
+// scripts/install.ws from WINDOWS_95_OEM_KEY.
+//
+// MSBATCH.INF registers C:\VMLAB\VMLABAGT.EXE under RunServices, so the agent
+// answers on COM1 before anyone logs on. The build script waits for that
+// answer; the builder then verifies the handshake and seals with a graceful
+// shutdown.
+
+use vmlab
+
+// The screen's text, or nothing when OCR fails.
+fn screen(vm: Vm) -> string {
+    match vm.ocr() {
+        Ok(t) => t,
+        Err(_) => "",
+    }
+}
+
+// Wait until `expect` is on screen.
+fn wait_text(vm: Vm, expect: string, secs: int) -> Result[unit, string] {
+    match vm.wait_for_text(expect, secs) {
+        Ok(_) => Ok(()),
+        Err(e) => Err("never saw \"" + expect + "\": " + e),
+    }
+}
+
+// Press `chord` until `expect` appears; a real-mode TUI drops keys.
+fn key_until(vm: Vm, chord: string, expect: string, secs: int) -> Result[unit, string] {
+    for attempt in 0..6 {
+        vm.send_keys(chord)?
+        match vm.wait_for_text(expect, secs) {
+            Ok(_) => return Ok(()),
+            Err(_) => vmlab::sleep_ms(800),
+        }
+    }
+    Err("never reached the screen showing \"" + expect + "\"")
+}
+
+// Type `text`, then confirm `expect` appears, retrying the input if dropped.
+fn type_until(vm: Vm, text: string, expect: string, secs: int) -> Result[unit, string] {
+    for attempt in 0..5 {
+        vm.type_text(text)?
+        match vm.wait_for_text(expect, secs) {
+            Ok(_) => return Ok(()),
+            Err(_) => vmlab::sleep_ms(800),
+        }
+    }
+    Err("typed input never produced \"" + expect + "\"")
+}
+
+// Whether the Add Printer Wizard is on screen.
+fn printer_wizard(vm: Vm) -> bool {
+    on_screen(vm, "ref/printer-wizard.png")
+}
+
+// Whether the reference image under scripts/ is on screen.
+fn on_screen(vm: Vm, image: string) -> bool {
+    match vm.find_image(image) {
+        Ok(Some(_)) => true,
+        _ => false,
+    }
+}
+
+// Clear the Setup wizard pages MSBATCH.INF does not suppress, until the agent
+// answers. Each page is matched by its title and answered with its default.
+fn finish_setup(lab: Lab, vm: Vm, secs: int) -> Result[unit, string] {
+    // In sync with WINDOWS_95_OEM_KEY (xxxxx-OEM-xxxxxxx-xxxxx).
+    let product_id = "__PRODUCT_KEY__"
+    // The same ID as OSR2's Certificate of Authenticity page takes it: three
+    // boxes, without "OEM" and the dashes.
+    let coa = ["__COA_1__", "__COA_2__", "__COA_3__"]
+    let typed_id = false
+    let rounds = secs / 15
+    let shutting_down = 0
+    for round in 0..rounds {
+        if vm.agent_answering() {
+            return Ok(())
+        }
+        // Windows 95 can hang for good at "Please wait while your computer
+        // shuts down" (the agent restarts it once, see MSBATCH.INF). After
+        // three minutes on that screen the emulator is restarted; the CD then
+        // boots its Setup, which the "Welcome to Setup" case below turns back
+        // into a disk boot.
+        if on_screen(vm, "ref/shutting-down.png") {
+            shutting_down = shutting_down + 1
+            if shutting_down >= 12 {
+                lab.log("Windows hung shutting down; restarting the emulator")
+                vm.restart()?
+                shutting_down = 0
+                vmlab::sleep_ms(15000)
+                continue
+            }
+        } else {
+            shutting_down = 0
+        }
+        let s = screen(vm)
+        if s.contains("Invalid Product Identification") || s.contains("you specified is not valid") {
+            return Err("Setup rejected WINDOWS_95_OEM_KEY; set a valid 20-digit OEM Product ID in .env")
+        }
+        // With no ProductID in MSBATCH.INF, Express Setup submits the empty
+        // field and shows "Invalid Product Identification Number". OCR cannot
+        // read that dialog, so it is matched by image (scripts/ref/). OK
+        // returns to the page, where the ID is typed.
+        let refused = match vm.find_image("ref/id-invalid.png") {
+            Ok(Some(_)) => true,
+            _ => false,
+        }
+        if refused {
+            if typed_id {
+                return Err("Setup rejected WINDOWS_95_OEM_KEY; set a valid 20-digit OEM Product ID in .env")
+            }
+            lab.log("Setup page: typing the OEM Product ID")
+            vm.send_keys("enter")?
+            vmlab::sleep_ms(2000)
+            vm.type_text(product_id)?
+            vm.send_keys("enter")?
+            typed_id = true
+        } else if s.contains("Welcome to Setup") {
+            // Setup's own reboot came back up in the CD's DOS Setup: the CD
+            // boots first and offers no "boot from hard disk". Setup runs from
+            // C:, so the CD can go; the reset then falls through to the disk.
+            // Ejecting earlier, while Setup detects hardware, hangs detection
+            // on the open tray.
+            lab.log("Setup rebooted into the CD; ejecting it and booting the disk")
+            vm.eject_cdrom()?
+            vm.send_keys("ctrl-alt-delete")?
+        } else if on_screen(vm, "ref/coa-invalid.png") {
+            // OSR2 and later submit the empty Certificate of Authenticity
+            // page first. OCR reads that dialog poorly, so it is matched by
+            // its title bar; Re-enter returns to the page, focus in box one.
+            if typed_id {
+                return Err("Setup rejected WINDOWS_95_OEM_KEY; set a valid 20-digit OEM Product ID in .env")
+            }
+            vm.send_keys("enter")?
+            vmlab::sleep_ms(2000)
+            lab.log("Setup page: typing the OEM Product ID into the certificate boxes")
+            // A full box moves focus to the next one by itself, so the
+            // groups are typed back to back; a Tab would skip a box.
+            vm.type_text(coa[0] + coa[1] + coa[2])?
+            vm.send_keys("enter")?
+            typed_id = true
+        } else if s.contains("ScanDisk") {
+            // OSR2 and later scan C: at boot after an unclean shutdown, such
+            // as the emulator restart above, and stop on each problem found.
+            // Each prompt's default (Save, then Exit) lets the boot go on,
+            // except the Undo disk prompt's, which waits for a floppy in A:.
+            if s.contains("Undo") {
+                lab.log("ScanDisk prompt at boot: skipping the Undo disk")
+                vm.send_keys("s")?
+            } else {
+                lab.log("ScanDisk prompt at boot: taking its default")
+                vm.send_keys("enter")?
+            }
+        } else if s.contains("license agreement") {
+            lab.log("Setup page: accepting the license")
+            vm.send_keys("alt-y")?
+        } else if s.contains("Windows Components") || s.contains("User Information") {
+            lab.log("Setup wizard page: Next")
+            vm.send_keys("enter")?
+        } else if printer_wizard(vm) || s.contains("You must install") {
+            // OCR does not read the wizard reliably, so its title bar is also
+            // matched by image (scripts/ref/printer-wizard.png).
+            lab.log("Setup page: no printer")
+            vm.send_keys("esc")?
+        } else if s.contains("forgot to enter your user name") {
+            vm.send_keys("enter")?
+        } else if s.contains("Set Windows Password") {
+            // Confirming the new user's (empty) password.
+            vm.send_keys("enter")?
+        } else if s.contains("Enter Network Password") || s.contains("Enter Windows Password") {
+            // The logon dialog is the desktop's, not the agent's: the agent
+            // runs under RunServices before it. A user name with an empty
+            // password logs on, and is not asked for again.
+            lab.log("logon dialog: logging on as vmlab with an empty password")
+            vm.type_text("vmlab")?
+            vm.send_keys("enter")?
+        }
+        vmlab::sleep_ms(15000)
+    }
+    Err("the agent never answered on COM1 after Setup")
+}
+
+fn install(lab: Lab) -> Result[unit, string] {
+    let vm = lab.vm("build")?
+
+    // First pass of Setup from the CD: configure the blank disk, reboot. A
+    // FAT32-capable release asks about large disk support first.
+    lab.log("partitioning: Setup from the CD configures the blank disk")
+    wait_text(vm, "Welcome to Setup", 1800)?
+    key_until(vm, "enter", "unallocated", 15)?
+    vm.send_keys("enter")?
+    vmlab::sleep_ms(4000)
+    if screen(vm).contains("large disk") {
+        vm.send_keys("down")?
+        vm.send_keys("enter")?
+    }
+    wait_text(vm, "restart your computer", 30)?
+    vm.send_keys("enter")?
+
+    // Second pass formats the new partition, then quits before ScanDisk.
+    lab.log("formatting: Setup's second pass formats C:")
+    wait_text(vm, "routine check", 2400)?
+    key_until(vm, "esc", "restart your system", 15)?
+    vm.send_keys("enter")?
+
+    // Third pass: quit at the welcome screen to the X:\WIN95> prompt.
+    lab.log("returning to the prompt with the CD driver loaded")
+    wait_text(vm, "Welcome to Setup", 1800)?
+    key_until(vm, "f3", "To quit Setup, press F3", 15)?
+    vm.send_keys("f3")?
+    // OCR misreads the prompt's own text (WIN98> comes back as WINSB>), so
+    // `ver` proves the prompt is there: its output says "Version", which the
+    // typed command does not (COMMAND.COM expands no %variables% at the
+    // prompt, so an echoed sentinel would match its own command line).
+    type_until(vm, "cls\nver\n", "Version", 10)?
+
+    // One short command: B:\\VMLAB.BAT stages C:\\VMLAB, copies the patched
+    // install folder from the VMLABSRC CD (see fetch-deps.sh) to C: and starts
+    // Setup there. Real-mode DOS drops keystrokes, so typing that whole
+    // sequence was what failed; the batch's own echo proves it started (OCR
+    // reads "vmlab" as "umlab", so the check matches the rest of the line).
+    // The CD stays in for now: its boot floppy is A:, where XCOPY and
+    // COMMAND.COM come from. finish_setup ejects it when Setup's reboot lands
+    // back in the CD's Setup.
+    lab.log("running B:\\VMLAB.BAT: stage C:, copy the patched tree, start Setup")
+    type_until(vm, "b:\\vmlab\n", "staging Setup", 30)?
+
+    // File copy, reboots, hardware detection.
+    finish_setup(lab, vm, 14400)?
+    lab.log("legacy agent answering on COM1")
+
+    // The build verifies the agent's handshake on its own and then seals with
+    // a graceful shutdown, which goes through this agent and flushes the disk
+    // cache. Shutting down here would race that verification.
+    lab.log("Windows 95 installed; the build verifies the agent and seals")
+    Ok(())
+}
+
+fn main(lab: Lab) {
+    match install(lab) {
+        Ok(u) => u,
+        Err(e) => {
+            let failed: Result[unit, string] = Err(e)
+            failed.expect("windows-95 build failed: " + e)
+        },
+    }
+}

@@ -1,0 +1,52 @@
+; Windows 95 unattended Setup script, read from B:\MSBATCH.INF.
+; The OEM Product ID is typed by scripts/install.ws, not set here (see there).
+[Setup]
+Express=1
+InstallDir="C:\WINDOWS"
+InstallType=1
+EBD=0
+ChangeDir=0
+OptionalComponents=1
+Network=1
+System=0
+CCP=0
+CleanBoot=0
+Display=0
+DevicePath=0
+NoDirWarn=1
+TimeZone="GMT"
+Uninstall=0
+VRC=0
+NoPrompt2Boot=1
+SaveSUBoot=0
+PenWinWarning=0
+
+[NameAndOrg]
+Name="vmlab"
+Org="vmlab"
+Display=0
+
+[Network]
+ComputerName="VMLAB95"
+Workgroup="WORKGROUP"
+Description="vmlab"
+Display=0
+Clients=VREDIR
+Protocols=MSTCP
+IgnoreDetectedNetCards=0
+; QEMU's PCnet-PCI (PCI\VEN_1022&DEV_2000). Retail 4.00.950 Setup does not
+; detect it in its network step and stops at an adapter picker; naming it
+; here installs NETAMD.INF's AMD PCnet/PCI driver.
+NetCards="*PNP828C"
+
+[MSTCP]
+DHCP=1
+
+; vmlab's legacy agent, copied to C:\VMLAB by VMLAB.BAT, starts before logon at
+; every boot. It is registered here directly rather than installed by a batch
+; file: Windows 95 hangs when a DOS virtual machine starts on this hardware.
+[Install]
+AddReg=VMLAB.Reg
+
+[VMLAB.Reg]
+HKLM,"Software\Microsoft\Windows\CurrentVersion\RunServices","vmlab-agent",,"C:\VMLAB\VMLABAGT.EXE --log C:\VMLAB\AGENT.LOG"

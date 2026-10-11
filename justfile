@@ -245,9 +245,29 @@ windows-3-11-build: dos-6-22-build (template-build 'windows-3.11' 'x86/windows-3
 [group('build-vintage')]
 windows-2000-build: (template-build 'windows-2000' 'x86/windows-2000')
 
+# Build Windows 95 (4.00.950) from the vanilla CD in iso/ (patched for modern CPUs; needs .env WINDOWS_95_OEM_KEY)
+[group('build-vintage')]
+windows-95-build: (template-build 'windows-95' 'x86/windows-95')
+
+# Build Windows 95 OSR2 (4.00.1111) from the vanilla CD in iso/ (patched for modern CPUs; needs .env WINDOWS_95_OEM_KEY)
+[group('build-vintage')]
+windows-95-osr2-build: (template-build 'windows-95-osr2' 'x86/windows-95-osr2')
+
+# Build Windows 95 OSR2.5 (4.03.1216) from the vanilla CD in iso/ (patched for modern CPUs; needs .env WINDOWS_95_OEM_KEY)
+[group('build-vintage')]
+windows-95-osr25-build: (template-build 'windows-95-osr25' 'x86/windows-95-osr25')
+
+# Build Windows 98 first edition from the vanilla CD in iso/ (patched for modern CPUs; needs .env WINDOWS_98_OEM_KEY)
+[group('build-vintage')]
+windows-98-build: (template-build 'windows-98' 'x86/windows-98')
+
+# Build Windows 98 Second Edition from the vanilla CD in iso/ (patched for modern CPUs; needs .env WINDOWS_98_OEM_KEY)
+[group('build-vintage')]
+windows-98-se-build: (template-build 'windows-98-se' 'x86/windows-98-se')
+
 # Build every vintage x86 template into the local store
 [group('build-vintage')]
-build-vintage: freedos-build dos-6-22-build windows-3-11-build windows-2000-build
+build-vintage: freedos-build dos-6-22-build windows-3-11-build windows-2000-build windows-95-build windows-95-osr2-build windows-95-osr25-build windows-98-build windows-98-se-build
 
 # Build the Alpine Linux 3.23 arm64 template (runs under TCG on x86 hosts)
 [group('build-arm64')]
@@ -595,6 +615,41 @@ windows-2000-example-up: (example-up 'windows-2000')
 # Destroy the windows-2000 example
 [group('example')]
 windows-2000-example-destroy: (example-destroy 'windows-2000')
+
+# Boot the windows-95 example (up + console)
+[group('example')]
+windows-95-example-up: (example-up 'windows-95')
+# Destroy the windows-95 example
+[group('example')]
+windows-95-example-destroy: (example-destroy 'windows-95')
+
+# Boot the windows-95-osr2 example (up + console)
+[group('example')]
+windows-95-osr2-example-up: (example-up 'windows-95-osr2')
+# Destroy the windows-95-osr2 example
+[group('example')]
+windows-95-osr2-example-destroy: (example-destroy 'windows-95-osr2')
+
+# Boot the windows-95-osr25 example (up + console)
+[group('example')]
+windows-95-osr25-example-up: (example-up 'windows-95-osr25')
+# Destroy the windows-95-osr25 example
+[group('example')]
+windows-95-osr25-example-destroy: (example-destroy 'windows-95-osr25')
+
+# Boot the windows-98 example (up + console)
+[group('example')]
+windows-98-example-up: (example-up 'windows-98')
+# Destroy the windows-98 example
+[group('example')]
+windows-98-example-destroy: (example-destroy 'windows-98')
+
+# Boot the windows-98-se example (up + console)
+[group('example')]
+windows-98-se-example-up: (example-up 'windows-98-se')
+# Destroy the windows-98-se example
+[group('example')]
+windows-98-se-example-destroy: (example-destroy 'windows-98-se')
 
 # Boot the windows-3.11 example (up + console)
 [group('example')]

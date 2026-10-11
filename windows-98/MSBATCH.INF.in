@@ -1,0 +1,53 @@
+; Windows 98 unattended Setup script, read from B:\MSBATCH.INF.
+; fetch-deps.sh injects the product key from ../.env into answer/MSBATCH.INF.
+[Setup]
+Express=1
+InstallDir="C:\WINDOWS"
+InstallType=1
+ProductKey="__PRODUCT_KEY__"
+EBD=0
+ShowEula=0
+ChangeDir=0
+OptionalComponents=1
+Network=1
+System=0
+CCP=0
+CleanBoot=0
+Display=0
+DevicePath=0
+NoDirWarn=1
+TimeZone="GMT"
+Uninstall=0
+VRC=0
+NoPrompt2Boot=1
+SaveSUBoot=0
+PenWinWarning=0
+
+[NameAndOrg]
+Name="vmlab"
+Org="vmlab"
+Display=0
+
+[Network]
+ComputerName="VMLAB98"
+Workgroup="WORKGROUP"
+Description="vmlab"
+Display=0
+Clients=VREDIR
+Protocols=MSTCP
+IgnoreDetectedNetCards=0
+
+[MSTCP]
+DHCP=1
+
+; Every boot runs C:\VMLAB\BOOT.BAT before logon until it has installed
+; vmlab's legacy agent from the VMLAB bootstrap ISO. Not RunServicesOnce: the
+; first boot after Setup has no CD-ROM driver yet, so it would find nothing
+; and be spent. COMMAND.COM /F fails every critical error by itself, so
+; probing an empty CD drive (the Win95 install CD is ejected) cannot stop at
+; Abort, Retry, Fail.
+[Install]
+AddReg=VMLAB.Reg
+
+[VMLAB.Reg]
+HKLM,"Software\Microsoft\Windows\CurrentVersion\RunServices","vmlabboot",,"command.com /f /c C:\VMLAB\BOOT.BAT"
