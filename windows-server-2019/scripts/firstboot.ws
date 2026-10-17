@@ -51,6 +51,44 @@ fn wait_first_boot(lab: Lab, vm: Vm) -> Result[unit, string] {
     Err("first-boot marker never appeared after ~25 minutes")
 }
 
+// Wait for the clone's user OOBE to finish before anything reboots it or
+// reports it ready. The specialize marker fires BEFORE the oobeSystem pass, so
+// the guest can still be in OOBE when wait_first_boot returns: msoobe.exe
+// turns on autologon for its temporary defaultuser0 account, and
+// CloudExperienceHostBroker.exe turns it off again when user OOBE exits
+// (setupact.log: "fEnableAutologon = 0", "Clearing Auto-logon values per
+// request"), deleting AutoAdminLogon, DefaultUserName and SystemAutoLogon from
+// Winlogon, whoever wrote them. The agent only answers once machine OOBE ends,
+// some 15-20 s before that exit, and reboot_guest's forced reboot can land in
+// between. User OOBE then resumes on the next boot and clears the values after
+// the clone is ready: a lab that sets up an autologon desktop and reboots finds
+// AutoAdminLogon and DefaultUserName gone and DefaultPassword left behind
+// (reproduced 2026-10-18 under a registry audit). Done means setup no longer in
+// progress, no SystemAutoLogon left, and the last autologon line in
+// setupact.log being the clear rather than msoobe's enable; an edition whose
+// OOBE never enables it passes at once. Best-effort: a stuck OOBE costs ~10
+// minutes, never the boot.
+fn wait_user_oobe(lab: Lab, vm: Vm) {
+    let ps = "$s = Get-ItemProperty HKLM:\\SYSTEM\\Setup; if ($s.SystemSetupInProgress -ne 0 -or $s.OOBEInProgress -ne 0) {{ 'setup'; exit }}; if ((Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon').SystemAutoLogon) {{ 'autologon'; exit }}; $l = Select-String -Path C:\\Windows\\Panther\\UnattendGC\\setupact.log -Pattern 'fEnableAutologon = 1|Clearing Auto-logon values' -ErrorAction SilentlyContinue | Select-Object -Last 1; if ($l -and $l.Line -notmatch 'Clearing') {{ 'user-oobe'; exit }}; 'done'"
+    for i in 0..120 {
+        match vm.exec("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", ps]) {
+            Ok(r) => {
+                let state = r.stdout.trim()
+                if r.exit_code == 0 && state == "done" {
+                    lab.log("first-boot: OOBE finished")
+                    return
+                }
+                if i % 6 == 0 {
+                    lab.log("first-boot: waiting for OOBE to finish (" + state + ")")
+                }
+            }
+            Err(e) => lab.log("first-boot: agent busy (" + e + "); still waiting for OOBE"),
+        }
+        vmlab::sleep_ms(5000)
+    }
+    lab.log("first-boot: OOBE still running after ~10 minutes; continuing")
+}
+
 // Consume the pending staged-AppX reconciliation before anyone can log on.
 // Targets main packages staged for no user and not provisioned (the stale LKG
 // shell fallbacks after a Windows Update run). The LKG system apps refuse
@@ -186,6 +224,7 @@ fn image_fixed(vm: Vm) -> bool {
 fn main(lab: Lab) {
     let vm = lab.this_vm().expect("first-boot: no target VM")
     wait_first_boot(lab, vm).expect("windows first-boot failed")
+    wait_user_oobe(lab, vm)
     let fixed = image_fixed(vm)
     settle_appx(lab, vm)
     if !fixed {

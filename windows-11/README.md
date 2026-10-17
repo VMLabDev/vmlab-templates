@@ -37,5 +37,8 @@ Notes:
   `sha256` (or update both for a newer build via `sha256sum`).
 - The sealed image is **generalized**: each clone's first boot replays
   `sysprep-unattend.xml` — fresh SID, auto-generated computer name, OOBE
-  skipped, `Administrator` / `vmlab123!` restored with one autologon — so
+  skipped, `Administrator` / `vmlab123!` restored, no autologon — so
   clones are domain-joinable out of the box. (the build-time name VMLAB-WIN11 is replaced per clone)
+- `scripts/firstboot.ws` holds a clone's `ready` until user OOBE has exited.
+  That exit clears Winlogon's autologon values, so an autologon a lab sets up
+  before it is lost on the next boot; after `ready` it sticks.
