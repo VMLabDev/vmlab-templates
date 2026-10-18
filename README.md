@@ -39,6 +39,12 @@ need the documented ISO in `iso/`; `windows-2000` additionally needs the
 product key in `.env`. The Windows 11 ARM64 definition remains experimental
 and retains its deliberate placeholder URL/hash tripwire.
 
+The sysprep-generalized Windows templates (`windows-10`, `windows-11`,
+`windows-11-arm64` and the Server 2019/2022/2025 desktop and core templates)
+need vmlab `0.29.0-alpha` or later, to build and to clone: their first-boot
+script uses `vm.boot_id()` and `vm.wait_rebooted()` (wscript surface 2). An
+older vmlab refuses them by name and asks to be upgraded.
+
 Linux/KVM is required by the Compose stack (`/dev/kvm`). Non-native ARM64 and
 RISC-V builds still use TCG inside vmlab and can take substantially longer.
 

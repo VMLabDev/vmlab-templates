@@ -145,66 +145,63 @@ fn install_xaml_hook(lab: Lab, vm: Vm) {
 
 // Reboot from inside Windows once specialize has finished, then wait for the
 // clone to come back ready. Same approach as the build provision's reboot: a
-// host stop hard-kills QEMU after ~60s, so `shutdown /r` lets Windows settle;
-// we wait for the agent to drop (so we don't race a still-up guest) and return
-// only when it answers again. Falls back to a host restart if the agent never
-// goes away.
+// host stop hard-kills QEMU after ~60s, so `shutdown /r` lets Windows settle.
 //
-// Some clones looked as if they ignored the request: the agent kept answering
-// for the whole 5-minute wait and the host restart fired (2 of 7 clones,
-// 2026-10-18). Windows had in fact rebooted. On this 24H2 image a new boot
-// starts ~4 s after the request (System log: 1074 from shutdown.exe, then 13
-// and 12 a second apart), and a probe that finds the old agent gone
-// reconnects to the new boot's agent and reports it answering, so the drop is
-// never seen (3 of 17 clones, 2026-10-18). A changed boot stamp, checked every
-// ~15 s, is what shows that reboot. Separately, a request Windows refuses is
-// asked again after ~60 s, escalating, and each answer is logged: a delayed
-// shutdown already scheduled refuses every plain request (see
-// request_reboot). The host restart is the last resort, after ~3 min rather
-// than 5.
+// The reboot is watched by boot id, never by the agent dropping. On this 24H2
+// image a new boot starts ~4 s after the request (System log: 1074 from
+// shutdown.exe, then 13 and 12 a second apart), and a probe that finds the old
+// agent gone reconnects to the new boot's agent and reports it answering, so
+// `agent_answering` never sees the drop (3 of 17 clones, 2026-10-18) and every
+// such clone took the host restart below. `boot_id` changes on any reboot,
+// however quick, and `wait_rebooted` waits for that change and then for the
+// new boot's agent. Never `is_ready` either: readiness is sticky, so it stays
+// true across a reboot the guest has not performed yet.
+//
+// A request Windows refuses is asked again after ~60 s, escalating, and each
+// answer is logged: a delayed shutdown already scheduled refuses every plain
+// request (see request_reboot). A guest that is not on the old boot when a
+// round runs out (agent gone, or a new boot not answering yet) is mid-reboot,
+// not refusing, and gets the long wait instead of another request. The host restart is the last resort, after ~3 min of a guest that
+// stayed on the same boot.
 fn reboot_guest(lab: Lab, vm: Vm) -> Result[unit, string] {
     lab.log("first-boot: rebooting once to settle shell reconciliation")
-    let before = boot_stamp(vm)
+    let before = current_boot_id(lab, vm)?
+    lab.log("first-boot: boot id before reboot " + before)
     let rebooted = false
     for round in 0..3 {
         request_reboot(lab, vm, round)
-        // The live agent probe, never `is_ready`: readiness is sticky, so it
-        // stays true across a reboot the guest has not performed yet, this
-        // loop would never see the guest go down, and every clone would take
-        // the host-restart fallback below instead of the graceful reboot it
-        // just asked for.
-        for i in 0..12 {             // ~60 s for the agent to disappear
-            vmlab::sleep_ms(5000)
-            if !vm.agent_answering() {
+        match vm.wait_rebooted(before, 60) {
+            Ok(_) => {
                 rebooted = true
                 break
             }
-            // Every ~15 s, ask whether the agent answering is a new boot's.
-            if i % 3 == 2 {
-                let now = boot_stamp(vm)
-                if before != "" && now != "" && now != before {
-                    lab.log("first-boot: guest rebooted between agent polls (boot stamp " + before + " -> " + now + ")")
-                    rebooted = true
+            Err(e) => {
+                let same = match vm.boot_id() {
+                    Ok(id) => id == before,
+                    Err(_) => false,
+                }
+                if !same {
+                    // Down, or back on a new boot but not answering yet: the
+                    // request took. Windows can spend minutes on the way up.
+                    lab.log(fmt("first-boot: guest still coming back ~60 s after reboot request {}; waiting", round + 1))
+                    match vm.wait_rebooted(before, 1800) {
+                        Ok(_) => rebooted = true,
+                        Err(e) => lab.log("first-boot: guest never came back on a new boot (" + e + ")"),
+                    }
                     break
                 }
+                lab.log(fmt("first-boot: agent still up ~60 s after reboot request {}, same boot ({})", round + 1, e))
             }
         }
-        if rebooted {
-            break
-        }
-        lab.log(fmt("first-boot: agent still up ~60 s after reboot request {}, same boot", round + 1))
     }
     if !rebooted {
         lab.log("first-boot: in-guest reboot never took after 3 requests; forcing host restart")
         vm.restart()?
+        vm.wait_rebooted(before, 1800)?
     }
-    // And back up again — sticky readiness would otherwise let first-boot
-    // finish while the clone is still rebooting.
-    for i in 0..360 {                // up to 30 min for the clone to return
-        vmlab::sleep_ms(5000)
-        if vm.agent_answering() {
-            break
-        }
+    match vm.boot_id() {
+        Ok(after) => lab.log("first-boot: guest rebooted (boot id " + before + " -> " + after + ")"),
+        Err(e) => lab.log("first-boot: guest rebooted (boot id after unreadable: " + e + ")"),
     }
     vm.wait_ready(1800)
 }
@@ -238,14 +235,23 @@ fn request_reboot(lab: Lab, vm: Vm, round: int) {
     }
 }
 
-// When the guest last booted, to tell a reboot that happened from one that did
-// not. Empty when it cannot be read, which tells nothing either way.
-fn boot_stamp(vm: Vm) -> string {
-    let ps = "(Get-CimInstance Win32_OperatingSystem).LastBootUpTime.ToString('o')"
-    match vm.exec("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", ps]) {
-        Ok(r) => if r.exit_code == 0 { r.stdout.trim() } else { "" },
-        Err(e) => "",
+// The boot id the reboot is measured from. The agent has just answered the
+// steps before this one, so a failure here is a busy agent: ask again for
+// ~30 s before giving up, because an empty id would make any later boot id,
+// the current one included, look like a reboot.
+fn current_boot_id(lab: Lab, vm: Vm) -> Result[string, string] {
+    let last = ""
+    for i in 0..10 {
+        match vm.boot_id() {
+            Ok(id) => return Ok(id),
+            Err(e) => {
+                lab.log("first-boot: boot id unreadable (" + e + "); retrying")
+                last = e
+            }
+        }
+        vmlab::sleep_ms(3000)
     }
+    Err("first-boot: no boot id to measure the reboot from: " + last)
 }
 
 // Hold `ready` until the guest is ~5 minutes past its final boot. On

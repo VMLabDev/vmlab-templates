@@ -105,8 +105,16 @@ _Avoid_: ping, health check
 **Boot stamp**:
 The guest's last-boot time, captured before and after a reboot to prove the
 reboot actually happened. The only evidence that distinguishes a completed
-reboot from a swallowed shutdown request.
+reboot from a swallowed shutdown request. The build scripts still read it by
+hand; first boot uses the boot id instead.
 _Avoid_: uptime, reboot flag
+
+**Boot id**:
+vmlab's own identity for one guest boot (`vm.boot_id()`), different after any
+reboot however quick. First boot reads it before asking for a reboot and waits
+for it to change with `vm.wait_rebooted()`. Needs vmlab 0.29.0-alpha or later
+for these templates (wscript surface 2).
+_Avoid_: boot stamp, for first boot
 
 ### Windows build lifecycle
 
