@@ -7,6 +7,10 @@
 # instead, which is how `just ci::wcl-sync-check` diffs a fresh generation
 # against the committed file without touching the working tree.
 set -euo pipefail
+#
+# The sort is pinned to the C locale: a locale-aware one orders windows-95 and
+# windows-95-osr2 differently from machine to machine, and wcl-sync-check would
+# then fail on whichever locale the committed file was not generated under.
 
 root=$(cd "$(dirname "$0")/.." && pwd)
 dest=${1:-$root/vmlab.wcl}
@@ -40,7 +44,7 @@ while IFS= read -r file; do
       "$file"
   } >>"$out"
 done < <(cd "$root" && find . -mindepth 2 -maxdepth 2 -name vmlab.wcl \
-  -not -path './examples/*' -print | sort)
+  -not -path './examples/*' -print | LC_ALL=C sort)
 
 mv "$out" "$dest"
 trap - EXIT
