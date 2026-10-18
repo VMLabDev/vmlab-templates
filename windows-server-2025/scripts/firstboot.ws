@@ -149,23 +149,53 @@ fn install_xaml_hook(lab: Lab, vm: Vm) {
 // we wait for the agent to drop (so we don't race a still-up guest) and return
 // only when it answers again. Falls back to a host restart if the agent never
 // goes away.
+//
+// Some clones looked as if they ignored the request: the agent kept answering
+// for the whole 5-minute wait and the host restart fired (2 of 7 clones,
+// 2026-10-18). Windows had in fact rebooted. On this 24H2 image a new boot
+// starts ~4 s after the request (System log: 1074 from shutdown.exe, then 13
+// and 12 a second apart), and a probe that finds the old agent gone
+// reconnects to the new boot's agent and reports it answering, so the drop is
+// never seen (3 of 17 clones, 2026-10-18). A changed boot stamp, checked every
+// ~15 s, is what shows that reboot. Separately, a request Windows refuses is
+// asked again after ~60 s, escalating, and each answer is logged: a delayed
+// shutdown already scheduled refuses every plain request (see
+// request_reboot). The host restart is the last resort, after ~3 min rather
+// than 5.
 fn reboot_guest(lab: Lab, vm: Vm) -> Result[unit, string] {
     lab.log("first-boot: rebooting once to settle shell reconciliation")
-    let r = vm.exec("cmd.exe", ["/c", "shutdown /r /t 0 /f"])
-    // The live agent probe, never `is_ready`: readiness is sticky, so it stays
-    // true across a reboot the guest has not performed yet, this loop would
-    // never see the guest go down, and every clone would take the host-restart
-    // fallback below instead of the graceful reboot it just asked for.
-    let dropped = false
-    for i in 0..60 {                 // up to ~5 min for the agent to disappear
-        vmlab::sleep_ms(5000)
-        if !vm.agent_answering() {
-            dropped = true
+    let before = boot_stamp(vm)
+    let rebooted = false
+    for round in 0..3 {
+        request_reboot(lab, vm, round)
+        // The live agent probe, never `is_ready`: readiness is sticky, so it
+        // stays true across a reboot the guest has not performed yet, this
+        // loop would never see the guest go down, and every clone would take
+        // the host-restart fallback below instead of the graceful reboot it
+        // just asked for.
+        for i in 0..12 {             // ~60 s for the agent to disappear
+            vmlab::sleep_ms(5000)
+            if !vm.agent_answering() {
+                rebooted = true
+                break
+            }
+            // Every ~15 s, ask whether the agent answering is a new boot's.
+            if i % 3 == 2 {
+                let now = boot_stamp(vm)
+                if before != "" && now != "" && now != before {
+                    lab.log("first-boot: guest rebooted between agent polls (boot stamp " + before + " -> " + now + ")")
+                    rebooted = true
+                    break
+                }
+            }
+        }
+        if rebooted {
             break
         }
+        lab.log(fmt("first-boot: agent still up ~60 s after reboot request {}, same boot", round + 1))
     }
-    if !dropped {
-        lab.log("first-boot: agent still up after reboot request; forcing host restart")
+    if !rebooted {
+        lab.log("first-boot: in-guest reboot never took after 3 requests; forcing host restart")
         vm.restart()?
     }
     // And back up again — sticky readiness would otherwise let first-boot
@@ -177,6 +207,45 @@ fn reboot_guest(lab: Lab, vm: Vm) -> Result[unit, string] {
         }
     }
     vm.wait_ready(1800)
+}
+
+// Ask Windows to restart, escalating by round, and log the answer. Round 1 is
+// plain shutdown.exe. Round 2 first aborts any delayed shutdown already
+// scheduled. While one is pending, every new request is refused with 1190
+// ("already been scheduled"): shutdown.exe, its /d variant and
+// Restart-Computer alike (verified 2026-10-18). Round 3 is Restart-Computer,
+// which goes in through WMI rather than shutdown.exe. Exit 1115 means a
+// shutdown is already under way, which the wait then sees through. An exec
+// error usually means the reboot tore the agent down before it could reply.
+fn request_reboot(lab: Lab, vm: Vm, round: int) {
+    let cmd = "cmd.exe"
+    let line = "shutdown /r /t 0 /f"
+    if round == 1 {
+        line = "shutdown /a & shutdown /r /t 0 /f /d p:4:1"
+    }
+    if round == 2 {
+        cmd = "powershell.exe"
+        line = "Restart-Computer -Force"
+    }
+    let args = if cmd == "cmd.exe" { ["/c", line] } else { ["-NoProfile", "-NonInteractive", "-Command", line] }
+    match vm.exec(cmd, args) {
+        Ok(r) => {
+            let out = (r.stdout.trim() + " " + r.stderr.trim()).trim()
+            let said = if out != "" { " (" + out + ")" } else { "" }
+            lab.log(fmt("first-boot: reboot request {} `{}`: exit {}{}", round + 1, line, r.exit_code, said))
+        }
+        Err(e) => lab.log(fmt("first-boot: reboot request {} `{}` got no reply (reboot likely underway): {}", round + 1, line, e)),
+    }
+}
+
+// When the guest last booted, to tell a reboot that happened from one that did
+// not. Empty when it cannot be read, which tells nothing either way.
+fn boot_stamp(vm: Vm) -> string {
+    let ps = "(Get-CimInstance Win32_OperatingSystem).LastBootUpTime.ToString('o')"
+    match vm.exec("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", ps]) {
+        Ok(r) => if r.exit_code == 0 { r.stdout.trim() } else { "" },
+        Err(e) => "",
+    }
 }
 
 // Hold `ready` until the guest is ~5 minutes past its final boot. On
@@ -213,19 +282,40 @@ fn hold_until_warm(lab: Lab, vm: Vm) {
 // damage: their clones survive even an immediate first logon (verified live
 // 2026-07-17), so the retrofit hook and the 5-minute warm-up hold are
 // skipped. Images sealed the old way (no marker) keep both.
-fn image_fixed(vm: Vm) -> bool {
+//
+// A failed probe is not an answer. One exec error on a user-sealed image ran
+// the hook and the 5-minute hold for nothing (2026-10-18). So the probe is
+// retried, and only a read that succeeds decides. If none succeeds, the clone
+// keeps the safe default (hook and hold) and the log says it defaulted.
+fn image_fixed(lab: Lab, vm: Vm) -> bool {
     let ps = "(Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\vmlab' -Name 'SysprepContext' -ErrorAction SilentlyContinue).SysprepContext"
-    match vm.exec("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", ps]) {
-        Ok(r) => r.exit_code == 0 && r.stdout.trim() == "user",
-        Err(e) => false,
+    for i in 0..5 {
+        match vm.exec("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", ps]) {
+            Ok(r) => {
+                if r.exit_code == 0 {
+                    let ctx = r.stdout.trim()
+                    if ctx == "user" {
+                        lab.log("first-boot: image sealed in a user context; skipping the XAML hook and warm hold")
+                        return true
+                    }
+                    lab.log("first-boot: image not user-sealed (SysprepContext '" + ctx + "'); keeping the XAML hook and warm hold")
+                    return false
+                }
+                lab.log(fmt("first-boot: SysprepContext probe exited {} ({}); retrying", r.exit_code, r.stderr.trim()))
+            }
+            Err(e) => lab.log("first-boot: SysprepContext probe failed (" + e + "); retrying"),
+        }
+        vmlab::sleep_ms(5000)
     }
+    lab.log("first-boot: SysprepContext unreadable after 5 tries; defaulting to not user-sealed (XAML hook and warm hold)")
+    false
 }
 
 fn main(lab: Lab) {
     let vm = lab.this_vm().expect("first-boot: no target VM")
     wait_first_boot(lab, vm).expect("windows first-boot failed")
     wait_user_oobe(lab, vm)
-    let fixed = image_fixed(vm)
+    let fixed = image_fixed(lab, vm)
     settle_appx(lab, vm)
     if !fixed {
         install_xaml_hook(lab, vm)
