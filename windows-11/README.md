@@ -1,5 +1,9 @@
 # Windows 11 Enterprise (Evaluation) template
 
+Requires vmlab 0.29.0-alpha or later. The first-boot script calls
+`vm.boot_id()` and `vm.wait_rebooted()`, so the template records wscript
+surface 2, and an older vmlab refuses to clone it with a message to upgrade.
+
 Builds `x86_64/windows-11` into the local template store from the Microsoft Evaluation
 Center ISO (downloaded and sha256-verified automatically), fully unattended via
 `unattend/autounattend.xml`. The `windows-11` profile supplies the q35/OVMF + secure boot + TPM 2.0 hardware Windows 11 requires.
@@ -43,12 +47,13 @@ Notes:
   That exit clears Winlogon's autologon values, so an autologon a lab sets up
   before it is lost on the next boot; after `ready` it sticks.
 - First boot then reboots the clone once from inside Windows. The lab log
-  records each reboot request's exit code. A clone often reboots in a few
-  seconds, too fast for the agent to be seen dropping, so a changed boot time
-  also counts as the reboot. A request that has not taken after ~60 s is made
-  again, aborting any delayed shutdown already scheduled, then through
-  `Restart-Computer`. A host restart happens only if all three fail, after
-  ~3 minutes.
+  records the boot id before and after, and each reboot request's exit code.
+  A clone often reboots in a few seconds, too fast for the agent to be seen
+  dropping, so the reboot is watched by boot id (`vm.wait_rebooted()`). A
+  request that has not taken after ~60 s, with the guest still on the same
+  boot, is made again, aborting any delayed shutdown already scheduled, then
+  through `Restart-Computer`. A host restart happens only if all three fail,
+  after ~3 minutes.
 - First boot reads `HKLM\SOFTWARE\vmlab` `SysprepContext` to decide whether
   the clone needs the XAML hook and the 5-minute warm hold. A failed read is
   retried up to five times. If none succeeds, the log says the clone defaulted
