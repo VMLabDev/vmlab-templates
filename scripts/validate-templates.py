@@ -13,9 +13,12 @@ the machine it runs on, and a merge bar has to pass from a clean checkout:
     Windows ISOs in iso/, and the payloads each fetch-deps.sh stages) point at
     artefacts that are deliberately gitignored and absent from a fresh clone.
   * A lab's template must be in the local store. Nothing is built at gate time.
+  * So must a layered template's `source "template"`: the build clones it.
 
-So a diagnostic is tolerated only when it is one of those two, and a missing
-path only when git agrees it is ignored. Every other diagnostic fails the check,
+So a diagnostic is tolerated only when it is one of those, a missing path only
+when git agrees it is ignored, and a missing layered source only when a template
+in this repo defines it — one that names nothing here is a wrong ref, not an
+unbuilt one. Every other diagnostic fails the check,
 as does any diagnostic this script cannot parse — an unrecognised
 `vmlab validate` failure must never read as a pass.
 
@@ -44,6 +47,29 @@ BANNER = re.compile(r"^\d+ error\(s\) in ")
 
 MISSING_PATH = re.compile(r"(\S+) does not exist$")
 MISSING_TEMPLATE = re.compile(r"^template (\S+) not in the template store$")
+MISSING_LAYERED = re.compile(
+    r"^layered build source (\S+) not in the template store$"
+)
+
+# The unified vmlab.wcl is generated with one `template "<name>" {` per
+# definition, its `arch = "..."` the first arch line inside it.
+TEMPLATE_BLOCK = re.compile(r'^template "([^"]+)"\s*\{')
+ARCH_FIELD = re.compile(r'^\s*arch\s*=\s*"([^"]+)"')
+
+
+def defined_refs():
+    """Every `<arch>/<name>` the repo's template definitions build."""
+    refs, name = set(), None
+    for line in (ROOT / "vmlab.wcl").read_text().splitlines():
+        block = TEMPLATE_BLOCK.match(line)
+        if block:
+            name = block.group(1)
+            continue
+        arch = ARCH_FIELD.match(line)
+        if arch and name:
+            refs.add(f"{arch.group(1)}/{name}")
+            name = None
+    return refs
 
 
 def diagnostics(output):
@@ -89,12 +115,18 @@ def is_ignored(directory, path):
     )
 
 
-def excuse(directory, messages):
+def excuse(directory, messages, refs):
     """What absent-from-this-machine thing this diagnostic is about, if any."""
     for message in messages:
         match = MISSING_TEMPLATE.match(message)
         if match:
             return f"template {match.group(1)} (not in this store)"
+        match = MISSING_LAYERED.match(message)
+        if match:
+            ref = match.group(1).split("@", 1)[0]
+            if ref in refs:
+                return f"layered source {match.group(1)} (not in this store; skipped)"
+            return None
         match = MISSING_PATH.search(message)
         if match:
             path = match.group(1)
@@ -103,7 +135,7 @@ def excuse(directory, messages):
     return None
 
 
-def validate(directory):
+def validate(directory, refs):
     """Run `vmlab validate` in one directory.
 
     Returns (excused, unexplained): what was tolerated, and what was not.
@@ -124,9 +156,11 @@ def validate(directory):
         messages = unwrapped(parts)
         if any(BANNER.match(message) for message in messages):
             continue
-        excused_by = excuse(directory, messages)
+        excused_by = excuse(directory, messages, refs)
         if excused_by:
             excused.append(excused_by)
+        elif MISSING_LAYERED.match(messages[0]):
+            unexplained.append(f"{messages[0]}, and no template in this repo defines it")
         else:
             unexplained.append(messages[0])
 
@@ -136,9 +170,9 @@ def validate(directory):
     return excused, unexplained
 
 
-def report(label, directory):
+def report(label, directory, refs):
     """Validate one directory, printing what happened. True if it passed."""
-    excused, unexplained = validate(directory)
+    excused, unexplained = validate(directory, refs)
     if unexplained:
         print(f"{label}: FAILED", file=sys.stderr)
         for message in unexplained:
@@ -154,9 +188,10 @@ def main(argv):
         print(f"usage: {argv[0]} templates|examples", file=sys.stderr)
         return 2
 
+    refs = defined_refs()
     if argv[1] == "templates":
         print("vmlab.wcl — every template definition")
-        return 0 if report("vmlab.wcl", ROOT) else 1
+        return 0 if report("vmlab.wcl", ROOT, refs) else 1
 
     labs = sorted(
         path.parent
@@ -165,7 +200,7 @@ def main(argv):
     print(f"examples/ — {len(labs)} lab(s)")
     # Every lab is checked before failing, so one broken example does not hide
     # the rest.
-    return 0 if all([report(f"examples/{lab.name}", lab) for lab in labs]) else 1
+    return 0 if all([report(f"examples/{lab.name}", lab, refs) for lab in labs]) else 1
 
 
 if __name__ == "__main__":

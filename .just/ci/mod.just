@@ -41,7 +41,9 @@ wcl-sync-check:
 
 # Goes through the unified vmlab.wcl because `wcl check` cannot read the
 # definitions on its own: they import the system schema <vmlab.wcl>, which only
-# the vmlab binary registers.
+# the vmlab binary registers. A layered template whose source is not in this
+# machine's store is skipped, as examples-check skips a lab's missing template;
+# a source that no template in this repo defines still fails.
 
 # Parse and schema-check every template definition
 [group('ci')]

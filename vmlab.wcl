@@ -161,13 +161,13 @@ template "arch" {
 //
 //   vmlab template build        (run from this directory)
 //
-// Image pinned to cloud build 20260601-2496; sha512-verified against
+// Image pinned to cloud build 20261001-2618; sha512-verified against
 // cloud.debian.org SHA512SUMS, sha256 computed from the verified file.
 
 
 template "debian-13" {
   arch     = "aarch64"
-  version  = "13.20260601"
+  version  = "13.20261001"
   registry = "ghcr.io/vmlabdev/vmlab-templates/debian-13"
   profile  = "linux-modern"
   firmware = "ovmf"
@@ -176,8 +176,8 @@ template "debian-13" {
   disk     = 20GiB
 
   source "qcow2" {
-    url    = "https://cloud.debian.org/images/cloud/trixie/20260601-2496/debian-13-genericcloud-arm64-20260601-2496.qcow2"
-    sha256 = "94d272856d4a514ced320f14380147957a9b5606f9c91c1f3b9294a4e74018ce"
+    url    = "https://cloud.debian.org/images/cloud/trixie/20261001-2618/debian-13-genericcloud-arm64-20261001-2618.qcow2"
+    sha256 = "8b94e48bb338ae2f6168927cff36edc6dfc7ecac44804c6839f371769e58813a"
   }
 
   media { kind = "iso" from = "./debian-13-arm64/cloudinit/" label = "CIDATA" }
@@ -196,13 +196,13 @@ template "debian-13" {
 //
 //   vmlab template build        (run from this directory)
 //
-// Image pinned to cloud build 20260601-2496; sha512-verified against
+// Image pinned to cloud build 20261001-2618; sha512-verified against
 // cloud.debian.org SHA512SUMS, sha256 computed from the verified file.
 
 
 template "debian-13" {
   arch    = "x86_64"
-  version = "13.20260601"
+  version = "13.20261001"
   registry = "ghcr.io/vmlabdev/vmlab-templates/debian-13"
   profile = "linux-modern"
   cpus    = 2
@@ -210,8 +210,8 @@ template "debian-13" {
   disk    = 20GiB
 
   source "qcow2" {
-    url    = "https://cloud.debian.org/images/cloud/trixie/20260601-2496/debian-13-genericcloud-amd64-20260601-2496.qcow2"
-    sha256 = "e5ef082958bae3763ba664a6365096d2cd29332ae78dc2d03549ab26b6b98ea8"
+    url    = "https://cloud.debian.org/images/cloud/trixie/20261001-2618/debian-13-genericcloud-amd64-20261001-2618.qcow2"
+    sha256 = "b2aca2bee42c7082fd6aba4a5bb1a89612087a405e99896920f3346f7b23b9d1"
   }
 
   media { kind = "iso" from = "./debian-13/cloudinit/" label = "CIDATA" }
@@ -231,14 +231,13 @@ template "debian-13" {
 //
 //   vmlab template build        (run from this directory)
 //
-// riscv64 cloud images currently ship only under trixie/latest (no dated
-// build carries them yet), so the URL tracks `latest`; sha256 computed from
-// the file pinned 2026-06-17. Re-pin when latest rolls (see README).
+// Image pinned to cloud build 20261001-2618; sha512-verified against
+// cloud.debian.org SHA512SUMS, sha256 computed from the verified file.
 
 
 template "debian-13" {
   arch     = "riscv64"
-  version  = "13.20260617"
+  version  = "13.20261001"
   registry = "ghcr.io/vmlabdev/vmlab-templates/debian-13"
   profile  = "linux-modern"
   firmware = "ovmf"
@@ -247,8 +246,8 @@ template "debian-13" {
   disk     = 20GiB
 
   source "qcow2" {
-    url    = "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-generic-riscv64.qcow2"
-    sha256 = "665b18b757727a0bbdd5ef7c4bdf9e9df76bd77d3391da0586cb0dd7ed5e794c"
+    url    = "https://cloud.debian.org/images/cloud/trixie/20261001-2618/debian-13-generic-riscv64-20261001-2618.qcow2"
+    sha256 = "4591eba27ba71fb7e58cb99b85bd467c29084a6fa35e5fde2fdd757c7529b355"
   }
 
   media { kind = "iso" from = "./debian-riscv64/cloudinit/" label = "CIDATA" }
@@ -392,9 +391,18 @@ template "fedora-42" {
 // FOSS / freely redistributable, so it carries a `registry` and is publishable.
 //
 // fetch-deps.sh downloads + sha256-verifies the official LiveCD zip and extracts
-// FD13LIVE.iso (gitignored). FreeDOS has no answer file and no QEMU guest agent,
-// so the build's FDI installer is driven over the live screen (VNC + OCR) by the
-// provision wscript, just like dos-6.22.
+// FD13LIVE.iso (gitignored). FreeDOS has no answer file, so the build's FDI
+// installer is driven over the live screen (VNC + OCR) by the provision wscript,
+// just like dos-6.22.
+//
+// It carries the vmlab legacy agent's DOS build (PRD §7.4): VMLABAGT.EXE on the
+// profile's COM1 channel (agent_transport = "isa-serial"), exec only. After the
+// install the provision runs the bootstrap ISO's INSTALL.BAT from the live
+// prompt, which copies the agent to C:\VMLAB and starts it from C:\FDAUTO.BAT at
+// every boot. Clones report `ready` and take `vmlab exec <vm> -- <command>`
+// (run through COMMAND.COM, output returned when it exits); there is no `cp` or
+// `shell`, and the agent is the foreground program, so the console shows its
+// banner rather than a prompt.
 
 
 template "freedos-1.3" {
@@ -406,11 +414,6 @@ template "freedos-1.3" {
   memory   = 64MiB        // FreeDOS is happy small; the LiveCD warns about its RAM
                           // drive even at 256M, so the bump buys nothing
   disk     = 2GiB         // Full install (BASE + apps/bonus) needs the room
-
-  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
-  // target — so this guest carries none: no ready, exec or cp, and the
-  // install is driven over the screen instead.
-  agent    = false
 
   source "iso" { path = "./freedos-1.3/FD13LIVE.iso" }
   provision "freedos-1.3/scripts/install.ws" { }
@@ -595,23 +598,29 @@ template "rocky-9" {
 // it is freely redistributable and carries a `registry`. The ISO is downloaded
 // and sha256-verified into the artefact cache; no fetch-deps step.
 //
-// It has no networking and no way to run the vmlab guest agent, so the template
-// carries `agent = false`: clones never report `ready` and have no exec/cp/
-// terminal. The CD's `#include "Once"` installer is driven over the live screen
-// (VNC keystrokes + image matching — TempleOS's bitmap font defeats OCR); see
+// It carries the HolyC build of the vmlab guest agent (PRD §7.4, the legacy
+// tier): exec only, over a 16550 on COM1. TempleOS reads no ISO 9660 and has
+// no network, so the agent is typed at the shell after the install (about
+// eight minutes of keystrokes), lands in C:/Home and starts from
+// ~/MakeHome.HC.Z at every boot. Clones report `ready` and take
+// `vmlab exec <vm> -- '<HolyC>'`; there is no `cp` or `shell`. The build also
+// makes the installed boot loader pick Drive C on its own, so a clone boots
+// unattended. The CD's `#include "Once"` installer is driven over the live
+// screen (image matching — TempleOS's bitmap font defeats OCR); see
 // scripts/install.ws.
 //
-// The windows-legacy profile fits it well: i440fx + SeaBIOS (TempleOS wants a
-// legacy-BIOS MBR boot), an IDE/ATA disk (its only disk driver), and plain std
-// VGA (it drives VBE directly). The e1000 NIC the profile adds is unused.
+// The shipped templeos profile fits it: i440fx + SeaBIOS (TempleOS wants a
+// legacy-BIOS MBR boot), an IDE/ATA disk (its only disk driver), plain std VGA
+// (it drives VBE directly), QMP keyboard input (over VNC, TempleOS sees each
+// shift a keystroke late) and the COM1 agent channel. The e1000 NIC the
+// profile adds is unused.
 
 
 template "templeos" {
   arch     = "x86_64"
   version  = "5.03"
   registry = "ghcr.io/vmlabdev/vmlab-templates/templeos"
-  profile  = "windows-legacy"
-  agent    = false
+  profile  = "templeos"
   cpus     = 2
   memory   = 512MiB
   disk     = 2GiB
@@ -876,15 +885,6 @@ template "windows-11" {
   version = "26100.1742"
   registry = "ghcr.io/vmlabdev/vmlab-templates/windows-11"
   profile = "windows-11"
-  // Secure Boot off, deliberately. Two builds hung after their first
-  // Windows Update pass, frozen in the boot manager with the guest idle
-  // — and windows-11 is the only profile that enables it. Server 2025 is
-  // the same 24H2 codebase without it and patches fine, which points at
-  // an update writing Secure Boot revocations (DBX) into the OVMF vars
-  // that the next boot then refuses. The TPM stays on, so the SKU still
-  // installs. If this build survives its update passes, that is the
-  // cause; if it hangs identically, Secure Boot is exonerated.
-  secure_boot = false
   cpus    = 4
   memory  = 8GiB
   disk    = 60GiB
@@ -936,43 +936,244 @@ template "windows-2000" {
 }
 
 // -----------------------------------------------------------------------------
-// windows-95
+// windows-3.11
 
-// windows-95 template (PRD §6.1). Windows 95 (4.00.950) on the windows-9x
-// profile (i440fx/SeaBIOS/IDE, Cirrus VGA, AMD PCnet NIC).
+// windows-3.11 template (PRD §6.1). Windows for Workgroups 3.11, layered on the
+// dos-6.22 base (windows-9x profile: i440fx/SeaBIOS/IDE, Cirrus VGA, AMD PCnet).
 //
-// The CD's boot floppy runs Setup at once, with no "boot from hard disk"
-// choice. That Setup partitions and formats the blank disk; the build
-// provision then quits to X:\WIN95> and runs B:\VMLAB.BAT, which copies the
-// agent and the install folder (patched for modern CPUs by fetch-deps.sh) from
-// the VMLABSRC CD to C: and runs Setup there with B:\MSBATCH.INF. The CD is
-// ejected when Setup's reboot lands back in the CD's Setup, so the reset boots
-// the disk. MSBATCH.INF registers vmlab's legacy agent under RunServices:
-// exec only, on COM1 (agent_transport = "isa-serial"), answering before logon.
-//
-// Needs vmlab with Machine.eject_cdrom (VMLabDev/vmlab#156).
+// The ../iso payload is a *pre-installed* WfW 3.11 tree, not an installer, so
+// there is no GUI setup to drive. fetch-deps.sh extracts it (patching the
+// display driver from the unemulated S3 Trio to generic VGA) into ./win311/,
+// which is built into the WIN311 media ISO. The build provision wscript boots the
+// dos-6.22 disk, loads the CD driver that dos-6.22 already carries in C:\DOS,
+// copies the WINDOWS tree onto C:, and configures DOS to launch Windows.
 
-template "windows-95" {
+
+template "windows-3.11" {
   arch    = "x86"
-  version = "4.00.950"
+  version = "3.11"
   profile = "windows-9x"
-  // Windows 9x crashes in Setup and Explorer on a modern host CPU's CPUID;
-  // a period model keeps it on what it was written for. Clones inherit it.
-  cpu_model = "pentium3"
-  // Windows 95 hangs at random under KVM on AMD hosts: its TLB-invalidation
-  // bug, which patcher9x fixes only for 98 and later. TCG emulates the TLB.
-  accel     = "tcg"
   cpus    = 1
   memory  = 64MiB
-  disk    = 2GiB
+  disk    = 1GiB
 
-  source "iso" { path = "./iso/win95_en.iso" }
-  // Read as B:\ — the CD's El Torito boot floppy takes A:.
-  media { kind = "floppy" from = "./windows-95/answer/" label = "MSBATCH" }
-  // The CD's install folder, patched by fetch-deps.sh for modern CPUs
-  // (patcher9x); the build copies it to C: and runs Setup from there.
-  media { kind = "iso" from = "./windows-95/src/" label = "VMLABSRC" }
-  provision "windows-95/scripts/install.ws" { }
+  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
+  // target — so this guest carries none: no ready, exec or cp, and the
+  // install is driven over the screen instead.
+  agent   = false
+
+  // Seed from the bootable MS-DOS 6.22 disk; its C:\DOS already holds the Oak
+  // CD driver (cd1.sys) + MSCDEX that the install wscript uses to read the media.
+  source "template" { from = "x86/dos-6.22" }
+
+  // The extracted WfW 3.11 tree, surfaced to the guest as a CD-ROM.
+  media { kind = "iso" from = "./windows-3.11/win311/" label = "WIN311" }
+
+  provision "windows-3.11/scripts/install.ws" { }
+}
+
+// -----------------------------------------------------------------------------
+// windows-7-x86
+
+// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
+// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
+// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
+//
+// These old releases have no qemu guest agent, so the install is agent-free:
+// autounattend.xml installs Windows and, on first logon, runs
+// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
+// power off and seals the generalized disk. Clones therefore boot generalized
+// but without the vmlab guest agent (no `ready`/`exec`).
+
+
+template "windows-7" {
+  arch    = "x86"
+  version = "7600.0"
+  profile = "windows-legacy"
+  cpus    = 2
+  memory  = 3GiB
+  disk    = 40GiB
+
+  source "iso" { path = "./iso/en_windows_7_enterprise_x86_dvd_x15-70745.iso" }
+
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-7-x86/unattend/" label = "UNATTEND" }
+  nic { nat = true }
+
+  provision "windows-7-x86/scripts/install.ws" { }
+}
+
+// -----------------------------------------------------------------------------
+// windows-7
+
+// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
+// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
+// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
+//
+// These old releases have no qemu guest agent, so the install is agent-free:
+// autounattend.xml installs Windows and, on first logon, runs
+// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
+// power off and seals the generalized disk. Clones therefore boot generalized
+// but without the vmlab guest agent (no `ready`/`exec`).
+
+
+template "windows-7" {
+  arch    = "x86_64"
+  version = "7600.0"
+  profile = "windows-legacy"
+  cpus    = 2
+  memory  = 4GiB
+  disk    = 40GiB
+
+  source "iso" { path = "./iso/en_windows_7_enterprise_x64_dvd_x15-70749.iso" }
+
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-7/unattend/" label = "UNATTEND" }
+  nic { nat = true }
+
+  provision "windows-7/scripts/install.ws" { }
+}
+
+// -----------------------------------------------------------------------------
+// windows-8-x86
+
+// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
+// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
+// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
+//
+// These old releases have no qemu guest agent, so the install is agent-free:
+// autounattend.xml installs Windows and, on first logon, runs
+// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
+// power off and seals the generalized disk. Clones therefore boot generalized
+// but without the vmlab guest agent (no `ready`/`exec`).
+
+
+template "windows-8" {
+  arch    = "x86"
+  version = "9200.0"
+  profile = "windows-legacy"
+  cpus    = 2
+  memory  = 3GiB
+  disk    = 40GiB
+
+  source "iso" { path = "./iso/en_windows_8_enterprise_x86_dvd_917587.iso" }
+
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-8-x86/unattend/" label = "UNATTEND" }
+  nic { nat = true }
+
+  provision "windows-8-x86/scripts/install.ws" { }
+}
+
+// -----------------------------------------------------------------------------
+// windows-8.1-x86
+
+// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
+// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
+// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
+//
+// These old releases have no qemu guest agent, so the install is agent-free:
+// autounattend.xml installs Windows and, on first logon, runs
+// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
+// power off and seals the generalized disk. Clones therefore boot generalized
+// but without the vmlab guest agent (no `ready`/`exec`).
+
+
+template "windows-8.1" {
+  arch    = "x86"
+  version = "9600.0"
+  profile = "windows-legacy"
+  cpus    = 2
+  memory  = 3GiB
+  disk    = 40GiB
+
+  source "iso" { path = "./iso/en_windows_8_1_enterprise_x86_dvd_2972289.iso" }
+
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-8.1-x86/unattend/" label = "UNATTEND" }
+  nic { nat = true }
+
+  provision "windows-8.1-x86/scripts/install.ws" { }
+}
+
+// -----------------------------------------------------------------------------
+// windows-8.1
+
+// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
+// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
+// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
+//
+// These old releases have no qemu guest agent, so the install is agent-free:
+// autounattend.xml installs Windows and, on first logon, runs
+// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
+// power off and seals the generalized disk. Clones therefore boot generalized
+// but without the vmlab guest agent (no `ready`/`exec`).
+
+
+template "windows-8.1" {
+  arch    = "x86_64"
+  version = "9600.0"
+  profile = "windows-legacy"
+  cpus    = 2
+  memory  = 4GiB
+  disk    = 40GiB
+
+  source "iso" { path = "./iso/en_windows_8_1_enterprise_x64_dvd_2971902.iso" }
+
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-8.1/unattend/" label = "UNATTEND" }
+  nic { nat = true }
+
+  provision "windows-8.1/scripts/install.ws" { }
+}
+
+// -----------------------------------------------------------------------------
+// windows-8
+
+// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
+// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
+// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
+//
+// These old releases have no qemu guest agent, so the install is agent-free:
+// autounattend.xml installs Windows and, on first logon, runs
+// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
+// power off and seals the generalized disk. Clones therefore boot generalized
+// but without the vmlab guest agent (no `ready`/`exec`).
+
+
+template "windows-8" {
+  arch    = "x86_64"
+  version = "9200.0"
+  profile = "windows-legacy"
+  cpus    = 2
+  memory  = 4GiB
+  disk    = 40GiB
+
+  source "iso" { path = "./iso/en_windows_8_enterprise_x64_dvd_917522.iso" }
+
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-8/unattend/" label = "UNATTEND" }
+  nic { nat = true }
+
+  provision "windows-8/scripts/install.ws" { }
 }
 
 // -----------------------------------------------------------------------------
@@ -991,6 +1192,7 @@ template "windows-95" {
 // exec only, on COM1 (agent_transport = "isa-serial"), answering before logon.
 //
 // Needs vmlab with Machine.eject_cdrom (VMLabDev/vmlab#156).
+
 
 template "windows-95-osr2" {
   arch    = "x86"
@@ -1032,6 +1234,7 @@ template "windows-95-osr2" {
 //
 // Needs vmlab with Machine.eject_cdrom (VMLabDev/vmlab#156).
 
+
 template "windows-95-osr25" {
   arch    = "x86"
   version = "4.03.1216"
@@ -1056,37 +1259,44 @@ template "windows-95-osr25" {
 }
 
 // -----------------------------------------------------------------------------
-// windows-98
+// windows-95
 
-// windows-98 template (PRD §6.1). Windows 98 (first edition) on the
-// windows-9x profile (i440fx/SeaBIOS/IDE, Cirrus VGA, AMD PCnet NIC).
+// windows-95 template (PRD §6.1). Windows 95 (4.00.950) on the windows-9x
+// profile (i440fx/SeaBIOS/IDE, Cirrus VGA, AMD PCnet NIC).
 //
-// The bootable CD's own Setup partitions and formats the blank disk; the build
-// provision then quits to a prompt and runs B:\VMLAB.BAT, which copies the
-// CD's install folder (patched for modern CPUs by fetch-deps.sh) from the
-// VMLABSRC CD to C: and runs Setup there with B:\MSBATCH.INF (key injected
-// from .env). MSBATCH.INF registers C:\VMLAB\BOOT.BAT under RunServices; it
-// installs vmlab's legacy agent from the VMLAB bootstrap ISO: exec only, on
-// COM1 (agent_transport = "isa-serial"), answering before anyone logs on.
+// The CD's boot floppy runs Setup at once, with no "boot from hard disk"
+// choice. That Setup partitions and formats the blank disk; the build
+// provision then quits to X:\WIN95> and runs B:\VMLAB.BAT, which copies the
+// agent and the install folder (patched for modern CPUs by fetch-deps.sh) from
+// the VMLABSRC CD to C: and runs Setup there with B:\MSBATCH.INF. The CD is
+// ejected when Setup's reboot lands back in the CD's Setup, so the reset boots
+// the disk. MSBATCH.INF registers vmlab's legacy agent under RunServices:
+// exec only, on COM1 (agent_transport = "isa-serial"), answering before logon.
+//
+// Needs vmlab with Machine.eject_cdrom (VMLabDev/vmlab#156).
 
-template "windows-98" {
+
+template "windows-95" {
   arch    = "x86"
-  version = "4.10.1998"
+  version = "4.00.950"
   profile = "windows-9x"
   // Windows 9x crashes in Setup and Explorer on a modern host CPU's CPUID;
   // a period model keeps it on what it was written for. Clones inherit it.
   cpu_model = "pentium3"
+  // Windows 95 hangs at random under KVM on AMD hosts: its TLB-invalidation
+  // bug, which patcher9x fixes only for 98 and later. TCG emulates the TLB.
+  accel     = "tcg"
   cpus    = 1
-  memory  = 128MiB
+  memory  = 64MiB
   disk    = 2GiB
 
-  source "iso" { path = "./iso/win98_fe_en.iso" }
+  source "iso" { path = "./iso/win95_en.iso" }
   // Read as B:\ — the CD's El Torito boot floppy takes A:.
-  media { kind = "floppy" from = "./windows-98/answer/" label = "MSBATCH" }
+  media { kind = "floppy" from = "./windows-95/answer/" label = "MSBATCH" }
   // The CD's install folder, patched by fetch-deps.sh for modern CPUs
   // (patcher9x); the build copies it to C: and runs Setup from there.
-  media { kind = "iso" from = "./windows-98/src/" label = "VMLABSRC" }
-  provision "windows-98/scripts/install.ws" { }
+  media { kind = "iso" from = "./windows-95/src/" label = "VMLABSRC" }
+  provision "windows-95/scripts/install.ws" { }
 }
 
 // -----------------------------------------------------------------------------
@@ -1102,6 +1312,7 @@ template "windows-98" {
 // from .env). MSBATCH.INF registers C:\VMLAB\BOOT.BAT under RunServices; it
 // installs vmlab's legacy agent from the VMLAB bootstrap ISO: exec only, on
 // COM1 (agent_transport = "isa-serial"), answering before anyone logs on.
+
 
 template "windows-98-se" {
   arch    = "x86"
@@ -1124,244 +1335,38 @@ template "windows-98-se" {
 }
 
 // -----------------------------------------------------------------------------
-// windows-3.11
+// windows-98
 
-// windows-3.11 template (PRD §6.1). Windows for Workgroups 3.11, layered on the
-// dos-6.22 base (windows-9x profile: i440fx/SeaBIOS/IDE, Cirrus VGA, AMD PCnet).
+// windows-98 template (PRD §6.1). Windows 98 (first edition) on the
+// windows-9x profile (i440fx/SeaBIOS/IDE, Cirrus VGA, AMD PCnet NIC).
 //
-// The ../iso payload is a *pre-installed* WfW 3.11 tree, not an installer, so
-// there is no GUI setup to drive. fetch-deps.sh extracts it (patching the
-// display driver from the unemulated S3 Trio to generic VGA) into ./win311/,
-// which is built into the WIN311 media ISO. The build provision wscript boots the
-// dos-6.22 disk, loads the CD driver that dos-6.22 already carries in C:\DOS,
-// copies the WINDOWS tree onto C:, and configures DOS to launch Windows.
+// The bootable CD's own Setup partitions and formats the blank disk; the build
+// provision then quits to a prompt and runs B:\VMLAB.BAT, which copies the
+// CD's install folder (patched for modern CPUs by fetch-deps.sh) from the
+// VMLABSRC CD to C: and runs Setup there with B:\MSBATCH.INF (key injected
+// from .env). MSBATCH.INF registers C:\VMLAB\BOOT.BAT under RunServices; it
+// installs vmlab's legacy agent from the VMLAB bootstrap ISO: exec only, on
+// COM1 (agent_transport = "isa-serial"), answering before anyone logs on.
 
 
-template "windows-3.11" {
+template "windows-98" {
   arch    = "x86"
-  version = "3.11"
+  version = "4.10.1998"
   profile = "windows-9x"
+  // Windows 9x crashes in Setup and Explorer on a modern host CPU's CPUID;
+  // a period model keeps it on what it was written for. Clones inherit it.
+  cpu_model = "pentium3"
   cpus    = 1
-  memory  = 64MiB
-  disk    = 1GiB
+  memory  = 128MiB
+  disk    = 2GiB
 
-  // No 32-bit vmlab-agent exists — guest/build-agent.sh builds no x86
-  // target — so this guest carries none: no ready, exec or cp, and the
-  // install is driven over the screen instead.
-  agent   = false
-
-  // Seed from the bootable MS-DOS 6.22 disk; its C:\DOS already holds the Oak
-  // CD driver (cd1.sys) + MSCDEX that the install wscript uses to read the media.
-  source "template" { from = "x86/dos-6.22" }
-
-  // The extracted WfW 3.11 tree, surfaced to the guest as a CD-ROM.
-  media { kind = "iso" from = "./windows-3.11/win311/" label = "WIN311" }
-
-  provision "windows-3.11/scripts/install.ws" { }
-}
-
-// -----------------------------------------------------------------------------
-// windows-7
-
-// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
-// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
-// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
-//
-// These old releases have no qemu guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`).
-
-
-template "windows-7" {
-  arch    = "x86_64"
-  version = "7600.0"
-  profile = "windows-legacy"
-  cpus    = 2
-  memory  = 4GiB
-  disk    = 40GiB
-
-  source "iso" { path = "./iso/en_windows_7_enterprise_x64_dvd_x15-70749.iso" }
-
-  // An ISO, not a floppy: the answer file now travels with the vioserial
-  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
-  // guest has four IDE slots — disk, install DVD, this, and the agent
-  // bootstrap ISO — which is exactly four.
-  media { kind = "iso" from = "./windows-7/unattend/" label = "UNATTEND" }
-  nic { nat = true }
-
-  provision "windows-7/scripts/install.ws" { }
-}
-
-// -----------------------------------------------------------------------------
-// windows-7-x86
-
-// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
-// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
-// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
-//
-// These old releases have no qemu guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`).
-
-
-template "windows-7" {
-  arch    = "x86"
-  version = "7600.0"
-  profile = "windows-legacy"
-  cpus    = 2
-  memory  = 3GiB
-  disk    = 40GiB
-
-  source "iso" { path = "./iso/en_windows_7_enterprise_x86_dvd_x15-70745.iso" }
-
-  // An ISO, not a floppy: the answer file now travels with the vioserial
-  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
-  // guest has four IDE slots — disk, install DVD, this, and the agent
-  // bootstrap ISO — which is exactly four.
-  media { kind = "iso" from = "./windows-7-x86/unattend/" label = "UNATTEND" }
-  nic { nat = true }
-
-  provision "windows-7-x86/scripts/install.ws" { }
-}
-
-// -----------------------------------------------------------------------------
-// windows-8.1
-
-// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
-// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
-// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
-//
-// These old releases have no qemu guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`).
-
-
-template "windows-8.1" {
-  arch    = "x86_64"
-  version = "9600.0"
-  profile = "windows-legacy"
-  cpus    = 2
-  memory  = 4GiB
-  disk    = 40GiB
-
-  source "iso" { path = "./iso/en_windows_8_1_enterprise_x64_dvd_2971902.iso" }
-
-  // An ISO, not a floppy: the answer file now travels with the vioserial
-  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
-  // guest has four IDE slots — disk, install DVD, this, and the agent
-  // bootstrap ISO — which is exactly four.
-  media { kind = "iso" from = "./windows-8.1/unattend/" label = "UNATTEND" }
-  nic { nat = true }
-
-  provision "windows-8.1/scripts/install.ws" { }
-}
-
-// -----------------------------------------------------------------------------
-// windows-8.1-x86
-
-// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
-// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
-// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
-//
-// These old releases have no qemu guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`).
-
-
-template "windows-8.1" {
-  arch    = "x86"
-  version = "9600.0"
-  profile = "windows-legacy"
-  cpus    = 2
-  memory  = 3GiB
-  disk    = 40GiB
-
-  source "iso" { path = "./iso/en_windows_8_1_enterprise_x86_dvd_2972289.iso" }
-
-  // An ISO, not a floppy: the answer file now travels with the vioserial
-  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
-  // guest has four IDE slots — disk, install DVD, this, and the agent
-  // bootstrap ISO — which is exactly four.
-  media { kind = "iso" from = "./windows-8.1-x86/unattend/" label = "UNATTEND" }
-  nic { nat = true }
-
-  provision "windows-8.1-x86/scripts/install.ws" { }
-}
-
-// -----------------------------------------------------------------------------
-// windows-8
-
-// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
-// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
-// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
-//
-// These old releases have no qemu guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`).
-
-
-template "windows-8" {
-  arch    = "x86_64"
-  version = "9200.0"
-  profile = "windows-legacy"
-  cpus    = 2
-  memory  = 4GiB
-  disk    = 40GiB
-
-  source "iso" { path = "./iso/en_windows_8_enterprise_x64_dvd_917522.iso" }
-
-  // An ISO, not a floppy: the answer file now travels with the vioserial
-  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
-  // guest has four IDE slots — disk, install DVD, this, and the agent
-  // bootstrap ISO — which is exactly four.
-  media { kind = "iso" from = "./windows-8/unattend/" label = "UNATTEND" }
-  nic { nat = true }
-
-  provision "windows-8/scripts/install.ws" { }
-}
-
-// -----------------------------------------------------------------------------
-// windows-8-x86
-
-// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
-// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
-// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
-//
-// These old releases have no qemu guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`).
-
-
-template "windows-8" {
-  arch    = "x86"
-  version = "9200.0"
-  profile = "windows-legacy"
-  cpus    = 2
-  memory  = 3GiB
-  disk    = 40GiB
-
-  source "iso" { path = "./iso/en_windows_8_enterprise_x86_dvd_917587.iso" }
-
-  // An ISO, not a floppy: the answer file now travels with the vioserial
-  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
-  // guest has four IDE slots — disk, install DVD, this, and the agent
-  // bootstrap ISO — which is exactly four.
-  media { kind = "iso" from = "./windows-8-x86/unattend/" label = "UNATTEND" }
-  nic { nat = true }
-
-  provision "windows-8-x86/scripts/install.ws" { }
+  source "iso" { path = "./iso/win98_fe_en.iso" }
+  // Read as B:\ — the CD's El Torito boot floppy takes A:.
+  media { kind = "floppy" from = "./windows-98/answer/" label = "MSBATCH" }
+  // The CD's install folder, patched by fetch-deps.sh for modern CPUs
+  // (patcher9x); the build copies it to C: and runs Setup from there.
+  media { kind = "iso" from = "./windows-98/src/" label = "VMLABSRC" }
+  provision "windows-98/scripts/install.ws" { }
 }
 
 // -----------------------------------------------------------------------------
@@ -1482,51 +1487,6 @@ template "windows-server-2008-r2" {
 }
 
 // -----------------------------------------------------------------------------
-// windows-server-2008
-
-// Windows Server 2008 template (PRD §6.1). Legacy guest: SeaBIOS + IDE +
-// e1000 (the windows-legacy profile), installed from a local MSDN/VL ISO in
-// ../iso/. It installs keyless (no product key needed), so no .env entry.
-//
-// autounattend.xml installs Windows and then, on first logon, runs the vmlab
-// bootstrap ISO's install.cmd and `sysprep /generalize /oobe /shutdown` — in
-// that order, because the build's verification boot waits for the agent's
-// handshake and an image sealed without one fails. The build waits for the VM
-// to power off and seals the generalized disk, so clones come up generalized
-// AND agent-carrying: `ready`, `exec` and `cp` all work.
-
-
-template "windows-server-2008" {
-  arch    = "x86_64"
-  version = "6001.0"
-  profile = "windows-legacy"
-  cpus    = 2
-  memory  = 4GiB
-  disk    = 40GiB
-
-  // No agent: the channel would be virtio-serial, and Vista-era Setup
-  // refuses to install the driver for it — "Windows Setup could not
-  // install one or more boot-critical drivers", because WinPE from this
-  // era validates SHA-1 signatures only and every current virtio-win
-  // driver is signed SHA-256. Injecting it later is no better: 32-bit
-  // Vista prompts (which an unattended install cannot answer) and 64-bit
-  // enforces outright. So these install screen-driven and agent-free,
-  // as they did before — `ready`, `exec` and `cp` are unavailable.
-  agent   = false
-
-  source "iso" { path = "./iso/en_windows_server_2008_x64_dvd_x14-26714.iso" }
-
-  // An ISO, not a floppy: the answer file now travels with the vioserial
-  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
-  // guest has four IDE slots — disk, install DVD, this, and the agent
-  // bootstrap ISO — which is exactly four.
-  media { kind = "iso" from = "./windows-server-2008/unattend/" label = "UNATTEND" }
-  nic { nat = true }
-
-  provision "windows-server-2008/scripts/install.ws" { }
-}
-
-// -----------------------------------------------------------------------------
 // windows-server-2008-x86-core
 
 // Windows Server 2008 (x86) Server Core template (PRD §6.1). Legacy guest: SeaBIOS +
@@ -1615,6 +1575,51 @@ template "windows-server-2008" {
   nic { nat = true }
 
   provision "windows-server-2008-x86/scripts/install.ws" { }
+}
+
+// -----------------------------------------------------------------------------
+// windows-server-2008
+
+// Windows Server 2008 template (PRD §6.1). Legacy guest: SeaBIOS + IDE +
+// e1000 (the windows-legacy profile), installed from a local MSDN/VL ISO in
+// ../iso/. It installs keyless (no product key needed), so no .env entry.
+//
+// autounattend.xml installs Windows and then, on first logon, runs the vmlab
+// bootstrap ISO's install.cmd and `sysprep /generalize /oobe /shutdown` — in
+// that order, because the build's verification boot waits for the agent's
+// handshake and an image sealed without one fails. The build waits for the VM
+// to power off and seals the generalized disk, so clones come up generalized
+// AND agent-carrying: `ready`, `exec` and `cp` all work.
+
+
+template "windows-server-2008" {
+  arch    = "x86_64"
+  version = "6001.0"
+  profile = "windows-legacy"
+  cpus    = 2
+  memory  = 4GiB
+  disk    = 40GiB
+
+  // No agent: the channel would be virtio-serial, and Vista-era Setup
+  // refuses to install the driver for it — "Windows Setup could not
+  // install one or more boot-critical drivers", because WinPE from this
+  // era validates SHA-1 signatures only and every current virtio-win
+  // driver is signed SHA-256. Injecting it later is no better: 32-bit
+  // Vista prompts (which an unattended install cannot answer) and 64-bit
+  // enforces outright. So these install screen-driven and agent-free,
+  // as they did before — `ready`, `exec` and `cp` are unavailable.
+  agent   = false
+
+  source "iso" { path = "./iso/en_windows_server_2008_x64_dvd_x14-26714.iso" }
+
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-server-2008/unattend/" label = "UNATTEND" }
+  nic { nat = true }
+
+  provision "windows-server-2008/scripts/install.ws" { }
 }
 
 // -----------------------------------------------------------------------------
@@ -2083,50 +2088,6 @@ template "windows-server-2025" {
 }
 
 // -----------------------------------------------------------------------------
-// windows-vista
-
-// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
-// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
-// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
-//
-// These old releases have no qemu guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`).
-
-
-template "windows-vista" {
-  arch    = "x86_64"
-  version = "6002.0"
-  profile = "windows-legacy"
-  cpus    = 2
-  memory  = 4GiB
-  disk    = 40GiB
-
-  // No agent: the channel would be virtio-serial, and Vista-era Setup
-  // refuses to install the driver for it — "Windows Setup could not
-  // install one or more boot-critical drivers", because WinPE from this
-  // era validates SHA-1 signatures only and every current virtio-win
-  // driver is signed SHA-256. Injecting it later is no better: 32-bit
-  // Vista prompts (which an unattended install cannot answer) and 64-bit
-  // enforces outright. So these install screen-driven and agent-free,
-  // as they did before — `ready`, `exec` and `cp` are unavailable.
-  agent   = false
-
-  source "iso" { path = "./iso/en_windows_vista_enterprise_x64_dvd_vl_x13-17316.iso" }
-
-  // An ISO, not a floppy: the answer file now travels with the vioserial
-  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
-  // guest has four IDE slots — disk, install DVD, this, and the agent
-  // bootstrap ISO — which is exactly four.
-  media { kind = "iso" from = "./windows-vista/unattend/" label = "UNATTEND" }
-  nic { nat = true }
-
-  provision "windows-vista/scripts/install.ws" { }
-}
-
-// -----------------------------------------------------------------------------
 // windows-vista-x86
 
 // Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
@@ -2168,4 +2129,48 @@ template "windows-vista" {
   nic { nat = true }
 
   provision "windows-vista-x86/scripts/install.ws" { }
+}
+
+// -----------------------------------------------------------------------------
+// windows-vista
+
+// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
+// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
+// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
+//
+// These old releases have no qemu guest agent, so the install is agent-free:
+// autounattend.xml installs Windows and, on first logon, runs
+// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
+// power off and seals the generalized disk. Clones therefore boot generalized
+// but without the vmlab guest agent (no `ready`/`exec`).
+
+
+template "windows-vista" {
+  arch    = "x86_64"
+  version = "6002.0"
+  profile = "windows-legacy"
+  cpus    = 2
+  memory  = 4GiB
+  disk    = 40GiB
+
+  // No agent: the channel would be virtio-serial, and Vista-era Setup
+  // refuses to install the driver for it — "Windows Setup could not
+  // install one or more boot-critical drivers", because WinPE from this
+  // era validates SHA-1 signatures only and every current virtio-win
+  // driver is signed SHA-256. Injecting it later is no better: 32-bit
+  // Vista prompts (which an unattended install cannot answer) and 64-bit
+  // enforces outright. So these install screen-driven and agent-free,
+  // as they did before — `ready`, `exec` and `cp` are unavailable.
+  agent   = false
+
+  source "iso" { path = "./iso/en_windows_vista_enterprise_x64_dvd_vl_x13-17316.iso" }
+
+  // An ISO, not a floppy: the answer file now travels with the vioserial
+  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
+  // guest has four IDE slots — disk, install DVD, this, and the agent
+  // bootstrap ISO — which is exactly four.
+  media { kind = "iso" from = "./windows-vista/unattend/" label = "UNATTEND" }
+  nic { nat = true }
+
+  provision "windows-vista/scripts/install.ws" { }
 }
