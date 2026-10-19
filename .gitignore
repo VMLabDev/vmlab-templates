@@ -29,6 +29,8 @@ windows-server-2016/unattend/drivers/
 windows-server-2016-core/unattend/drivers/
 kali/disk/
 parrot/disk/
+windows-10/win3d/
+windows-11/win3d/
 
 # Hand-supplied installer media for the MSDN/VL templates (iso/README.md says
 # which); only the README is tracked.

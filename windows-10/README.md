@@ -39,12 +39,15 @@ What happens (`scripts/install.ws` narrates it in the build log):
 ## Base and variants
 
 A built version holds an unsealed base disk and named, sealed variants. Each
-variant is a qcow2 overlay on the base. This template defines one variant,
-`standard`, and it is the default:
+variant is a qcow2 overlay on the base. This template defines two variants,
+`standard` (the default) and `win3d`:
 
 - `x86_64/windows-10` (no `#`) still means the sealed `standard` variant,
   so existing lab files keep working unchanged.
 - `x86_64/windows-10#standard` names it explicitly.
+- `x86_64/windows-10#win3d` is `standard` plus the vmlab-win3d 3D driver
+  package, for labs with `gpu { mode = "vulkan" }`. See
+  [The win3d variant](#the-win3d-variant).
 - `#base` is reachable only from template builds. A lab that asks for it is
   refused, because the base is not generalized and every clone would share
   one SID and computer name.
@@ -52,6 +55,72 @@ variant is a qcow2 overlay on the base. This template defines one variant,
 The base has no first-boot script. `scripts/firstboot.ws` belongs to the
 `standard` variant, because only a generalized image has a specialize pass
 to wait for.
+
+### The win3d variant
+
+`#win3d` installs [vmlab-win3d](https://github.com/VMLabDev/vmlab-win3d) on
+the base before generalizing it: a test-signed virtio-gpu WDDM driver with
+Direct3D 9/10/11 and OpenGL user-mode drivers, the Venus Vulkan ICD and a
+D3D12-over-Vulkan bridge, so a clone renders D3D, OpenGL and Vulkan on the
+host's GPU through virtio-gpu Venus with nothing more to install. The
+package version is pinned once, in `fetch-deps.sh` (`WIN3D_VERSION`, with
+the release zip's sha256); it is staged into `win3d/` (gitignored) and rides
+the variant build as the WIN3D ISO.
+
+```sh
+./fetch-deps.sh                                   # stages win3d/ too
+vmlab template build windows-10 --variant win3d   # onto the newest installed version, ~20-30 min
+```
+
+What `scripts/win3d-setup.ws` does, before `scripts/generalize.ws` seals
+the overlay:
+
+1. Copies the bundle off the WIN3D ISO to `C:\vmlab-win3d` and runs its
+   `Install.cmd` as SYSTEM. The installer trusts the test certificate,
+   turns test signing on, restarts Windows, installs the driver and the
+   runtime, and restarts again; the script follows each restart by boot id
+   (`vm.boot_id()` / `vm.wait_rebooted()`) until
+   `C:\ProgramData\vmlab-win3d\state.json` says `Installed`, or fails
+   with the installer's journal tail.
+2. Runs `vulkaninfo --summary` (x64 and x86) in the console user's session,
+   because Vulkan enumerates nothing from SYSTEM. With nobody logged on it
+   arms a one-shot autologon, reboots once more, and clears the values
+   again afterwards. Both summaries must list a `Virtio-GPU Venus` device.
+3. Checks the end state (`scripts/win3d-verify.ps1`): test signing on in the
+   BCD and active in the kernel, the display device bound to `viogpu3d.inf`
+   with problem code 0, both Vulkan ICDs registered, the `vmlab-win3d-resume`
+   task gone and `vmlab-win3d-repair` present, no reboot pending, no
+   autologon values left. Then generalize runs as for `standard`.
+
+**Building `#win3d` needs a Venus-capable host.** The installer's verify
+needs the driver started, which only a virtio-gpu device with the VIRGL
+feature and blob resources gives, so the variant block declares
+`display = "virtio-vga-gl,venus=true,blob=true,hostmem=4G"` with
+`qemu_args = ["-display", "egl-headless"]`: the device line vmlab emits for
+`gpu { mode = "vulkan" }`. vmlab 0.30.0-alpha accepts no `gpu {}` on a
+variant (requested), so the build picks no host GPU by name: it renders on
+QEMU's default render node (the first `/dev/dri/renderD*`) with whatever
+Vulkan drivers the host loader finds, and the host config's `qemu_binary`
+and `qemu_env` do not apply. The host needs a GPU Venus works on there (AMD
+with RADV, Intel with ANV, or an RTX 5090; vmlab-win3d's `docs/host.md`).
+
+Using it:
+
+- A clone **must** declare `gpu { mode = "vulkan" }` (or `"virgl"`), with
+  `host_gpu` naming a GPU from `~/.config/vmlab/config.wcl` or taking the
+  host's default: the variant's `display` is inherited by its clones, and
+  without a `gpu {}` block QEMU has no GL display for that device.
+- `secure_boot = false` is recorded in the variant, so `#win3d` clones boot
+  without Secure Boot (the `windows-10` profile leaves Secure Boot off anyway) and the test-signed
+  driver loads; `standard` clones are unaffected.
+- The sysprep answer file is shared with `standard` and unchanged (no
+  `PersistAllDeviceInstalls`): generalize keeps the package in the driver
+  store and drops the device binding, and the clone's specialize pass binds
+  the device to it again. `scripts/firstboot.ws` holds `ready` until that
+  pass is over.
+- The clone keeps the `vmlab-win3d-repair` startup task (part of the
+  package), the test certificate in the Root and TrustedPublisher stores,
+  and `testsigning` in the BCD.
 
 Notes:
 

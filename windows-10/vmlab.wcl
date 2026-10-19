@@ -43,4 +43,31 @@ template "windows-10" {
     first_boot = "scripts/firstboot.ws"
     provision "scripts/generalize.ws" { }
   }
+
+  // `standard` plus the vmlab-win3d driver package (virtio-gpu 3D on a Venus
+  // host: D3D9-12, OpenGL and Vulkan in the guest), installed on the base and
+  // then generalized with it. fetch-deps.sh stages the pinned release into
+  // win3d/, which rides the build as the WIN3D ISO (the gitignored payload).
+  variant "win3d" {
+    description = "Standard plus the vmlab-win3d 3D driver package (test-signed; clones need gpu { mode = \"vulkan\" })"
+    // The package is test-signed: the build boot turns test signing on, and
+    // every clone boots without Secure Boot too, or Windows ignores it.
+    secure_boot = false
+    // The build VM needs a virtio-gpu device with VIRGL and blob resources,
+    // or the KMD never starts and the installer's verify fails. vmlab
+    // 0.30.0-alpha accepts no `gpu {}` on a variant, so the device is named
+    // directly (vmlab passes an unknown `display` to QEMU as written) and
+    // the GL display comes through `qemu_args`: the same device line vmlab
+    // emits for `gpu { mode = "vulkan" }`, minus the host GPU choice. It
+    // renders on QEMU's default render node and the host's default Vulkan
+    // driver, so the build needs a Venus-capable host (README). A clone of
+    // this variant inherits the display, so it must declare `gpu { mode =
+    // "vulkan" }` (or "virgl"): without one, QEMU has no GL display for it.
+    display   = "virtio-vga-gl,venus=true,blob=true,hostmem=4G"
+    qemu_args = ["-display", "egl-headless"]
+    first_boot = "scripts/firstboot.ws"
+    media { kind = "iso" from = "./win3d/" label = "WIN3D" }
+    provision "scripts/win3d-setup.ws" { }
+    provision "scripts/generalize.ws" { }
+  }
 }
