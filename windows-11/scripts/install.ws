@@ -4,11 +4,11 @@
 // install is done — autounattend.xml installs the vmlab guest agent (VMLAB bootstrap ISO) as its
 // last first-logon command, so "agent responding" means finished.
 //
-// The image is then generalized. Client SKUs make sysprep /generalize abort
-// on a "package installed for a user but not provisioned" AppX mismatch, so
-// we strip per-user + provisioned AppX first, then run sysprep with
-// unattend/sysprep-unattend.xml so every clone gets a fresh SID and a random
-// computer name. We power the VM off and seal the generalized disk.
+// This builds the template's BASE, which is not generalized (PRD §6.6): the
+// install stops after patching, stages the sysprep files onto the disk and
+// shuts down. The `standard` variant's scripts/generalize.ws runs the
+// generalize on an overlay of this base, so every clone gets a fresh SID and
+// a random computer name, and other variants can do their own work first.
 
 use vmlab
 
@@ -54,7 +54,8 @@ fn install(lab: Lab) -> Result[unit, string] {
         apply_updates(lab, vm)?
     }
     disable_updates(lab, vm)?
-    sysprep(lab, vm)
+    stage_sysprep(lab, vm)?
+    shut_down(lab, vm)
 }
 
 // Copy a script that rode the UNATTEND ISO onto the disk. The ISO drive letter
@@ -294,37 +295,33 @@ fn disable_updates(lab: Lab, vm: Vm) -> Result[unit, string] {
     Ok(())
 }
 
-// Generalize the image so clones get fresh SIDs + random names (domain-joinable).
-// The answer file and the generalize script ride the UNATTEND ISO; copy them onto
-// the disk first since the ISO is not attached to lab clones.
-//
-// generalize.ps1 does the real work: sysprep /generalize aborts on modern Windows
-// codebases when an AppX package is "installed for a user but not provisioned"
-// (0x80073cf2), and those consumer packages register asynchronously after first
-// logon, so the script runs sysprep in a loop, removing exactly the package each
-// failed pass names until sysprep writes its success tag. It judges success by
-// that tag, never by sysprep.exe's (unreliable) exit code — and its OWN exit code
-// IS reliable, so we gate the build on it.
-fn sysprep(lab: Lab, vm: Vm) -> Result[unit, string] {
-    let copy = vm.exec("cmd.exe", [
+// Stage the generalize for the variants. The answer file and the generalize
+// script ride the UNATTEND ISO, which a variant build does not attach, so copy
+// them onto the disk now. C:\ProgramData\vmlab\sysprep, not C:\Windows\Temp:
+// the base is booted again, maybe much later, for each variant build, and Temp
+// can be cleaned in between. generalize.ps1 reads the answer file from here.
+fn stage_sysprep(lab: Lab, vm: Vm) -> Result[unit, string] {
+    let copy = exec_ok(lab, vm, "cmd.exe", [
         "/c",
-        "for %d in (D E F G) do if exist %d:\\generalize.ps1 ( copy /y %d:\\sysprep-unattend.xml C:\\Windows\\Temp\\ & copy /y %d:\\generalize.ps1 C:\\Windows\\Temp\\ )",
+        "mkdir C:\\ProgramData\\vmlab\\sysprep 2>nul & for %d in (D E F G) do if exist %d:\\generalize.ps1 ( copy /y %d:\\sysprep-unattend.xml C:\\ProgramData\\vmlab\\sysprep\\ & copy /y %d:\\generalize.ps1 C:\\ProgramData\\vmlab\\sysprep\\ )",
     ])?
     if copy.exit_code != 0 {
         return Err("could not stage sysprep files: " + copy.stderr)
     }
-
-    lab.log("generalizing (sysprep /generalize with AppX-blocker retry, 5-15 min)...")
-    let gen = vm.exec_timeout("powershell.exe", [
-        "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
-        "-File", "C:\\Windows\\Temp\\generalize.ps1",
-    ], 2400)?
-    lab.log("generalize.ps1: " + gen.stdout.trim())
-    if gen.exit_code != 0 {
-        return Err("sysprep generalize failed (exit " + fmt("{}", gen.exit_code) + "): " + gen.stdout.trim() + " " + gen.stderr.trim())
+    let check = exec_ok(lab, vm, "cmd.exe", [
+        "/c",
+        "if exist C:\\ProgramData\\vmlab\\sysprep\\generalize.ps1 if exist C:\\ProgramData\\vmlab\\sysprep\\sysprep-unattend.xml echo STAGED",
+    ])?
+    if !check.stdout.contains("STAGED") {
+        return Err("sysprep files missing from C:\\ProgramData\\vmlab\\sysprep after staging")
     }
+    lab.log("staged generalize.ps1 and sysprep-unattend.xml in C:\\ProgramData\\vmlab\\sysprep")
+    Ok(())
+}
 
-    lab.log("sysprep generalized OK (success tag present); powering off to seal")
+// Seal the base: a graceful in-guest shutdown, not generalized.
+fn shut_down(lab: Lab, vm: Vm) -> Result[unit, string] {
+    lab.log("base installed and patched; shutting down to seal it (the variants generalize)")
     let shut = vm.exec_timeout("cmd.exe", ["/c", "shutdown /s /t 0"], 60)
     vm.wait_shutdown(900)?
     Ok(())

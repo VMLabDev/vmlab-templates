@@ -28,10 +28,19 @@ template "windows-11" {
   media { kind = "iso" from = "./unattend/" label = "UNATTEND" }
   nic { nat = true }
 
+  // Builds the base: installed, patched and NOT generalized (PRD §6.6). The
+  // base is never cloned by a lab; a bare `x86_64/windows-11` means the default
+  // variant below.
   provision "scripts/install.ws" { }
 
-  // Runs on every clone's first boot, before the VM is reported ready: waits
-  // for sysprep specialize/OOBE to finish (the specialize-pass marker), then
-  // clears it. So labs using this template never see a half-specialized clone.
-  first_boot = "scripts/firstboot.ws"
+  // The sealed image labs clone: the base, generalized.
+  variant "standard" {
+    default     = true
+    description = "Generalized with sysprep: a fresh SID and computer name per clone"
+    // Runs on every clone's first boot, before the VM is reported ready: waits
+    // for sysprep specialize/OOBE to finish (the specialize-pass marker), then
+    // clears it. So labs using this template never see a half-specialized clone.
+    first_boot = "scripts/firstboot.ws"
+    provision "scripts/generalize.ws" { }
+  }
 }

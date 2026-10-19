@@ -1,8 +1,10 @@
 # Windows 11 Enterprise (Evaluation) template
 
-Requires vmlab 0.29.0-alpha or later. The first-boot script calls
-`vm.boot_id()` and `vm.wait_rebooted()`, so the template records wscript
-surface 2, and an older vmlab refuses to clone it with a message to upgrade.
+Requires vmlab 0.30.0-alpha or later. The template is a base plus variants
+(see [Base and variants](#base-and-variants)), which vmlab 0.30.0-alpha
+introduced. The first-boot script also calls `vm.boot_id()` and
+`vm.wait_rebooted()`, so the template records wscript surface 2, and an older
+vmlab refuses to clone it with a message to upgrade.
 
 Builds `x86_64/windows-11` into the local template store from the Microsoft Evaluation
 Center ISO (downloaded and sha256-verified automatically), fully unattended via
@@ -11,7 +13,7 @@ Center ISO (downloaded and sha256-verified automatically), fully unattended via
 ```sh
 ./fetch-deps.sh          # one-time: virtio drivers + guest MSIs into unattend/
 vmlab template build     # ~30-45 minutes
-vmlab template list      # → x86_64/windows-11@26100.1742
+vmlab template list      # → windows-11 26100.1742.<N>, with a #standard row marked default
 ```
 
 What happens (`scripts/install.ws` narrates it in the build log):
@@ -24,10 +26,59 @@ What happens (`scripts/install.ws` narrates it in the build log):
    the single **Enterprise Evaluation** image, sets `Administrator` / `vmlab123!`, and on first logon installs
    the virtio guest tools and the vmlab guest agent.
 3. The script waits for the guest agent — that's the "install finished" signal.
-4. It strips per-user + provisioned AppX packages (otherwise `sysprep
+4. It disables Windows Update, copies `generalize.ps1` and
+   `sysprep-unattend.xml` from the UNATTEND ISO into
+   `C:\ProgramData\vmlab\sysprep\`, and shuts the VM down. vmlab seals
+   this as the **base**, which is installed and patched but not generalized.
+5. The `standard` variant boots a linked overlay of the base and runs
+   `scripts/generalize.ws`. That runs the staged `generalize.ps1`: it
+   strips per-user and provisioned AppX packages (otherwise `sysprep
    /generalize` aborts on client SKUs), runs `sysprep /generalize /oobe`
-   with `unattend/sysprep-unattend.xml`, then powers the VM off; vmlab seals
-   the generalized disk.
+   with `sysprep-unattend.xml`, and the VM powers off. vmlab seals the
+   generalized overlay as the `standard` variant.
+
+## Base and variants
+
+A built version holds an unsealed base disk and named, sealed variants. Each
+variant is a qcow2 overlay on the base. This template defines one variant,
+`standard`, and it is the default:
+
+- `x86_64/windows-11` (no `#`) still means the sealed `standard` variant,
+  so existing lab files keep working unchanged.
+- `x86_64/windows-11#standard` names it explicitly.
+- `#base` is reachable only from template builds. A lab that asks for it is
+  refused, because the base is not generalized and every clone would share
+  one SID and computer name.
+
+The base has no first-boot script. `scripts/firstboot.ws` belongs to the
+`standard` variant, because only a generalized image has a specialize pass
+to wait for.
+
+### Adding a variant
+
+A variant is a `variant` block in `vmlab.wcl` with its own provisions. List
+them before `scripts/generalize.ws`, so the variant's changes are made on the
+installed base and then generalized with it:
+
+```wcl
+variant "tools" {
+  description = "standard, plus a lab toolset"
+  first_boot  = "scripts/firstboot.ws"
+  provision "scripts/install-tools.ws" { }
+  provision "scripts/generalize.ws" { }
+}
+```
+
+Build only the new variant onto the newest installed version, without
+rebuilding the base or `standard`:
+
+```sh
+vmlab template build windows-11 --variant tools
+vmlab template list      # → a #tools row under the version, beside #standard
+```
+
+Add `--version <version>` to build it onto an older installed version. A lab
+then selects it with `template = "x86_64/windows-11#tools"`.
 
 Notes:
 
@@ -39,7 +90,7 @@ Notes:
   it. If the `url` ever 404s (eval-center CDN paths can change), grab the
   current direct link for this build from the eval center and keep the same
   `sha256` (or update both for a newer build via `sha256sum`).
-- The sealed image is **generalized**: each clone's first boot replays
+- The `standard` variant is **generalized**: each clone's first boot replays
   `sysprep-unattend.xml` — fresh SID, auto-generated computer name, OOBE
   skipped, `Administrator` / `vmlab123!` restored, no autologon — so
   clones are domain-joinable out of the box. (the build-time name VMLAB-WIN11 is replaced per clone)

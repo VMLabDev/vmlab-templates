@@ -808,12 +808,21 @@ template "windows-10" {
   media { kind = "iso" from = "./windows-10/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
+  // Builds the base: installed, patched and NOT generalized (PRD §6.6). The
+  // base is never cloned by a lab; a bare `x86_64/windows-10` means the default
+  // variant below.
   provision "windows-10/scripts/install.ws" { }
 
-  // Runs on every clone's first boot, before the VM is reported ready: waits
-  // for sysprep specialize/OOBE to finish (the specialize-pass marker), then
-  // clears it. So labs using this template never see a half-specialized clone.
-  first_boot = "windows-10/scripts/firstboot.ws"
+  // The sealed image labs clone: the base, generalized.
+  variant "standard" {
+    default     = true
+    description = "Generalized with sysprep: a fresh SID and computer name per clone"
+    // Runs on every clone's first boot, before the VM is reported ready: waits
+    // for sysprep specialize/OOBE to finish (the specialize-pass marker), then
+    // clears it. So labs using this template never see a half-specialized clone.
+    first_boot = "windows-10/scripts/firstboot.ws"
+    provision "windows-10/scripts/generalize.ws" { }
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -897,12 +906,21 @@ template "windows-11" {
   media { kind = "iso" from = "./windows-11/unattend/" label = "UNATTEND" }
   nic { nat = true }
 
+  // Builds the base: installed, patched and NOT generalized (PRD §6.6). The
+  // base is never cloned by a lab; a bare `x86_64/windows-11` means the default
+  // variant below.
   provision "windows-11/scripts/install.ws" { }
 
-  // Runs on every clone's first boot, before the VM is reported ready: waits
-  // for sysprep specialize/OOBE to finish (the specialize-pass marker), then
-  // clears it. So labs using this template never see a half-specialized clone.
-  first_boot = "windows-11/scripts/firstboot.ws"
+  // The sealed image labs clone: the base, generalized.
+  variant "standard" {
+    default     = true
+    description = "Generalized with sysprep: a fresh SID and computer name per clone"
+    // Runs on every clone's first boot, before the VM is reported ready: waits
+    // for sysprep specialize/OOBE to finish (the specialize-pass marker), then
+    // clears it. So labs using this template never see a half-specialized clone.
+    first_boot = "windows-11/scripts/firstboot.ws"
+    provision "windows-11/scripts/generalize.ws" { }
+  }
 }
 
 // -----------------------------------------------------------------------------
