@@ -1,7 +1,8 @@
 # Windows 10 Enterprise (Evaluation) template
 
-Requires vmlab 0.30.0-alpha or later. The template is a base plus variants
-(see [Base and variants](#base-and-variants)), which vmlab 0.30.0-alpha
+Requires vmlab 0.30.0-alpha or later (the `win3d` variant 0.31.0-alpha or
+later). The template is a base plus variants (see
+[Base and variants](#base-and-variants)), which vmlab 0.30.0-alpha
 introduced. The first-boot script also calls `vm.boot_id()` and
 `vm.wait_rebooted()` (wscript surface 2).
 
@@ -92,24 +93,24 @@ the overlay:
    task gone and `vmlab-win3d-repair` present, no reboot pending, no
    autologon values left. Then generalize runs as for `standard`.
 
-**Building `#win3d` needs a Venus-capable host.** The installer's verify
-needs the driver started, which only a virtio-gpu device with the VIRGL
-feature and blob resources gives, so the variant block declares
-`display = "virtio-vga-gl,venus=true,blob=true,hostmem=4G"` with
-`qemu_args = ["-display", "egl-headless"]`: the device line vmlab emits for
-`gpu { mode = "vulkan" }`. vmlab 0.30.0-alpha accepts no `gpu {}` on a
-variant (requested), so the build picks no host GPU by name: it renders on
-QEMU's default render node (the first `/dev/dri/renderD*`) with whatever
-Vulkan drivers the host loader finds, and the host config's `qemu_binary`
-and `qemu_env` do not apply. The host needs a GPU Venus works on there (AMD
-with RADV, Intel with ANV, or an RTX 5090; vmlab-win3d's `docs/host.md`).
+**Building `#win3d` needs vmlab 0.31.0-alpha or later and a Venus-capable
+host.** The installer's verify needs the driver started, which only a
+virtio-gpu device with the VIRGL feature and blob resources gives, so the
+variant block declares `gpu { mode = "vulkan" }`. vmlab 0.31.0-alpha
+introduced `gpu {}` on template and variant blocks: the build VM gets it
+resolved like a lab VM's, on the host's default GPU from
+`~/.config/vmlab/config.wcl` (or `host_gpu` names one), with that GPU's
+`qemu_binary` and `qemu_env` and the Vulkan loader filtered to it. The build
+log says which: `build VM gpu: mode=vulkan host_gpu=...`. The host needs a GPU
+Venus works on (AMD with RADV, Intel with ANV, or an RTX 5090; vmlab-win3d's
+`docs/host.md`). Nothing about the build GPU is recorded in the variant.
 
 Using it:
 
 - A clone **must** declare `gpu { mode = "vulkan" }` (or `"virgl"`), with
   `host_gpu` naming a GPU from `~/.config/vmlab/config.wcl` or taking the
-  host's default: the variant's `display` is inherited by its clones, and
-  without a `gpu {}` block QEMU has no GL display for that device.
+  host's default. Without a `gpu {}` block the clone boots with plain
+  `virtio-vga`, the driver package finds no Venus device, and there is no 3D.
 - `secure_boot = false` is recorded in the variant, so `#win3d` clones boot
   without Secure Boot (the `windows-10` profile leaves Secure Boot off anyway) and the test-signed
   driver loads; `standard` clones are unaffected.

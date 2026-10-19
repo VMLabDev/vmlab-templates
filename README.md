@@ -50,7 +50,10 @@ older vmlab refuses them by name and asks to be upgraded.
 not generalized, then a default `standard` variant that runs sysprep on an
 overlay of it. `x86_64/windows-11` and `x86_64/windows-10` still mean the
 sealed `standard` variant, so lab files keep working; `#<name>` selects
-another variant. The `windows-11` README shows how to add one.
+another variant. The `windows-11` README shows how to add one. Their `win3d`
+variant (the vmlab-win3d 3D driver package) builds with `gpu { mode =
+"vulkan" }` on the variant, which needs vmlab `0.31.0-alpha` or later and a
+host with a Venus-capable GPU.
 
 Linux/KVM is required by the Compose stack (`/dev/kvm`). Non-native ARM64 and
 RISC-V builds still use TCG inside vmlab and can take substantially longer.

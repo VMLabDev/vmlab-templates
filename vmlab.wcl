@@ -834,17 +834,12 @@ template "windows-10" {
     // every clone boots without Secure Boot too, or Windows ignores it.
     secure_boot = false
     // The build VM needs a virtio-gpu device with VIRGL and blob resources,
-    // or the KMD never starts and the installer's verify fails. vmlab
-    // 0.30.0-alpha accepts no `gpu {}` on a variant, so the device is named
-    // directly (vmlab passes an unknown `display` to QEMU as written) and
-    // the GL display comes through `qemu_args`: the same device line vmlab
-    // emits for `gpu { mode = "vulkan" }`, minus the host GPU choice. It
-    // renders on QEMU's default render node and the host's default Vulkan
-    // driver, so the build needs a Venus-capable host (README). A clone of
-    // this variant inherits the display, so it must declare `gpu { mode =
-    // "vulkan" }` (or "virgl"): without one, QEMU has no GL display for it.
-    display   = "virtio-vga-gl,venus=true,blob=true,hostmem=4G"
-    qemu_args = ["-display", "egl-headless"]
+    // or the KMD never starts and the installer's verify fails. This build
+    // gpu {} (vmlab 0.31.0-alpha or later) is resolved like a lab VM's: the
+    // host's default GPU, its qemu_binary/qemu_env and the Vulkan PCI filter.
+    // It is never recorded in the variant, so a clone gets 3D only from its
+    // own gpu { mode = "vulkan" } (or "virgl") and plain virtio-vga without.
+    gpu { mode = "vulkan" }
     first_boot = "windows-10/scripts/firstboot.ws"
     media { kind = "iso" from = "./windows-10/win3d/" label = "WIN3D" }
     provision "windows-10/scripts/win3d-setup.ws" { }
@@ -959,17 +954,12 @@ template "windows-11" {
     // every clone boots without Secure Boot too, or Windows ignores it.
     secure_boot = false
     // The build VM needs a virtio-gpu device with VIRGL and blob resources,
-    // or the KMD never starts and the installer's verify fails. vmlab
-    // 0.30.0-alpha accepts no `gpu {}` on a variant, so the device is named
-    // directly (vmlab passes an unknown `display` to QEMU as written) and
-    // the GL display comes through `qemu_args`: the same device line vmlab
-    // emits for `gpu { mode = "vulkan" }`, minus the host GPU choice. It
-    // renders on QEMU's default render node and the host's default Vulkan
-    // driver, so the build needs a Venus-capable host (README). A clone of
-    // this variant inherits the display, so it must declare `gpu { mode =
-    // "vulkan" }` (or "virgl"): without one, QEMU has no GL display for it.
-    display   = "virtio-vga-gl,venus=true,blob=true,hostmem=4G"
-    qemu_args = ["-display", "egl-headless"]
+    // or the KMD never starts and the installer's verify fails. This build
+    // gpu {} (vmlab 0.31.0-alpha or later) is resolved like a lab VM's: the
+    // host's default GPU, its qemu_binary/qemu_env and the Vulkan PCI filter.
+    // It is never recorded in the variant, so a clone gets 3D only from its
+    // own gpu { mode = "vulkan" } (or "virgl") and plain virtio-vga without.
+    gpu { mode = "vulkan" }
     first_boot = "windows-11/scripts/firstboot.ws"
     media { kind = "iso" from = "./windows-11/win3d/" label = "WIN3D" }
     provision "windows-11/scripts/win3d-setup.ws" { }
