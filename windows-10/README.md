@@ -110,7 +110,8 @@ Using it:
 - A clone **must** declare `gpu { mode = "vulkan" }` (or `"virgl"`), with
   `host_gpu` naming a GPU from `~/.config/vmlab/config.wcl` or taking the
   host's default. Without a `gpu {}` block the clone boots with plain
-  `virtio-vga`, the driver package finds no Venus device, and there is no 3D.
+  `virtio-vga` (nothing of the build GPU is recorded): the package's driver
+  binds to that device but cannot start on it, so there is no 3D.
 - `secure_boot = false` is recorded in the variant, so `#win3d` clones boot
   without Secure Boot (the `windows-10` profile leaves Secure Boot off anyway) and the test-signed
   driver loads; `standard` clones are unaffected.
