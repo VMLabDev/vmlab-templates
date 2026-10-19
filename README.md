@@ -45,6 +45,13 @@ need vmlab `0.29.0-alpha` or later, to build and to clone: their first-boot
 script uses `vm.boot_id()` and `vm.wait_rebooted()` (wscript surface 2). An
 older vmlab refuses them by name and asks to be upgraded.
 
+`windows-10` and `windows-11` are a **base plus variants** and need vmlab
+`0.30.0-alpha` or later. Their build seals an installed, patched base that is
+not generalized, then a default `standard` variant that runs sysprep on an
+overlay of it. `x86_64/windows-11` and `x86_64/windows-10` still mean the
+sealed `standard` variant, so lab files keep working; `#<name>` selects
+another variant. The `windows-11` README shows how to add one.
+
 Linux/KVM is required by the Compose stack (`/dev/kvm`). Non-native ARM64 and
 RISC-V builds still use TCG inside vmlab and can take substantially longer.
 
@@ -69,8 +76,8 @@ RISC-V builds still use TCG inside vmlab and can take substantially longer.
 | `windows-server-2025-core/` | Windows Server 2025 Eval (Server Core) | As above, installing the Server Core image (no Desktop Experience) |
 | `windows-server-2022-core/` | Windows Server 2022 Eval (Server Core) | As above, installing the Server Core image (no Desktop Experience) |
 | `windows-server-2019-core/` | Windows Server 2019 Eval (Server Core) | As above, installing the Server Core image (no Desktop Experience) |
-| `windows-11/` | Windows 11 Enterprise Eval | Installer ISO + autounattend, sysprep-generalized (run `fetch-deps.sh` first) |
-| `windows-10/` | Windows 10 Enterprise Eval | Installer ISO + autounattend, sysprep-generalized (run `fetch-deps.sh` first) |
+| `windows-11/` | Windows 11 Enterprise Eval | Installer ISO + autounattend; base plus a sysprep-generalized `standard` variant (run `fetch-deps.sh` first) |
+| `windows-10/` | Windows 10 Enterprise Eval | Installer ISO + autounattend; base plus a sysprep-generalized `standard` variant (run `fetch-deps.sh` first) |
 
 The `-core` templates build from the same ISO and answer file as the template
 they are named after, selecting the Server Core image instead of the Desktop

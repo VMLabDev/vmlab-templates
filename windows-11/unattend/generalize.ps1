@@ -21,10 +21,11 @@
 
 $ErrorActionPreference = 'Continue'
 $sp       = 'C:\Windows\System32\Sysprep'
-# Absolute, NOT $env:TEMP: install.ws stages the file into C:\Windows\Temp,
-# but this script now runs as Administrator (sysprep must not run as Local
-# System), whose $env:TEMP is the profile-local temp dir.
-$unattend = 'C:\Windows\Temp\sysprep-unattend.xml'
+# Absolute, NOT $env:TEMP: install.ws stages the file into
+# C:\ProgramData\vmlab\sysprep beside this script, but this script runs as
+# Administrator (sysprep must not run as Local System), whose $env:TEMP is the
+# profile-local temp dir.
+$unattend = 'C:\ProgramData\vmlab\sysprep\sysprep-unattend.xml'
 $tag      = Join-Path $sp 'Sysprep_succeeded.tag'
 $log      = Join-Path $sp 'Panther\setupact.log'
 
