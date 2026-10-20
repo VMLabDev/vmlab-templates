@@ -14,7 +14,10 @@ this as SYSTEM through the vmlab agent, Windows PowerShell 5.1).
 -Phase Vulkan   Runs vulkaninfo --summary (System32 and SysWOW64) in the
                 console user's session, because Vulkan enumerates nothing from
                 SYSTEM (session 0). With nobody logged on it arms a one-shot
-                autologon for -User and exits 3: the caller reboots the guest
+                autologon for -User (default: the first enabled local account
+                of vmlab and Administrator, so the build VM's Administrator
+                and a sealed clone's vmlab both work) and exits 3: the caller
+                reboots the guest
                 and runs this phase again. Prints both summaries; exit 1 unless
                 each lists a "Virtio-GPU Venus" device. Clears the autologon
                 values afterwards, so nothing of it reaches the sealed image.
@@ -24,7 +27,7 @@ this as SYSTEM through the vmlab agent, Windows PowerShell 5.1).
 [CmdletBinding()]
 param(
     [ValidateSet('Static', 'Vulkan', 'Cleanup')][string]$Phase = 'Static',
-    [string]$User = 'Administrator',
+    [string]$User = '',
     [string]$Password = 'vmlab123!',
     [string]$BundleCopy = 'C:\vmlab-win3d'
 )
@@ -72,6 +75,16 @@ public static int Options() {
 '@
     }
     return ([VmlabWin3dVerify.CodeIntegrity]::Options() -band 0x2) -ne 0
+}
+
+# The build VM has only the built-in Administrator; on a sealed clone the
+# specialize pass creates vmlab and disables Administrator.
+function Get-AutologonUser {
+    foreach ($n in 'vmlab', 'Administrator') {
+        $u = Get-LocalUser -Name $n -ErrorAction SilentlyContinue
+        if ($u -and $u.Enabled) { return $n }
+    }
+    throw 'neither vmlab nor Administrator is an enabled local account; pass -User'
 }
 
 function Clear-Autologon {
@@ -144,8 +157,11 @@ function Test-Static {
     }
     if ($pending.Count) { Fail "reboot pending: $($pending -join ', ')" } else { Ok 'no reboot pending' }
 
-    $wl = Get-ItemProperty -Path $Winlogon
-    if ($wl.AutoAdminLogon -eq '1' -or ($wl.PSObject.Properties.Name -contains 'DefaultPassword')) { Fail 'Winlogon autologon values are still set' }
+    # Strict mode throws on a missing property, and a Winlogon key with no
+    # autologon ever configured has no AutoAdminLogon value.
+    $wlNames = (Get-ItemProperty -Path $Winlogon).PSObject.Properties.Name
+    $autoAdmin = if ($wlNames -contains 'AutoAdminLogon') { (Get-ItemProperty -Path $Winlogon).AutoAdminLogon } else { $null }
+    if ($autoAdmin -eq '1' -or ($wlNames -contains 'DefaultPassword')) { Fail 'Winlogon autologon values are still set' }
     else { Ok 'no autologon values in Winlogon' }
 }
 
@@ -155,6 +171,7 @@ function Invoke-Vulkan {
         # Nobody to run vulkaninfo as: arm one autologon for $User and ask the
         # caller for a reboot. AutoLogonCount=1 makes Windows clear the
         # values itself after that logon; Clear-Autologon below makes sure.
+        if (-not $User) { $User = Get-AutologonUser }
         Set-ItemProperty -Path $Winlogon -Name AutoAdminLogon -Value '1' -Type String
         Set-ItemProperty -Path $Winlogon -Name DefaultUserName -Value $User -Type String
         Set-ItemProperty -Path $Winlogon -Name DefaultDomainName -Value $env:COMPUTERNAME -Type String
