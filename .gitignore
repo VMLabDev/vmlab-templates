@@ -1,5 +1,6 @@
 # Downloaded build payloads — fetched on demand, never committed.
 *.iso
+*.ISO
 *.qcow2
 *.img
 *.msi
@@ -28,6 +29,13 @@ windows-server-2016/unattend/drivers/
 windows-server-2016-core/unattend/drivers/
 kali/disk/
 parrot/disk/
+windows-10/win3d/
+windows-11/win3d/
+
+# Hand-supplied installer media for the MSDN/VL templates (iso/README.md says
+# which); only the README is tracked.
+/iso/*
+!/iso/README.md
 
 # Product keys for the MSDN/VL ISOs in iso/ — never commit real keys
 .env
@@ -41,3 +49,6 @@ home-assistant-aarch64/haos_generic-aarch64-*.qcow2
 
 # Browser-automation scratch (playwright-cli snapshots/logs)
 .playwright-cli/
+
+# Session scratch: evidence, isolated stores, throwaway labs
+.scratch/

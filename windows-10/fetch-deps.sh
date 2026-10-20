@@ -2,6 +2,7 @@
 # Pull the virtio-win bits the unattended install needs into unattend/:
 #   unattend/drivers/{viostor,netkvm}/   boot-critical virtio drivers (WinPE)
 #   unattend/virtio-win-gt-x64.msi       full guest driver/tool package
+# and the vmlab-win3d driver package the `win3d` variant installs into win3d/.
 # These are redistributable binaries and stay out of git (.gitignore).
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -62,3 +63,32 @@ curl -fSL --retry 3 -o unattend/winfsp.msi "$WINFSP_URL"
 echo "6324dc81194a6a08f97b6aeca303cf5c2325c53ede153bae9fc4378f0838c101  unattend/winfsp.msi" | sha256sum -c --quiet -
 
 echo "MSIs staged into unattend/"
+
+# vmlab-win3d: the test-signed virtio-gpu 3D driver package (KMD, D3D/OpenGL
+# UMDs, Venus Vulkan ICD, D3D12 bridge) the `win3d` variant installs. One
+# pinned GitHub release; the zip is sha256-checked, then unpacked flat into
+# win3d/ (Install.cmd at the top), which the variant attaches as the WIN3D ISO.
+WIN3D_VERSION="0.1.1-alpha"
+WIN3D_SHA256="153c458127bce348d9b036603b759e99f8f2eb5655d0a8274160e99cc5c5b8c9"
+WIN3D_URL="https://github.com/VMLabDev/vmlab-win3d/releases/download/v${WIN3D_VERSION}/vmlab-win3d-${WIN3D_VERSION}-windows-x64.zip"
+WIN3D_ZIP="${WIN3D_ZIP:-/tmp/vmlab-fetch/vmlab-win3d-${WIN3D_VERSION}-windows-x64.zip}"
+
+if [[ ! -f "$WIN3D_ZIP" ]]; then
+    mkdir -p "$(dirname "$WIN3D_ZIP")"
+    echo "downloading vmlab-win3d ${WIN3D_VERSION}..."
+    curl -fSL --retry 3 -o "$WIN3D_ZIP" "$WIN3D_URL"
+fi
+echo "$WIN3D_SHA256  $WIN3D_ZIP" | sha256sum -c --quiet - \
+    || { echo "vmlab-win3d zip failed its checksum" >&2; exit 1; }
+
+chmod -R u+w win3d 2>/dev/null || true
+rm -rf win3d
+mkdir -p win3d
+# The zip holds one top-level directory (vmlab-win3d-<version>/) plus a
+# README.txt beside it that the strip discards; Install.cmd sits at the root.
+bsdtar -xf "$WIN3D_ZIP" -C win3d --strip-components=1
+[[ -f win3d/Install.cmd && -f win3d/manifest.json ]] \
+    || { echo "vmlab-win3d zip did not unpack to win3d/Install.cmd" >&2; exit 1; }
+
+echo "vmlab-win3d ${WIN3D_VERSION} staged into win3d/"
+

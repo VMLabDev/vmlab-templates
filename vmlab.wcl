@@ -823,6 +823,28 @@ template "windows-10" {
     first_boot = "windows-10/scripts/firstboot.ws"
     provision "windows-10/scripts/generalize.ws" { }
   }
+
+  // `standard` plus the vmlab-win3d driver package (virtio-gpu 3D on a Venus
+  // host: D3D9-12, OpenGL and Vulkan in the guest), installed on the base and
+  // then generalized with it. fetch-deps.sh stages the pinned release into
+  // win3d/, which rides the build as the WIN3D ISO (the gitignored payload).
+  variant "win3d" {
+    description = "Standard plus the vmlab-win3d 3D driver package (test-signed; clones need gpu { mode = \"vulkan\" })"
+    // The package is test-signed: the build boot turns test signing on, and
+    // every clone boots without Secure Boot too, or Windows ignores it.
+    secure_boot = false
+    // The build VM needs a virtio-gpu device with VIRGL and blob resources,
+    // or the KMD never starts and the installer's verify fails. This build
+    // gpu {} (vmlab 0.31.0-alpha or later) is resolved like a lab VM's: the
+    // host's default GPU, its qemu_binary/qemu_env and the Vulkan PCI filter.
+    // It is never recorded in the variant, so a clone gets 3D only from its
+    // own gpu { mode = "vulkan" } (or "virgl") and plain virtio-vga without.
+    gpu { mode = "vulkan" }
+    first_boot = "windows-10/scripts/firstboot.ws"
+    media { kind = "iso" from = "./windows-10/win3d/" label = "WIN3D" }
+    provision "windows-10/scripts/win3d-setup.ws" { }
+    provision "windows-10/scripts/generalize.ws" { }
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -919,6 +941,28 @@ template "windows-11" {
     // for sysprep specialize/OOBE to finish (the specialize-pass marker), then
     // clears it. So labs using this template never see a half-specialized clone.
     first_boot = "windows-11/scripts/firstboot.ws"
+    provision "windows-11/scripts/generalize.ws" { }
+  }
+
+  // `standard` plus the vmlab-win3d driver package (virtio-gpu 3D on a Venus
+  // host: D3D9-12, OpenGL and Vulkan in the guest), installed on the base and
+  // then generalized with it. fetch-deps.sh stages the pinned release into
+  // win3d/, which rides the build as the WIN3D ISO (the gitignored payload).
+  variant "win3d" {
+    description = "Standard plus the vmlab-win3d 3D driver package (test-signed; clones need gpu { mode = \"vulkan\" })"
+    // The package is test-signed: the build boot turns test signing on, and
+    // every clone boots without Secure Boot too, or Windows ignores it.
+    secure_boot = false
+    // The build VM needs a virtio-gpu device with VIRGL and blob resources,
+    // or the KMD never starts and the installer's verify fails. This build
+    // gpu {} (vmlab 0.31.0-alpha or later) is resolved like a lab VM's: the
+    // host's default GPU, its qemu_binary/qemu_env and the Vulkan PCI filter.
+    // It is never recorded in the variant, so a clone gets 3D only from its
+    // own gpu { mode = "vulkan" } (or "virgl") and plain virtio-vga without.
+    gpu { mode = "vulkan" }
+    first_boot = "windows-11/scripts/firstboot.ws"
+    media { kind = "iso" from = "./windows-11/win3d/" label = "WIN3D" }
+    provision "windows-11/scripts/win3d-setup.ws" { }
     provision "windows-11/scripts/generalize.ws" { }
   }
 }
