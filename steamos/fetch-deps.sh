@@ -12,8 +12,8 @@
 # bakes in a first-boot unit that installs vmlab-agent from the build's VMLAB
 # ISO. The lab is destroyed afterwards; only the target disk is kept.
 #
-# Needs vmlab on PATH, qemu-img, bzip2, and KVM. Takes about ten minutes plus
-# the 3.1G download.
+# Needs vmlab on PATH, qemu-img, bzip2, KVM, and Docker (for venus/build.sh).
+# Takes about ten minutes plus the 3.1G download.
 set -eu
 
 VERSION="20260707.10-3.8.14"
@@ -25,6 +25,10 @@ DISK_SIZE="128G"
 cd "$(dirname "$0")"
 here="$(pwd)"
 mkdir -p disk
+
+# The Venus driver the provision installs (venus/build.sh says why). It has
+# its own up-to-date check, so it runs even when the disk is already staged.
+./venus/build.sh
 
 if [ -f disk/steamos.qcow2 ]; then
     echo "disk/steamos.qcow2 already staged"

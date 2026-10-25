@@ -1,0 +1,55 @@
+From 50a2918856fdac3d0282980cb7e15e382928782b Mon Sep 17 00:00:00 2001
+From: Yiwei Zhang <zzyiwei@chromium.org>
+Date: Mon, 22 Dec 2025 16:02:57 -0800
+Subject: [PATCH 2/2] venus: allow hw wsi for newer Nvidia proprietary driver
+
+Prime buffer blit has been reported working on Nvidia driver version
+590.48.01.
+
+Acked-by: Valentine Burley <valentine.burley@collabora.com>
+Part-of: <https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/39069>
+(cherry picked from commit f4cd0bf8104c08cf12bdf6c411cee9e379b517d0)
+---
+ src/virtio/vulkan/vn_common.h | 4 ++++
+ src/virtio/vulkan/vn_wsi.c    | 7 +++----
+ 2 files changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/src/virtio/vulkan/vn_common.h b/src/virtio/vulkan/vn_common.h
+index a51a89e..ce1c314 100644
+--- a/src/virtio/vulkan/vn_common.h
++++ b/src/virtio/vulkan/vn_common.h
+@@ -67,6 +67,10 @@
+ #define VN_TRACE_SCOPE(name) MESA_TRACE_SCOPE(name)
+ #define VN_TRACE_FUNC()      MESA_TRACE_SCOPE(__func__)
+ 
++#define VN_MAKE_NVIDIA_VERSION(major, minor, sub_minor, patch)               \
++   ((((uint32_t)(major)) << 22U) | (((uint32_t)(minor)) << 14U) |            \
++    (((uint32_t)(sub_minor)) << 6U) | ((uint32_t)(patch)))
++
+ struct vn_instance;
+ struct vn_physical_device;
+ struct vn_device;
+diff --git a/src/virtio/vulkan/vn_wsi.c b/src/virtio/vulkan/vn_wsi.c
+index e275ffa..f667f56 100644
+--- a/src/virtio/vulkan/vn_wsi.c
++++ b/src/virtio/vulkan/vn_wsi.c
+@@ -63,13 +63,12 @@ vn_wsi_proc_addr(VkPhysicalDevice physicalDevice, const char *pName)
+ VkResult
+ vn_wsi_init(struct vn_physical_device *physical_dev)
+ {
+-   /* TODO Drop the workaround for NVIDIA_PROPRIETARY once hw prime buffer
+-    * blit path works there.
+-    */
+    const bool use_sw_device =
+       !physical_dev->base.vk.supported_extensions
+           .EXT_external_memory_dma_buf ||
+-      physical_dev->renderer_driver_id == VK_DRIVER_ID_NVIDIA_PROPRIETARY;
++      (physical_dev->renderer_driver_id == VK_DRIVER_ID_NVIDIA_PROPRIETARY &&
++       physical_dev->renderer_driver_version <
++          VN_MAKE_NVIDIA_VERSION(590, 48, 1, 0));
+ 
+    const VkAllocationCallbacks *alloc =
+       &physical_dev->instance->base.vk.alloc;
+-- 
+2.56.0
+

@@ -8,9 +8,9 @@
 // Hardware (cpus / memory / firmware) is inherited from the template. The
 // gpu {} is what gives the guest hardware Vulkan and OpenGL; without it the
 // clone runs on plain virtio-vga with software rendering. The clone boots to
-// game mode, which needs an AMD host GPU: if the host's default GPU is
-// NVIDIA, add host_gpu = "<the AMD GPU's name in the host config>"
-// (black frames on NVIDIA: VMLabDev/vmlab#171).
+// game mode. On an NVIDIA host GPU, that GPU's host config block needs the
+// vmlab render server (vmlab-win3d virglrenderer patch 0003) in its qemu_env;
+// see steamos/README.md (VMLabDev/vmlab#171).
 
 import <vmlab.wcl>
 

@@ -48,11 +48,26 @@ fn provision(lab: Lab) -> Result[unit, string] {
         "for u in gamescope-session steam-launcher; do mkdir -p /etc/systemd/user/$u.service.d; printf '[Service]\\nEnvironment=MESA_LOADER_DRIVER_OVERRIDE=zink\\n' > /etc/systemd/user/$u.service.d/vmlab-zink.conf; done")?
     lab.log("game mode: gamescope-session and steam-launcher run GL on zink")
 
+    // Venus from SteamOS's Mesa 25.3.0 forces the software WSI on an NVIDIA
+    // host, and Steam's GPU-composited UI then shows black in game mode
+    // (VMLabDev/vmlab#171). venus/build.sh builds the same release with the
+    // Mesa 26.0 fix backported; install it over both copies, 64- and 32-bit,
+    // keeping SteamOS's as libvulkan_virtio.so.steamos.
+    sh(lab, vm, "venus staging", "mkdir -p /var/tmp/vmlab-venus/lib /var/tmp/vmlab-venus/lib32")?
+    vm.copy_to("../venus/out/x86_64/libvulkan_virtio.so", "/var/tmp/vmlab-venus/lib/libvulkan_virtio.so")?
+    vm.copy_to("../venus/out/i686/libvulkan_virtio.so", "/var/tmp/vmlab-venus/lib32/libvulkan_virtio.so")?
+    sh(lab, vm, "venus",
+        "set -e; for d in lib lib32; do [ -e /usr/$d/libvulkan_virtio.so.steamos ] || cp -a /usr/$d/libvulkan_virtio.so /usr/$d/libvulkan_virtio.so.steamos; install -m 755 /var/tmp/vmlab-venus/$d/libvulkan_virtio.so /usr/$d/libvulkan_virtio.so; cmp /var/tmp/vmlab-venus/$d/libvulkan_virtio.so /usr/$d/libvulkan_virtio.so; done; rm -rf /var/tmp/vmlab-venus")?
+    let vk2 = sh(lab, vm, "vulkaninfo (patched venus)", "vulkaninfo --summary 2>/dev/null | grep -E 'driverID|driverInfo'")?
+    if !vk2.contains("DRIVER_ID_MESA_VENUS") {
+        return Err("no Venus device after installing the patched libvulkan_virtio.so: " + vk2.trim())
+    }
+    lab.log("venus: patched libvulkan_virtio.so installed (" + vk2.trim() + ")")
+
     // Clones log in to game mode, as a Deck does. This file is what
     // `steamos-session-select gamescope` leaves behind; it is written
     // directly because deck's session bus, which that command needs, may
-    // not be up yet. On an NVIDIA host game mode composites black frames
-    // (VMLabDev/vmlab#171); "Switch to Desktop" still works there.
+    // not be up yet.
     sh(lab, vm, "game mode session",
         "printf '[Autologin]\\nSession=gamescope-wayland.desktop\\n' > /etc/sddm.conf.d/zz-steamos-autologin.conf")?
     lab.log("default session: game mode (gamescope-wayland)")
