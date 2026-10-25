@@ -601,8 +601,10 @@ template "rocky-9" {
 // 3D: SteamOS ships Mesa's Venus Vulkan driver and virgl, so a clone with
 // gpu { mode = "vulkan" } gets hardware Vulkan and OpenGL on the host's GPU
 // with nothing added. The build boots with the same gpu {} and fails unless
-// the guest's Vulkan loader lists a Venus device. Clones boot to game mode,
-// which needs an AMD host GPU (black frames on NVIDIA: VMLabDev/vmlab#171).
+// the guest's Vulkan loader lists a Venus device. Clones boot to game mode.
+// The provision installs a rebuilt Venus driver (venus/build.sh) so game mode
+// renders on NVIDIA hosts too (VMLabDev/vmlab#171); there the GPU also needs
+// the vmlab render server with vmlab-win3d's virglrenderer patch 0003.
 //
 // To bump: pick a newer steamdeck-oobe-repair-<build>-<version>.img.bz2 from
 // https://steamdeck-images.steamos.cloud/recovery/ and update VERSION and

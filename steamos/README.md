@@ -23,10 +23,21 @@ recovery image the same way a Deck is reimaged.
   set `MESA_LOADER_DRIVER_OVERRIDE=zink` on `gamescope-session.service` and
   `steam-launcher.service` only (`/etc/systemd/user/<unit>.d/vmlab-zink.conf`).
   Desktop mode keeps virgl, which is faster there.
-- **Game mode needs an AMD host GPU.** On an NVIDIA host it starts but
-  composites black frames (https://github.com/VMLabDev/vmlab/issues/171).
-  Name the AMD GPU with `gpu { mode = "vulkan" host_gpu = "<name>" }`.
-  Desktop mode works on both. Intel is untested.
+- The template replaces SteamOS's Venus driver, `libvulkan_virtio.so` in
+  `/usr/lib` and `/usr/lib32`, with the same Mesa 25.3.0 release plus the
+  Mesa 26.0 fix that lets Venus use the hardware WSI on NVIDIA drivers
+  590.48.01 and newer (`venus/build.sh`, `venus/patches/`). SteamOS's own
+  copies stay beside them as `libvulkan_virtio.so.steamos`. Without the fix,
+  Venus presents every X11 window by CPU copy on an NVIDIA host, and Steam's
+  UI in game mode is black (https://github.com/VMLabDev/vmlab/issues/171).
+- **Game mode on an NVIDIA host also needs the vmlab render server** with
+  vmlab-win3d's `patches/host/virglrenderer/0003`, named by the GPU's
+  `qemu_env` `RENDER_SERVER_EXEC_PATH`. NVIDIA's driver turns a dma-buf
+  import that also asks for export into a fresh allocation, so without it
+  everything Xwayland draws itself (X11 windows that are not flipped, such
+  as menus, dialogs and `xterm`) reaches gamescope black. Steam's full-screen
+  UI shows either way. AMD needs neither. Desktop mode works on both. Intel
+  is untested.
 - The default session is `/etc/sddm.conf.d/zz-steamos-autologin.conf`, the
   file `steamos-session-select gamescope` leaves behind.
 - vmlab-agent: the recovery image has no unattended-install hook, so the
@@ -59,7 +70,9 @@ Steam Deck BIOS and controller updaters into no-ops. The lab is destroyed
 afterwards. The install takes about ten minutes, and the archive stays in
 `disk/` so a second run skips the download.
 
-Requires vmlab, `curl`, `bzip2`, `qemu-img` and KVM on the build host.
+Requires vmlab, `curl`, `bzip2`, `qemu-img`, KVM and Docker on the build
+host. Docker runs `venus/build.sh`, which builds the Venus driver in
+`debian:trixie` (glibc 2.41, SteamOS 3.8's) into `venus/out/`.
 
 ```sh
 ./fetch-deps.sh

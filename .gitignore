@@ -30,6 +30,8 @@ windows-server-2016-core/unattend/drivers/
 kali/disk/
 parrot/disk/
 steamos/disk/
+steamos/venus/dl/
+steamos/venus/out/
 windows-10/win3d/
 windows-11/win3d/
 
