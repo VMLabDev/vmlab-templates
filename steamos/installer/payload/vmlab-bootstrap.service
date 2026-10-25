@@ -1,0 +1,11 @@
+[Unit]
+Description=vmlab: install the guest agent from the VMLAB build ISO
+After=local-fs.target
+ConditionPathExists=!/usr/local/lib/vmlab/vmlab-agent
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /etc/vmlab/bootstrap.sh
+
+[Install]
+WantedBy=multi-user.target

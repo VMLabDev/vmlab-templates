@@ -1,0 +1,36 @@
+// SteamOS template (Steam Deck's OS, Valve's 3.8 "holo" release), built from
+// Valve's own recovery image. Valve publishes no installer ISO or cloud
+// image, so fetch-deps.sh does the install in a throwaway lab with Valve's
+// repair_device.sh and stages the installed disk:
+//
+//   ./fetch-deps.sh             # one-time: 3.1G download plus a ~10 minute install
+//   vmlab template build        (run from this directory)
+//
+// 3D: SteamOS ships Mesa's Venus Vulkan driver and virgl, so a clone with
+// gpu { mode = "vulkan" } gets hardware Vulkan and OpenGL on the host's GPU
+// with nothing added. The build boots with the same gpu {} and fails unless
+// the guest's Vulkan loader lists a Venus device. Clones boot to game mode,
+// which needs an AMD host GPU (black frames on NVIDIA: VMLabDev/vmlab#171).
+//
+// To bump: pick a newer steamdeck-oobe-repair-<build>-<version>.img.bz2 from
+// https://steamdeck-images.steamos.cloud/recovery/ and update VERSION and
+// SHA256 in fetch-deps.sh, and `version` here.
+
+import <vmlab.wcl>
+
+template "steamos" {
+  arch     = "x86_64"
+  version  = "3.8.14"
+  registry = "ghcr.io/vmlabdev/vmlab-templates/steamos"
+  profile  = "linux-modern"
+  cpus     = 4
+  memory   = 8GiB
+
+  source "qcow2" { path = "./disk/steamos.qcow2" }
+
+  // Build-time only, never recorded: clones pick their own gpu {}.
+  gpu { mode = "vulkan" }
+  nic { nat = true }
+
+  provision "scripts/install.ws" { }
+}

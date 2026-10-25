@@ -72,6 +72,10 @@ parrot-build: (template-build 'parrot' 'x86_64/parrot')
 [group('build')]
 rocky-build: (template-build 'rocky-9' 'x86_64/rocky-9')
 
+# Build the SteamOS template (Valve recovery image installed in a throwaway lab; needs a Venus-capable GPU)
+[group('build')]
+steamos-build: (template-build 'steamos' 'x86_64/steamos')
+
 # Build the Ubuntu Server 24.04 template
 [group('build')]
 ubuntu-build: (template-build 'ubuntu-24.04' 'x86_64/ubuntu-24.04')
@@ -559,6 +563,13 @@ rocky-9-example-up: (example-up 'rocky-9')
 # Destroy the rocky-9 example
 [group('example')]
 rocky-9-example-destroy: (example-destroy 'rocky-9')
+
+# Boot the steamos example (up + console)
+[group('example')]
+steamos-example-up: (example-up 'steamos')
+# Destroy the steamos example
+[group('example')]
+steamos-example-destroy: (example-destroy 'steamos')
 
 # Boot the ubuntu-24.04 example (up + console)
 [group('example')]
