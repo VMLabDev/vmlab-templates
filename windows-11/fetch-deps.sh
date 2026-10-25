@@ -68,8 +68,8 @@ echo "MSIs staged into unattend/"
 # UMDs, Venus Vulkan ICD, D3D12 bridge) the `win3d` variant installs. One
 # pinned GitHub release; the zip is sha256-checked, then unpacked flat into
 # win3d/ (Install.cmd at the top), which the variant attaches as the WIN3D ISO.
-WIN3D_VERSION="0.1.1-alpha"
-WIN3D_SHA256="153c458127bce348d9b036603b759e99f8f2eb5655d0a8274160e99cc5c5b8c9"
+WIN3D_VERSION="0.1.2-alpha"
+WIN3D_SHA256="1d60890929f35a23a856627008f2cac06601d52b7cd7af24b57b82b6ae1ba7f3"
 WIN3D_URL="https://github.com/VMLabDev/vmlab-win3d/releases/download/v${WIN3D_VERSION}/vmlab-win3d-${WIN3D_VERSION}-windows-x64.zip"
 WIN3D_ZIP="${WIN3D_ZIP:-/tmp/vmlab-fetch/vmlab-win3d-${WIN3D_VERSION}-windows-x64.zip}"
 
