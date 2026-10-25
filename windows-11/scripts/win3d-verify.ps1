@@ -152,8 +152,20 @@ function Test-Static {
     if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') { $pending += 'CBS RebootPending' }
     if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired') { $pending += 'WindowsUpdate RebootRequired' }
     $sm = Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -ErrorAction SilentlyContinue
+    # PendingFileRenameOperations holds (source, destination) pairs. An empty
+    # destination only deletes the source at the next boot: OneDrive's
+    # per-user setup queues two such deletes of its own OneDriveSetup.exe in
+    # the autologon profile, racing this check. Only a rename or replace
+    # counts as a pending reboot.
     if ($sm -and ($sm.PSObject.Properties.Name -contains 'PendingFileRenameOperations') -and $sm.PendingFileRenameOperations) {
-        $pending += "PendingFileRenameOperations ($(@($sm.PendingFileRenameOperations | Where-Object { $_ }).Count) entries)"
+        $ops = @($sm.PendingFileRenameOperations)
+        $renames = 0; $deletes = 0
+        for ($i = 0; $i -lt $ops.Count; $i += 2) {
+            if (-not $ops[$i]) { continue }
+            if (($i + 1) -lt $ops.Count -and $ops[$i + 1]) { $renames++ } else { $deletes++ }
+        }
+        if ($renames) { $pending += "PendingFileRenameOperations ($renames rename(s))" }
+        if ($deletes) { Ok "ignoring $deletes delete-only pending file operation(s)" }
     }
     if ($pending.Count) { Fail "reboot pending: $($pending -join ', ')" } else { Ok 'no reboot pending' }
 
