@@ -1,0 +1,29 @@
+// Smoke-test the steamos template: boot x86_64/steamos on a NAT'd segment with
+// Venus 3D and watch the console. Build or pull the template first, then from
+// the repo root:
+//
+//   just steamos-example-up        # bring it up and open the console
+//   just steamos-example-destroy   # tear it down
+//
+// Hardware (cpus / memory / firmware) is inherited from the template. The
+// gpu {} is what gives the guest hardware Vulkan and OpenGL; without it the
+// clone runs on plain virtio-vga with software rendering. The clone boots to
+// game mode, which needs an AMD host GPU: if the host's default GPU is
+// NVIDIA, add host_gpu = "<the AMD GPU's name in the host config>"
+// (black frames on NVIDIA: VMLabDev/vmlab#171).
+
+import <vmlab.wcl>
+
+lab "steamos" {
+
+  segment "lan" {
+    subnet = "10.99.0.0/24"
+    nat    = true
+  }
+
+  vm "guest" {
+    template = "x86_64/steamos"
+    gpu { mode = "vulkan" }
+    nic { segment = "lan" }
+  }
+}

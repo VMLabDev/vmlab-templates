@@ -73,6 +73,7 @@ RISC-V builds still use TCG inside vmlab and can take substantially longer.
 | `nixos-25.11/` | NixOS 25.11 | Minimal ISO + scripted nixos-install |
 | `kali/` | Kali Linux 2026.1 | Official QEMU qcow2 (run `fetch-deps.sh` first) |
 | `parrot/` | Parrot OS Security 7.2 | Official QEMU qcow2 (run `fetch-deps.sh` first) |
+| `steamos/` | SteamOS 3.8 (Steam Deck) | Valve recovery image, installed in a throwaway lab by `fetch-deps.sh`; needs a Venus-capable GPU to build |
 | `windows-server-2025/` | Windows Server 2025 Eval | Installer ISO + autounattend, sysprep-generalized (run `fetch-deps.sh` first) |
 | `windows-server-2022/` | Windows Server 2022 Eval | Installer ISO + autounattend, sysprep-generalized (run `fetch-deps.sh` first) |
 | `windows-server-2019/` | Windows Server 2019 Eval | Installer ISO + autounattend, sysprep-generalized (run `fetch-deps.sh` first) |
