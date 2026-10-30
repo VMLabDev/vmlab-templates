@@ -279,7 +279,7 @@ fn build(lab: Lab) -> Result[unit, string] {
     // The ~12 GB the installer downloaded is deleted but still on the disk,
     // and the sealed image would carry it. Zero the free space (keeping 4 GB
     // so the system never runs out); the flatten drops zeroed clusters.
-    let zero = vm.exec_timeout("/bin/sh", ["-c", "free=$(df -m /System/Volumes/Data | awk 'NR==2 {print $4}'); dd if=/dev/zero of=/private/var/tmp/vmlab-zero bs=1m count=$((free - 4096)) 2>&1 | tail -n 1; rm -f /private/var/tmp/vmlab-zero; sync"], 3600)?
+    let zero = vm.exec_timeout("/bin/sh", ["-c", "free=$(df -m /System/Volumes/Data | awk 'NR==2 {{print $4}}'); dd if=/dev/zero of=/private/var/tmp/vmlab-zero bs=1m count=$((free - 4096)) 2>&1 | tail -n 1; rm -f /private/var/tmp/vmlab-zero; sync"], 3600)?
     lab.log("zeroed free space: " + zero.stdout.trim())
     lab.log(fmt("build: {} host reset(s) for a stalled install, {} for a stalled first boot", hangs, boot_hangs))
     Ok(())
