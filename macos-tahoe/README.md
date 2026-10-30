@@ -38,7 +38,7 @@ The template carries the vmlab agent and nothing else.
 
 ```sh
 ./fetch-deps.sh         # Apple's recovery image and OpenCore, staged
-vmlab template build    # about 75 minutes
+vmlab template build    # about 50 minutes
 ```
 
 `just macos-tahoe-build` from the repo root does both.
@@ -72,7 +72,8 @@ has no unattended hook, so the work inside Recovery is done by
    erases the largest internal disk to APFS and runs the Recovery's own
    `startosinstall`. `startosinstall` downloads Tahoe from Apple (about 12 GB),
    reboots into the installer, and installs. The build waits for Setup
-   Assistant's first screen. This takes 50 to 60 minutes.
+   Assistant's first screen. This took about 40 minutes on a fast
+   connection.
 2. **Finish.** The build resets the VM into the recovery image again and runs
    `recovery.sh finish`, which does three things:
    - It runs the VMLAB ISO's `macos/install.sh --user vmlab --password vmlab`,
@@ -85,9 +86,9 @@ has no unattended hook, so the work inside Recovery is done by
    boot goes through the ESP's OpenCore, which is the path a clone takes. The
    build then waits for the agent's handshake, checks the version, the
    account and the keyboard setting, and gives the machine a generic name.
-   It zeroes the free space, about 10 minutes, so the sealed image does not
-   carry the deleted 12 GB download: about 22 GB instead of 37 GB. vmlab
-   shuts the machine down and seals the disk.
+   It zeroes the free space (about 5 minutes) so that the sealed image does
+   not carry the deleted 12 GB download. That makes the image about 18 GB
+   instead of 37 GB. vmlab then shuts the machine down and seals the disk.
 
 The FAT boot disk and the MACSETUP ISO are build-only. A clone has one disk,
 boots with a fresh UEFI VARS, and finds OpenCore in that disk's ESP.
@@ -120,17 +121,23 @@ by `mkconfig.py`:
 
 ### The shutdown hang
 
-On an AMD host, Tahoe sometimes panics on the way down and the panic handler
-spins every vCPU. This happens on about 2 shutdowns or reboots in 5, and the
-guest never resets. The build therefore avoids guest reboots:
+During vmlab's macOS spikes on an AMD host (Ryzen 9 9950X), Tahoe sometimes panicked on the
+way down. The panic handler then spun every vCPU and the guest never reset.
+That happened on about 2 of 5 shutdowns or reboots. Those spikes used
+OSX-KVM's OpenCore, which also loads Lilu, VirtualSMC and WhateverGreen.
 
-- Stages 2 and 3 start with a host reset (a QEMU quit, which flushes the block
-  caches, then a fresh start). Stage 2 syncs and unmounts the disk before its
-  reset.
-- During the install, the build watches the screen. Recovery prints a
-  heartbeat line every 20 seconds while it downloads. If the screen stays the
-  same for 10 minutes, the build resets the VM and points OpenCore back at the
-  installer.
+With this template's kext-free config, no hang was seen. The builds and
+clones were checked over 25 guest shutdowns and reboots, plus the
+installer's own reboots in two builds. The cause was never isolated, so the
+build still guards against the hang:
+
+- The build never asks the guest to reboot. Stages 2 and 3 start with a host
+  reset: a QEMU quit, which flushes the block caches, then a fresh start.
+  Before its reset, stage 2 syncs and unmounts the disk.
+- During the install, the build watches the screen. While Recovery
+  downloads, it prints a heartbeat line every 20 seconds. If the screen stays
+  the same for 10 minutes, the build resets the VM and points OpenCore back
+  at the installer.
 - If the agent does not answer within 20 minutes of the first boot, the build
   resets the VM once.
 

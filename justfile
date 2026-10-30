@@ -76,7 +76,7 @@ rocky-build: (template-build 'rocky-9' 'x86_64/rocky-9')
 [group('build')]
 steamos-build: (template-build 'steamos' 'x86_64/steamos')
 
-# Build the macOS Tahoe (Intel) template (Apple recovery + OpenCore; needs kvm.ignore_msrs=1; ~75 min). Not in `build`: macOS may only run on Apple hardware
+# Build the macOS Tahoe (Intel) template (Apple recovery + OpenCore; needs kvm.ignore_msrs=1; ~50 min). Not in `build`: macOS may only run on Apple hardware
 [group('build')]
 macos-tahoe-build: (template-build 'macos-tahoe' 'x86_64/macos-tahoe')
 

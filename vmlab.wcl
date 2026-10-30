@@ -500,7 +500,7 @@ template "kali" {
 //
 //   ./fetch-deps.sh        # one-time: Apple's recovery image (~1 GB) and
 //                          # OpenCore, staged into bootdisk/ and setup/
-//   vmlab template build   # ~75 minutes; downloads ~12 GB from Apple
+//   vmlab template build   # ~50 minutes; downloads ~12 GB from Apple
 //
 // The build boots Apple's recovery image through OpenCore from a FAT disk,
 // installs Tahoe with Recovery's own startosinstall, then installs the

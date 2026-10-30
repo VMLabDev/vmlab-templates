@@ -13,11 +13,12 @@
 //   3. Reset into the installed system and wait for the agent's handshake;
 //      check it and tidy up. vmlab then shuts it down and seals the disk.
 //
-// The guest sometimes hangs on the way down (a nested kernel panic that
-// spins every vCPU, about 2 transitions in 5 on an AMD host), so the build
-// never asks it to reboot itself: stages 2 and 3 start with a host reset
-// after a sync, and the installer's own reboots are watched for a frozen
-// screen and reset from the host when one stalls.
+// The guest has been seen to hang on the way down (a nested kernel panic
+// that spins every vCPU; about 2 transitions in 5 on an AMD host with
+// OSX-KVM's OpenCore, none so far with this template's), so the build never
+// asks it to reboot itself: stages 2 and 3 start with a host reset after a
+// sync, and the installer's own reboots are watched for a frozen screen and
+// reset from the host when one stalls.
 
 use vmlab
 
