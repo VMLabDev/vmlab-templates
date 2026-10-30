@@ -1,0 +1,25 @@
+// Smoke-test the macos-tahoe template: boot x86_64/macos-tahoe on a NAT'd
+// segment and watch the console. Build the template first (it is local-only),
+// then from the repo root:
+//
+//   just macos-tahoe-example-up        # bring it up and open the console
+//   just macos-tahoe-example-destroy   # tear it down
+//
+// Hardware (the macos profile, 4 vCPUs, 8 GiB) is inherited from the
+// template. The clone boots to the login window (vmlab / vmlab) and turns
+// ready on the agent's handshake; its first boot names it `guest`.
+
+import <vmlab.wcl>
+
+lab "macos-tahoe" {
+
+  segment "lan" {
+    subnet = "10.99.0.0/24"
+    nat    = true
+  }
+
+  vm "guest" {
+    template = "x86_64/macos-tahoe"
+    nic { segment = "lan" }
+  }
+}

@@ -76,6 +76,10 @@ rocky-build: (template-build 'rocky-9' 'x86_64/rocky-9')
 [group('build')]
 steamos-build: (template-build 'steamos' 'x86_64/steamos')
 
+# Build the macOS Tahoe (Intel) template (Apple recovery + OpenCore; needs kvm.ignore_msrs=1; ~75 min). Not in `build`: macOS may only run on Apple hardware
+[group('build')]
+macos-tahoe-build: (template-build 'macos-tahoe' 'x86_64/macos-tahoe')
+
 # Build the Ubuntu Server 24.04 template
 [group('build')]
 ubuntu-build: (template-build 'ubuntu-24.04' 'x86_64/ubuntu-24.04')
@@ -563,6 +567,13 @@ rocky-9-example-up: (example-up 'rocky-9')
 # Destroy the rocky-9 example
 [group('example')]
 rocky-9-example-destroy: (example-destroy 'rocky-9')
+
+# Boot the macos-tahoe example (up + console)
+[group('example')]
+macos-tahoe-example-up: (example-up 'macos-tahoe')
+# Destroy the macos-tahoe example
+[group('example')]
+macos-tahoe-example-destroy: (example-destroy 'macos-tahoe')
 
 # Boot the steamos example (up + console)
 [group('example')]

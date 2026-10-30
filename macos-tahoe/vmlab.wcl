@@ -1,0 +1,41 @@
+// macOS Tahoe (26, Intel) template, on vmlab's `macos` profile (OpenCore on
+// OVMF: AHCI disk, virtio-net, VMware SVGA, USB keyboard and tablet, Apple
+// SMC, pinned invariant TSC, the vmlab agent on virtio-serial). Tahoe is the
+// final Intel macOS. The template carries the vmlab agent and nothing else.
+//
+//   ./fetch-deps.sh        # one-time: Apple's recovery image (~1 GB) and
+//                          # OpenCore, staged into bootdisk/ and setup/
+//   vmlab template build   # ~75 minutes; downloads ~12 GB from Apple
+//
+// The build boots Apple's recovery image through OpenCore from a FAT disk,
+// installs Tahoe with Recovery's own startosinstall, then installs the
+// vmlab agent and OpenCore into the new disk's EFI system partition, so a
+// clone boots from its one disk. See README.md.
+//
+// The host needs kvm.ignore_msrs=1 (vmlab `up` warns; a build does not).
+// macOS's licence allows it only on Apple hardware, so there is no registry:
+// build it on the host that runs it.
+
+import <vmlab.wcl>
+
+template "macos-tahoe" {
+  arch    = "x86_64"
+  version = "26.7"
+  profile = "macos"
+  disk    = 80GiB
+
+  source "scratch" { }
+
+  // Build-only: OpenCore (the `build` config) and Apple's recovery image on
+  // a FAT disk, and the MACSETUP ISO recovery.sh runs from. Neither is
+  // recorded in the template; clones boot the OpenCore the build copies into
+  // the disk's own ESP.
+  disk "boot" { from = "./bootdisk/" }
+  media { kind = "iso" from = "./setup/" label = "MACSETUP" }
+  nic { nat = true }
+
+  // Each clone's first boot names it after its VM.
+  first_boot = "scripts/firstboot.ws"
+
+  provision "scripts/install.ws" { }
+}

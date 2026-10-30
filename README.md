@@ -74,6 +74,7 @@ RISC-V builds still use TCG inside vmlab and can take substantially longer.
 | `kali/` | Kali Linux 2026.1 | Official QEMU qcow2 (run `fetch-deps.sh` first) |
 | `parrot/` | Parrot OS Security 7.2 | Official QEMU qcow2 (run `fetch-deps.sh` first) |
 | `steamos/` | SteamOS 3.8 (Steam Deck) | Valve recovery image, installed in a throwaway lab by `fetch-deps.sh`; needs a Venus-capable GPU to build |
+| `macos-tahoe/` | macOS Tahoe 26 (Intel) | Apple recovery image booted through OpenCore, installed by Recovery's `startosinstall` (run `fetch-deps.sh` first); local-only, see below |
 | `windows-server-2025/` | Windows Server 2025 Eval | Installer ISO + autounattend, sysprep-generalized (run `fetch-deps.sh` first) |
 | `windows-server-2022/` | Windows Server 2022 Eval | Installer ISO + autounattend, sysprep-generalized (run `fetch-deps.sh` first) |
 | `windows-server-2019/` | Windows Server 2019 Eval | Installer ISO + autounattend, sysprep-generalized (run `fetch-deps.sh` first) |
@@ -93,6 +94,19 @@ with `just build-windows-local`.
 All Windows eval ISOs are downloaded and sha256-verified by vmlab just like the
 Linux ones; `fetch-deps.sh` only fetches the virtio guest drivers that get baked
 into the answer-file media (and `just` runs it for you).
+
+### macOS (Intel)
+
+`macos-tahoe/` builds macOS Tahoe 26, the final Intel macOS, on vmlab's
+`macos` profile. It needs a vmlab with that profile and the macOS agent, and
+a host with `kvm.ignore_msrs=1`. `fetch-deps.sh` downloads Apple's recovery
+image (`iso/fetch-macos-tahoe.sh`) and the pinned OpenCore release. The build
+then installs Tahoe from Apple's servers (about 12 GB, about 75 minutes) and
+puts OpenCore in the disk's own EFI system partition, so a clone boots from its
+one disk. The template carries only the vmlab agent; the login is
+`vmlab` / `vmlab`. Apple's licence allows macOS only on Apple hardware, so the
+template has no registry and is not part of `just build`. Build it with `just
+macos-tahoe-build`. See `macos-tahoe/README.md`.
 
 ### Vintage x86 (DOS / Windows 3.x–2000)
 
