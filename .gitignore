@@ -39,6 +39,7 @@ windows-11/win3d/
 # which); only the README is tracked.
 /iso/*
 !/iso/README.md
+!/iso/fetch-macos-tahoe.sh
 
 # Product keys for the MSDN/VL ISOs in iso/ — never commit real keys
 .env
@@ -55,3 +56,7 @@ home-assistant-aarch64/haos_generic-aarch64-*.qcow2
 
 # Session scratch: evidence, isolated stores, throwaway labs
 .scratch/
+macos-tahoe/bootdisk/
+macos-tahoe/setup/EFI/
+macos-tahoe/opencore/smbios.conf
+macos-tahoe/scripts/.watch/

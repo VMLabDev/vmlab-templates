@@ -40,3 +40,25 @@ pre-Vista editions force a key at install — put those in the repo-root `.env`
 | `en_windows_server_2012_vl_x64_dvd_917758.iso` | Windows Server 2012 (VL) x64 | — keyless |
 | `en_windows_server_2012_r2_x64_dvd_2707946.iso` | Windows Server 2012 R2 x64 | — keyless |
 | `en_windows_server_2016_x64_dvd_9327751.iso` | Windows Server 2016 x64 | — keyless |
+
+## macOS (Intel)
+
+`fetch-macos-tahoe.sh` downloads the macOS Tahoe 26 recovery image from
+Apple's Internet Recovery service and checks it against Apple's RSA-signed
+chunklist. Tahoe is the final Intel macOS. It needs no Mac and no Apple
+account. A rerun reuses the cached files if they still verify.
+
+`../macos-tahoe/fetch-deps.sh` runs the script with `NO_IMG=1`, and the
+template boots the DMG through OpenCore (see `../macos-tahoe/README.md`).
+Without `NO_IMG=1` the script also converts the DMG to a raw disk image, for
+attaching it to a QEMU VM as a disk by hand.
+
+The recovery build is pinned by Apple product ID (`PRODUCT_PIN` in the
+script). When Apple serves a newer one, the script stops and says how to
+adopt it.
+
+| File | Product | Key (`.env`) |
+|---|---|---|
+| `macos-tahoe-recovery.dmg` | macOS Tahoe 26 recovery (Intel), the Apple DMG, chunklist-verified | — none |
+| `macos-tahoe-recovery.chunklist` | Apple chunklist (per-chunk SHA-256 + RSA signature) | — none |
+| `macos-tahoe-recovery.img` | The DMG as a raw disk image (skipped with `NO_IMG=1`) | — none |
