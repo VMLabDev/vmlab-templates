@@ -85,7 +85,9 @@ has no unattended hook, so the work inside Recovery is done by
    boot goes through the ESP's OpenCore, which is the path a clone takes. The
    build then waits for the agent's handshake, checks the version, the
    account and the keyboard setting, and gives the machine a generic name.
-   vmlab shuts it down and seals the disk.
+   It zeroes the free space, about 10 minutes, so the sealed image does not
+   carry the deleted 12 GB download: about 22 GB instead of 37 GB. vmlab
+   shuts the machine down and seals the disk.
 
 The FAT boot disk and the MACSETUP ISO are build-only. A clone has one disk,
 boots with a fresh UEFI VARS, and finds OpenCore in that disk's ESP.
