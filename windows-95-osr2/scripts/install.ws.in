@@ -140,12 +140,13 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int) -> Result[unit, string] {
             type_until(vm, "cls\nver\n", "Version", 10)?
             vm.type_text("b:\\fix95\n")?
             wait_text(vm, "High-Speed Processor Support Setup", 60)?
-            vm.send_keys("spc")?
+            vm.send_keys("space")?
             wait_text(vm, "Recommended", 30)?
             vm.send_keys("n")?
             wait_text(vm, "Ready to install", 30)?
-            vm.send_keys("spc")?
+            vm.send_keys("space")?
             wait_text(vm, "INSTALLED SUCCESSFULLY", 120)?
+            lab.log("FIX95CPU installation succeeded")
             vm.eject_cdrom()?
             vm.send_keys("ctrl-alt-delete")?
         } else if on_screen(vm, "ref/coa-invalid.png") {
