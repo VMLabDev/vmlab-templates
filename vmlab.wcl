@@ -1348,7 +1348,7 @@ template "windows-95-osr2" {
   // Windows 9x crashes in Setup and Explorer on a modern host CPU's CPUID;
   // a period model keeps it on what it was written for. Clones inherit it.
   cpu_model = "pentium3"
-  // FIX95CPU is applied at the first Setup reboot before Windows starts.
+  // The provision requires verified FIX95CPU installation before sealing.
   accel     = "kvm"
   cpus    = 1
   memory  = 64MiB
@@ -1388,7 +1388,7 @@ template "windows-95-osr25" {
   // Windows 9x crashes in Setup and Explorer on a modern host CPU's CPUID;
   // a period model keeps it on what it was written for. Clones inherit it.
   cpu_model = "pentium3"
-  // FIX95CPU is applied at the first Setup reboot before Windows starts.
+  // The provision requires verified FIX95CPU installation before sealing.
   accel     = "kvm"
   cpus    = 1
   memory  = 64MiB
@@ -1428,7 +1428,7 @@ template "windows-95" {
   // Windows 9x crashes in Setup and Explorer on a modern host CPU's CPUID;
   // a period model keeps it on what it was written for. Clones inherit it.
   cpu_model = "pentium3"
-  // FIX95CPU is applied at the first Setup reboot before Windows starts.
+  // The provision requires verified FIX95CPU installation before sealing.
   accel     = "kvm"
   cpus    = 1
   memory  = 64MiB

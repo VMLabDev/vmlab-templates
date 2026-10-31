@@ -78,19 +78,28 @@ fn on_screen(vm: Vm, image: string) -> bool {
     }
 }
 
-// Clear the Setup wizard pages MSBATCH.INF does not suppress, until the agent
-// answers. Each page is matched by its title and answered with its default.
-fn finish_setup(lab: Lab, vm: Vm, secs: int) -> Result[unit, string] {
+// Agent readiness alone must not seal a build that skipped the patch installer.
+fn require_fix95cpu(required: bool, applied: bool) -> Result[unit, string] {
+    if required && !applied {
+        return Err("the agent answered before FIX95CPU installation was verified")
+    }
+    Ok(())
+}
+
+// Clear the remaining Setup pages and require a verified patch on the first pass.
+fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit, string] {
     // In sync with WINDOWS_95_OEM_KEY (xxxxx-OEM-xxxxxxx-xxxxx).
     let product_id = "__PRODUCT_KEY__"
     // The same ID as OSR2's Certificate of Authenticity page takes it: three
     // boxes, without "OEM" and the dashes.
     let coa = ["__COA_1__", "__COA_2__", "__COA_3__"]
     let typed_id = false
+    let patch_applied = false
     let rounds = secs / 15
     let shutting_down = 0
     for round in 0..rounds {
         if vm.agent_answering() {
+            require_fix95cpu(require_patch, patch_applied)?
             return Ok(())
         }
         // Windows 95 can hang for good at "Please wait while your computer
@@ -132,7 +141,7 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int) -> Result[unit, string] {
             vm.send_keys("enter")?
             typed_id = true
         } else if s.contains("Welcome to Setup") {
-            // Patch the copied Windows files from DOS before their first boot.
+            // Apply FIX95CPU from DOS during the template build.
             // The author's installer retains its README choice and confirmations.
             lab.log("Setup rebooted into DOS; applying FIX95CPU")
             key_until(vm, "f3", "To quit Setup, press F3", 15)?
@@ -146,6 +155,7 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int) -> Result[unit, string] {
             wait_text(vm, "Ready to install", 30)?
             vm.send_keys("space")?
             wait_text(vm, "INSTALLED SUCCESSFULLY", 120)?
+            patch_applied = true
             lab.log("FIX95CPU installation succeeded")
             vm.eject_cdrom()?
             vm.send_keys("ctrl-alt-delete")?
@@ -251,7 +261,7 @@ fn install(lab: Lab) -> Result[unit, string] {
     type_until(vm, "b:\\vmlab\n", "staging Setup", 30)?
 
     // File copy, reboots, hardware detection.
-    finish_setup(lab, vm, 14400)?
+    finish_setup(lab, vm, 14400, true)?
     lab.log("legacy agent answering on COM1")
 
     // FIX95CPU's README requires this additional VMM update on OSR2 only.
@@ -260,7 +270,7 @@ fn install(lab: Lab) -> Result[unit, string] {
         return Err("VMM2XUPD failed: " + fmt("{}", hotfix.exit_code))
     }
     vm.restart()?
-    finish_setup(lab, vm, 1800)?
+    finish_setup(lab, vm, 1800, false)?
 
     // The build verifies the agent's handshake on its own and then seals with
     // a graceful shutdown, which goes through this agent and flushes the disk
