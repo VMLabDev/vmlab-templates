@@ -3,6 +3,7 @@ rem vmlab: stage C: and start Setup from the patched install files.
 echo vmlab: staging Setup
 c:
 md c:\vmlab
+for %%d in (x y z) do if exist %%d:\vmlabsrc.txt copy %%d:\vmm2xupd.exe c:\vmlab
 for %%d in (x y z) do if exist %%d:\vmlabsrc.txt copy %%d:\vmlabagt.exe c:\vmlab
 rem The patched \WIN95 is on the VMLABSRC CD, whichever letter MSCDEX gave it
 rem (X: is the install CD itself, without the marker).
