@@ -111,17 +111,16 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int) -> Result[unit, string] {
             shutting_down = 0
         }
         let s = screen(vm)
-        if s.contains("Invalid Product Identification") || s.contains("you specified is not valid") {
-            return Err("Setup rejected WINDOWS_95_OEM_KEY; set a valid 20-digit OEM Product ID in .env")
-        }
         // With no ProductID in MSBATCH.INF, Express Setup submits the empty
         // field and shows "Invalid Product Identification Number". OCR cannot
         // read that dialog, so it is matched by image (scripts/ref/). OK
         // returns to the page, where the ID is typed.
-        let refused = match vm.find_image("ref/id-invalid.png") {
+        let invalid_text = s.contains("Invalid Product Identification") || s.contains("you specified is not valid")
+        let refused_image = match vm.find_image("ref/id-invalid.png") {
             Ok(Some(_)) => true,
             _ => false,
         }
+        let refused = invalid_text || refused_image
         if refused {
             if typed_id {
                 return Err("Setup rejected WINDOWS_95_OEM_KEY; set a valid 20-digit OEM Product ID in .env")
