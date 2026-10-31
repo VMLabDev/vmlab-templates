@@ -133,12 +133,20 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int) -> Result[unit, string] {
             vm.send_keys("enter")?
             typed_id = true
         } else if s.contains("Welcome to Setup") {
-            // Setup's own reboot came back up in the CD's DOS Setup: the CD
-            // boots first and offers no "boot from hard disk". Setup runs from
-            // C:, so the CD can go; the reset then falls through to the disk.
-            // Ejecting earlier, while Setup detects hardware, hangs detection
-            // on the open tray.
-            lab.log("Setup rebooted into the CD; ejecting it and booting the disk")
+            // Patch the copied Windows files from DOS before their first boot.
+            // The author's installer retains its README choice and confirmations.
+            lab.log("Setup rebooted into DOS; applying FIX95CPU")
+            key_until(vm, "f3", "To quit Setup, press F3", 15)?
+            vm.send_keys("f3")?
+            type_until(vm, "cls\nver\n", "Version", 10)?
+            vm.type_text("b:\\fix95\n")?
+            wait_text(vm, "High-Speed Processor Support Setup", 60)?
+            vm.send_keys("spc")?
+            wait_text(vm, "View the README", 30)?
+            vm.send_keys("n")?
+            wait_text(vm, "Ready to install", 30)?
+            vm.send_keys("spc")?
+            wait_text(vm, "INSTALLED SUCCESSFULLY", 120)?
             vm.eject_cdrom()?
             vm.send_keys("ctrl-alt-delete")?
         } else if on_screen(vm, "ref/coa-invalid.png") {
@@ -245,6 +253,14 @@ fn install(lab: Lab) -> Result[unit, string] {
     // File copy, reboots, hardware detection.
     finish_setup(lab, vm, 14400)?
     lab.log("legacy agent answering on COM1")
+
+    // FIX95CPU's README requires this additional VMM update on OSR2 only.
+    let hotfix = vm.exec("C:\\VMLAB\\VMM2XUPD.EXE", ["/Q:A", "/R:N"])?
+    if hotfix.exit_code != 0 {
+        return Err("VMM2XUPD failed: " + fmt("{}", hotfix.exit_code))
+    }
+    vm.restart()?
+    finish_setup(lab, vm, 1800)?
 
     // The build verifies the agent's handshake on its own and then seals with
     // a graceful shutdown, which goes through this agent and flushes the disk
