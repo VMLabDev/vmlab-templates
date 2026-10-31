@@ -23,8 +23,10 @@ vmlab's legacy agent baked in.
   agent answers on COM1 before logon, exec only. The build seals with a
   graceful shutdown.
 
-The build targets KVM with `cpu_model = "pentium3"`. It applies FIX95CPU at
-the first Setup reboot instead of combining it with patcher9x's speed patch.
+The build targets KVM with `cpu_model = "pentium3"`. It retains the existing
+patcher9x speed-only staging for Setup, then applies FIX95CPU's replacement
+drivers at the first reboot. This ordering preserves the earlier installer
+fixes without applying two binary patches blindly to the same installed files.
 FIX95CPU's author release is
 https://msfn.org/board/topic/141402-windows-95-21ghz-cpu-limit-broken/.
 Needs a vmlab with `Machine.eject_cdrom`,
