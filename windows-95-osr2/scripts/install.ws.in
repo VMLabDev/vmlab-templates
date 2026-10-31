@@ -152,22 +152,27 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
             vm.send_keys("enter")?
             typed_id = true
         } else if s.contains("Welcome to Setup") {
-            // Apply FIX95CPU from DOS during the template build.
-            // The author's installer retains its README choice and confirmations.
-            lab.log("Setup rebooted into DOS; applying FIX95CPU")
+            // A process restart reattaches the install CD. After the VMM hotfix,
+            // leave its Setup without repeating the earlier patch.
             key_until(vm, "f3", "To quit Setup, press F3", 15)?
             vm.send_keys("f3")?
             type_until(vm, "cls\nver\n", "Version", 10)?
-            vm.type_text("b:\\fix95\n")?
-            wait_text(vm, "High-Speed Processor Support Setup", 60)?
-            vm.send_keys("space")?
-            wait_text(vm, "Recommended", 30)?
-            vm.send_keys("n")?
-            wait_text(vm, "Ready to install", 30)?
-            vm.send_keys("space")?
-            wait_text(vm, "INSTALLED SUCCESSFULLY", 120)?
-            patch_applied = true
-            lab.log("FIX95CPU installation succeeded")
+            if require_patch {
+                // Keep the original installer's README choice and confirmations.
+                lab.log("Setup rebooted into DOS; applying FIX95CPU")
+                vm.type_text("b:\\fix95\n")?
+                wait_text(vm, "High-Speed Processor Support Setup", 60)?
+                vm.send_keys("space")?
+                wait_text(vm, "Recommended", 30)?
+                vm.send_keys("n")?
+                wait_text(vm, "Ready to install", 30)?
+                vm.send_keys("space")?
+                wait_text(vm, "INSTALLED SUCCESSFULLY", 120)?
+                patch_applied = true
+                lab.log("FIX95CPU installation succeeded")
+            } else {
+                lab.log("post-hotfix DOS restart; skipping FIX95CPU and booting the installed disk")
+            }
             vm.eject_cdrom()?
             vm.send_keys("ctrl-alt-delete")?
         } else if on_screen(vm, "ref/coa-invalid.png") {
@@ -290,6 +295,7 @@ fn install(lab: Lab) -> Result[unit, string] {
     if hotfix.exit_code != 0 {
         return Err("VMM2XUPD failed: " + fmt("{}", hotfix.exit_code))
     }
+    lab.log("VMM2XUPD completed successfully; restarting without reapplying FIX95CPU")
     vm.restart()?
     finish_setup(lab, vm, 1800, false)?
 
