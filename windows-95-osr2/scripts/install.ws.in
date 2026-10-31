@@ -86,6 +86,14 @@ fn require_fix95cpu(required: bool, applied: bool) -> Result[unit, string] {
     Ok(())
 }
 
+// Count only consecutive post-patch desktop polls before the one recovery restart.
+fn desktop_agent_polls(required: bool, applied: bool, restarted: bool, desktop: bool, previous: int) -> int {
+    if required && applied && !restarted && desktop {
+        return previous + 1
+    }
+    0
+}
+
 // Clear the remaining Setup pages and require a verified patch on the first pass.
 fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit, string] {
     // In sync with WINDOWS_95_OEM_KEY (xxxxx-OEM-xxxxxxx-xxxxx).
@@ -95,6 +103,8 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
     let coa = ["__COA_1__", "__COA_2__", "__COA_3__"]
     let typed_id = false
     let patch_applied = false
+    let desktop_polls = 0
+    let desktop_restarted = false
     let rounds = secs / 15
     let shutting_down = 0
     for round in 0..rounds {
@@ -130,6 +140,7 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
             _ => false,
         }
         let refused = invalid_text || refused_image
+        let desktop_visible = false
         if refused {
             if typed_id {
                 return Err("Setup rejected WINDOWS_95_OEM_KEY; set a valid 20-digit OEM Product ID in .env")
@@ -209,6 +220,16 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
             lab.log("logon dialog: logging on as vmlab with an empty password")
             vm.type_text("vmlab")?
             vm.send_keys("enter")?
+        } else if s.contains("Getting started") {
+            desktop_visible = true
+        }
+        desktop_polls = desktop_agent_polls(require_patch, patch_applied, desktop_restarted, desktop_visible, desktop_polls)
+        if desktop_polls >= 12 {
+            desktop_restarted = true
+            lab.log("agent absent after 12 post-patch Getting started polls; serial enumeration may need another boot, restarting once")
+            vm.restart()?
+            vmlab::sleep_ms(15000)
+            continue
         }
         vmlab::sleep_ms(15000)
     }
