@@ -141,7 +141,7 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int) -> Result[unit, string] {
             vm.type_text("b:\\fix95\n")?
             wait_text(vm, "High-Speed Processor Support Setup", 60)?
             vm.send_keys("spc")?
-            wait_text(vm, "View the README", 30)?
+            wait_text(vm, "Recommended", 30)?
             vm.send_keys("n")?
             wait_text(vm, "Ready to install", 30)?
             vm.send_keys("spc")?
