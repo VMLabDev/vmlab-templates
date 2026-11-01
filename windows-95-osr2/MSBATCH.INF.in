@@ -21,10 +21,6 @@ NoPrompt2Boot=1
 SaveSUBoot=0
 PenWinWarning=0
 
-[System]
-; COM1 carries the guest agent, not a serial mouse.
-Mouse="Standard PS/2 Port Mouse"
-
 [NameAndOrg]
 Name="vmlab"
 Org="vmlab"

@@ -28,7 +28,7 @@ rm -rf answer
 mkdir -p answer
 # DOS-era tools want CRLF line endings.
 sed 's/$/\r/' MSBATCH.INF.in > answer/MSBATCH.INF
-sed 's/$/\r/' VMLAB.BAT > answer/VMLAB.BAT
+cp VMLAB.BAT answer/
 IFS=- read -r COA_1 _ COA_2 COA_3 <<< "$KEY"
 sed -e "s/__PRODUCT_KEY__/${KEY}/" -e "s/__COA_1__/${COA_1}/" -e "s/__COA_2__/${COA_2}/" \
     -e "s/__COA_3__/${COA_3}/" scripts/install.ws.in > scripts/install.ws
@@ -56,8 +56,8 @@ rm -rf ./src ./src.tmp
 mkdir -p ./src.tmp "./src/${DST_DIR}"
 7z x -y -o./src.tmp "$ISO" "$SRC_DIR" >/dev/null
 [ -d "./src.tmp/${SRC_DIR}" ] || { echo "fetch-deps: no \\${SRC_DIR} folder on $ISO" >&2; exit 1; }
-# Keep the established speed-only staging for Setup. FIX95CPU later replaces
-# the installed drivers at the first reboot; do not enable the full patch set.
+# Windows 95 needs only the CPU speed fix (the TLB bug is 98's, and 64 MiB is
+# far below the memory limit); the full set hangs 95 Setup's hardware detection.
 ./patcher9x/patcher9x -auto -select speed "./src.tmp/${SRC_DIR}" | tail -3
 # Setup needs only the folder's own files; its long-named subfolders (the
 # tour, online services) would not survive as 8.3 names. Upper-case names
@@ -67,7 +67,6 @@ for f in "./src.tmp/${SRC_DIR}"/*; do
 done
 rm -rf ./src.tmp
 echo "vmlab: patched Windows 9x installation files" > ./src/VMLABSRC.TXT
-bash ./stage-fix95cpu.sh
 
 # vmlab's legacy agent for 9x, from the installed guest assets. Windows 95
 # hangs when a DOS virtual machine starts on this hardware, so the agent cannot

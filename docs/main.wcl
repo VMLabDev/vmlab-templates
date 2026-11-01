@@ -19,7 +19,7 @@ import "./data/templates.gen.wcl"
 // field access on its gathered lists when the @document is in the root document.
 @document
 type TemplatesDoc {
-  @children("tpl")   templates: list<Tpl>
+  @children("tpl")   catalog: list<Tpl>
   @children("tmeta") metas:     list<Tmeta>
 }
 
@@ -38,7 +38,7 @@ let keylist = map(metas, fn(m: Tmeta) -> utf8 { m.key })
 let meta_for = fn(sn: utf8) -> Tmeta { at(metas, index_of(keylist, sn)) }
 
 // Only templates with authored presentation metadata are published (curation gate).
-let shown = filter(templates, fn(t: Tpl) -> bool { index_of(keylist, t.short_name) >= 0 })
+let shown = filter(catalog, fn(t: Tpl) -> bool { index_of(keylist, t.short_name) >= 0 })
 
 // Listing page (served at /).
 page index { sites = [:lib]  start = true  title = "Template library"

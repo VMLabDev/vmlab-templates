@@ -25,7 +25,7 @@ env:
   CARGO_TERM_COLOR: always
   # Pin the wcl CLI to the same rev the vmlab repo uses, so both sites render
   # with the same wdoc version.
-  WCL_REV: ed84924565334008ae0656be78e29338328c8419
+  WCL_REV: e7d95a4c8191a28d53ffd8f63f67a2777aed1819
 
 jobs:
   deploy:

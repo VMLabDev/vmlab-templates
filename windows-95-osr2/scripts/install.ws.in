@@ -33,14 +33,6 @@ fn screen(vm: Vm) -> string {
     }
 }
 
-// Logon dialogs use small bitmap fonts that need sparse, enlarged OCR.
-fn desktop_screen(vm: Vm) -> string {
-    match vm.ocr_opts(#{ "layout": "sparse", "scale": "3" }) {
-        Ok(t) => t,
-        Err(_) => screen(vm),
-    }
-}
-
 // Wait until `expect` is on screen.
 fn wait_text(vm: Vm, expect: string, secs: int) -> Result[unit, string] {
     match vm.wait_for_text(expect, secs) {
@@ -86,102 +78,20 @@ fn on_screen(vm: Vm, image: string) -> bool {
     }
 }
 
-// Require near-exact matches for references that share many pixels.
-fn on_screen_strict(vm: Vm, image: string) -> bool {
-    match vm.find_image(image) {
-        Ok(Some(m)) => m.score >= 0.99,
-        _ => false,
-    }
-}
-
-fn missing_user_name(s: string) -> bool {
-    s.contains("forgot to enter") && s.contains("name")
-}
-
-fn license_accept_key(radio: bool) -> string {
-    if radio {
-        return "alt-a"
-    }
-    "alt-y"
-}
-
-fn needs_certificate(s: string, requested: bool, typed: bool) -> bool {
-    s.contains("Certificate of Authenticity") && !requested && !typed
-}
-
-fn finish_prompt(s: string) -> bool {
-    s.contains("Start Wizard") && s.contains("saved all information")
-}
-
-fn registry_problem(s: string) -> bool {
-    s.contains("Registry Problem") || (s.contains("error accessing the system") && s.contains("registry"))
-}
-
-// Quit normally so failed-build cleanup does not discard cached image metadata.
-fn build_failure(vm: Vm, failure: string) -> Result[unit, string] {
-    let stop_error = match vm.poweroff() {
-        Ok(_) => "",
-        Err(e) => "; emulator poweroff failed: " + e,
-    }
-    Err(failure + stop_error)
-}
-
-// Agent readiness alone must not seal a build that skipped the patch installer.
-fn require_fix95cpu(required: bool, applied: bool) -> Result[unit, string] {
-    if required && !applied {
-        return Err("the agent answered before FIX95CPU installation was verified")
-    }
-    Ok(())
-}
-
-// Both passes need the desktop with no remaining Setup page, not only RunServices.
-fn setup_ready(required: bool, applied: bool, answering: bool, desktop: bool, pending: bool) -> Result[bool, string] {
-    if answering {
-        require_fix95cpu(required, applied)?
-    }
-    Ok(answering && desktop && !pending)
-}
-
-// Count only consecutive post-patch desktop polls before the one recovery restart.
-fn desktop_agent_polls(required: bool, applied: bool, restarted: bool, desktop: bool, previous: int) -> int {
-    if required && applied && !restarted && desktop {
-        return previous + 1
-    }
-    0
-}
-
-// Recover only the observed post-patch corruption, once an agent has answered.
-fn corrupt_display_polls(required: bool, applied: bool, seen_agent: bool, restarted: bool, visible: bool, previous: int) -> int {
-    if required && applied && seen_agent && !restarted && visible {
-        return previous + 1
-    }
-    0
-}
-
-// Clear the remaining Setup pages and require a verified patch on the first pass.
-fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit, string] {
+// Clear the Setup wizard pages MSBATCH.INF does not suppress, until the agent
+// answers. Each page is matched by its title and answered with its default.
+fn finish_setup(lab: Lab, vm: Vm, secs: int) -> Result[unit, string] {
     // In sync with WINDOWS_95_OEM_KEY (xxxxx-OEM-xxxxxxx-xxxxx).
     let product_id = "__PRODUCT_KEY__"
     // The same ID as OSR2's Certificate of Authenticity page takes it: three
     // boxes, without "OEM" and the dashes.
     let coa = ["__COA_1__", "__COA_2__", "__COA_3__"]
     let typed_id = false
-    let typed_oem_coa = false
-    let oem_coa_requested = false
-    let ready_polls = 0
-    let patch_applied = false
-    let desktop_polls = 0
-    let desktop_restarted = false
-    let seen_agent = false
-    let corrupt_polls = 0
-    let corrupt_restarted = false
     let rounds = secs / 15
     let shutting_down = 0
     for round in 0..rounds {
-        let answering = vm.agent_answering()
-        if answering {
-            require_fix95cpu(require_patch, patch_applied)?
-            seen_agent = true
+        if vm.agent_answering() {
+            return Ok(())
         }
         // Windows 95 can hang for good at "Please wait while your computer
         // shuts down" (the agent restarts it once, see MSBATCH.INF). After
@@ -200,38 +110,18 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
         } else {
             shutting_down = 0
         }
-        let corrupt_visible = require_patch && patch_applied && seen_agent && on_screen_strict(vm, "ref/corrupt-display.png")
-        corrupt_polls = corrupt_display_polls(require_patch, patch_applied, seen_agent, corrupt_restarted, corrupt_visible, corrupt_polls)
-        if corrupt_polls >= 12 {
-            corrupt_restarted = true
-            lab.log("corrupted display persisted for 12 post-patch polls after agent readiness; restarting the emulator once")
-            vm.restart()?
-            vmlab::sleep_ms(15000)
-            continue
-        }
         let s = screen(vm)
-        if !require_patch || patch_applied {
-            s = desktop_screen(vm)
-        }
-        if registry_problem(s) || on_screen_strict(vm, "ref/registry-problem.png") {
-            return build_failure(vm, "Windows 95 reported a system-registry error; backup restoration and sealing were not attempted")
+        if s.contains("Invalid Product Identification") || s.contains("you specified is not valid") {
+            return Err("Setup rejected WINDOWS_95_OEM_KEY; set a valid 20-digit OEM Product ID in .env")
         }
         // With no ProductID in MSBATCH.INF, Express Setup submits the empty
         // field and shows "Invalid Product Identification Number". OCR cannot
         // read that dialog, so it is matched by image (scripts/ref/). OK
         // returns to the page, where the ID is typed.
-        let invalid_text = s.contains("Invalid Product Identification") || s.contains("you specified is not valid")
-        let refused_image = match vm.find_image("ref/id-invalid.png") {
+        let refused = match vm.find_image("ref/id-invalid.png") {
             Ok(Some(_)) => true,
             _ => false,
         }
-        let refused = invalid_text || refused_image
-        let desktop_visible = on_screen(vm, "ref/desktop-start.png")
-        let radio_license = on_screen(vm, "ref/license-radio.png")
-        let wizard_coa_invalid = on_screen(vm, "ref/coa-invalid-wizard.png")
-        let legacy_coa_invalid = on_screen(vm, "ref/coa-invalid.png")
-        let printer_pending = printer_wizard(vm) || s.contains("You must install")
-        let setup_pending = refused || radio_license || wizard_coa_invalid || legacy_coa_invalid || printer_pending || s.contains("Certificate of Authenticity") || s.contains("license agreement") || s.contains("License Agreement") || s.contains("Windows Components") || s.contains("User Information") || s.contains("Start Wizard")
         if refused {
             if typed_id {
                 return Err("Setup rejected WINDOWS_95_OEM_KEY; set a valid 20-digit OEM Product ID in .env")
@@ -243,40 +133,15 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
             vm.send_keys("enter")?
             typed_id = true
         } else if s.contains("Welcome to Setup") {
-            // A process restart reattaches the install CD. After the VMM hotfix,
-            // leave its Setup without repeating the earlier patch.
-            key_until(vm, "f3", "To quit Setup, press F3", 15)?
-            vm.send_keys("f3")?
-            type_until(vm, "cls\nver\n", "Version", 10)?
-            if require_patch && !patch_applied {
-                // Keep the original installer's README choice and confirmations.
-                lab.log("Setup rebooted into DOS; applying FIX95CPU")
-                vm.type_text("b:\\fix95\n")?
-                wait_text(vm, "High-Speed Processor Support Setup", 60)?
-                vm.send_keys("space")?
-                wait_text(vm, "Recommended", 30)?
-                vm.send_keys("n")?
-                wait_text(vm, "Ready to install", 30)?
-                vm.send_keys("space")?
-                wait_text(vm, "INSTALLED SUCCESSFULLY", 120)?
-                patch_applied = true
-                lab.log("FIX95CPU installation succeeded")
-            } else {
-                lab.log("patch already verified or not required; skipping FIX95CPU and booting the installed disk")
-            }
+            // Setup's own reboot came back up in the CD's DOS Setup: the CD
+            // boots first and offers no "boot from hard disk". Setup runs from
+            // C:, so the CD can go; the reset then falls through to the disk.
+            // Ejecting earlier, while Setup detects hardware, hangs detection
+            // on the open tray.
+            lab.log("Setup rebooted into the CD; ejecting it and booting the disk")
             vm.eject_cdrom()?
             vm.send_keys("ctrl-alt-delete")?
-        } else if wizard_coa_invalid {
-            if typed_oem_coa {
-                return Err("OEM Setup rejected WINDOWS_95_OEM_KEY; set a valid 20-digit OEM Product ID in .env")
-            }
-            vm.send_keys("enter")?
-            vmlab::sleep_ms(2000)
-            lab.log("OEM Setup: typing the numeric certificate groups")
-            vm.type_text(coa[0] + coa[1] + coa[2])?
-            vm.send_keys("enter")?
-            typed_oem_coa = true
-        } else if legacy_coa_invalid {
+        } else if on_screen(vm, "ref/coa-invalid.png") {
             // OSR2 and later submit the empty Certificate of Authenticity
             // page first. OCR reads that dialog poorly, so it is matched by
             // its title bar; Re-enter returns to the page, focus in box one.
@@ -291,10 +156,6 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
             vm.type_text(coa[0] + coa[1] + coa[2])?
             vm.send_keys("enter")?
             typed_id = true
-        } else if needs_certificate(s, oem_coa_requested, typed_oem_coa) {
-            lab.log("OEM Setup: submitting the initial certificate page for validation")
-            vm.send_keys("enter")?
-            oem_coa_requested = true
         } else if s.contains("ScanDisk") {
             // OSR2 and later scan C: at boot after an unclean shutdown, such
             // as the emulator restart above, and stop on each problem found.
@@ -307,73 +168,33 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
                 lab.log("ScanDisk prompt at boot: taking its default")
                 vm.send_keys("enter")?
             }
-        } else if radio_license || s.contains("license agreement") {
+        } else if s.contains("license agreement") {
             lab.log("Setup page: accepting the license")
-            vm.send_keys(license_accept_key(radio_license))?
-            if radio_license {
-                vm.send_keys("enter")?
-            }
+            vm.send_keys("alt-y")?
         } else if s.contains("Windows Components") || s.contains("User Information") {
             lab.log("Setup wizard page: Next")
             vm.send_keys("enter")?
-        } else if finish_prompt(s) {
-            lab.log("OEM Setup: Finish")
-            vm.send_keys("enter")?
-        } else if printer_pending {
+        } else if printer_wizard(vm) || s.contains("You must install") {
             // OCR does not read the wizard reliably, so its title bar is also
             // matched by image (scripts/ref/printer-wizard.png).
             lab.log("Setup page: no printer")
             vm.send_keys("esc")?
-        } else if on_screen_strict(vm, "ref/new-clock-settings.png") || s.contains("New clock settings") {
-            lab.log("logon clock notice: accepting the current settings")
+        } else if s.contains("forgot to enter your user name") {
             vm.send_keys("enter")?
-        } else if missing_user_name(s) {
-            lab.log("logon dialog: dismissing the missing-name notice")
-            vm.send_keys("enter")?
-        } else if on_screen_strict(vm, "ref/set-windows-password.png") || s.contains("Set Windows Password") {
+        } else if s.contains("Set Windows Password") {
             // Confirming the new user's (empty) password.
-            lab.log("logon dialog: confirming the empty password")
             vm.send_keys("enter")?
-        } else if on_screen_strict(vm, "ref/enter-windows-password.png") || s.contains("Enter Network Password") || s.contains("Enter Windows Password") {
-            // RunServices starts before logon. Create the empty-password
-            // vmlab profile before running the desktop-dependent updater.
+        } else if s.contains("Enter Network Password") || s.contains("Enter Windows Password") {
+            // The logon dialog is the desktop's, not the agent's: the agent
+            // runs under RunServices before it. A user name with an empty
+            // password logs on, and is not asked for again.
             lab.log("logon dialog: logging on as vmlab with an empty password")
             vm.type_text("vmlab")?
             vm.send_keys("enter")?
         }
-        if setup_ready(require_patch, patch_applied, answering, desktop_visible, setup_pending)? {
-            ready_polls = ready_polls + 1
-            if ready_polls >= 2 {
-                lab.log("desktop and COM1 agent stable after Setup")
-                return Ok(())
-            }
-        } else {
-            ready_polls = 0
-        }
-        desktop_polls = desktop_agent_polls(require_patch, patch_applied, desktop_restarted, desktop_visible && !answering && !setup_pending, desktop_polls)
-        if desktop_polls >= 12 {
-            desktop_restarted = true
-            lab.log("agent absent after 12 post-patch desktop polls; serial enumeration may need another boot, restarting once")
-            vm.restart()?
-            vmlab::sleep_ms(15000)
-            continue
-        }
         vmlab::sleep_ms(15000)
     }
-    Err("the desktop and COM1 agent were not both ready after Setup")
-}
-
-fn update_vmm(vm: Vm) -> Result[unit, string] {
-    let failure = match vm.exec("C:\\VMLAB\\VMM2XUPD.EXE", ["/Q:A", "/R:N"]) {
-        Ok(result) => {
-            if result.exit_code == 0 {
-                return Ok(())
-            }
-            "VMM2XUPD failed: " + fmt("{}", result.exit_code)
-        },
-        Err(e) => "VMM2XUPD execution failed: " + e,
-    }
-    build_failure(vm, failure)
+    Err("the agent never answered on COM1 after Setup")
 }
 
 fn install(lab: Lab) -> Result[unit, string] {
@@ -422,14 +243,8 @@ fn install(lab: Lab) -> Result[unit, string] {
     type_until(vm, "b:\\vmlab\n", "staging Setup", 30)?
 
     // File copy, reboots, hardware detection.
-    finish_setup(lab, vm, 14400, true)?
+    finish_setup(lab, vm, 14400)?
     lab.log("legacy agent answering on COM1")
-
-    // FIX95CPU's README requires this additional VMM update on OSR2 only.
-    update_vmm(vm)?
-    lab.log("VMM2XUPD completed successfully; restarting without reapplying FIX95CPU")
-    vm.restart()?
-    finish_setup(lab, vm, 1800, false)?
 
     // The build verifies the agent's handshake on its own and then seals with
     // a graceful shutdown, which goes through this agent and flushes the disk

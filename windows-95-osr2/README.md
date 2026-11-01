@@ -6,52 +6,29 @@ vmlab's legacy agent baked in.
 - `../iso/win95_osr2_en.iso` (gitignored) is the install media. It is OEM media
   (`ProductType=9`), so Setup takes only the 20-digit OEM Product ID
   (`xxxxx-OEM-xxxxxxx-xxxxx`), read from `WINDOWS_95_OEM_KEY` in `../.env`.
-- `fetch-deps.sh` extracts the CD's installation folder and stages it with
-  vmlab's 9x agent and FIX95CPU v3 as the `VMLABSRC` ISO. The local
-  `stage-fix95cpu.sh` pins the download URL and SHA256, preserves the author's
-  README, and adapts the installer's source paths for the CD. It also stages `./answer/`
+- `fetch-deps.sh` extracts the CD's `\WIN95` folder, patches it with
+  [patcher9x](https://github.com/JHRobotics/patcher9x) for the CPU speed bug
+  (Windows 95 divides by zero in its speed test above about 2 GHz), and stages
+  it with vmlab's 9x agent as the `VMLABSRC` ISO. It also stages `./answer/`
   (`MSBATCH.INF`, `VMLAB.BAT`), the floppy Setup reads as `B:\`, and writes
   the Product ID into `scripts/install.ws`: Setup takes an OEM ID only when it
   is typed.
 - `scripts/install.ws` lets the CD's own Setup partition (FAT32, which OSR2 introduced) and format the
   disk, quits to `X:\WIN95>`, and runs `B:\VMLAB.BAT`, which copies the agent
-  and the installation tree to C: and runs Setup there. When Setup's reboot lands
+  and the patched tree to C: and runs Setup there. When Setup's reboot lands
   back in the CD's Setup (its boot floppy has no "boot from hard disk"), the
-  provision runs FIX95CPU from DOS before ejecting the CD and resetting onto
-  the disk. It requires the installer's success message before continuing.
-- After the agent answers and the desktop taskbar is visible, the build applies
-  the OSR2-only `VMM2XUPD.EXE` update required by FIX95CPU's README and restarts
-  before sealing. The earlier RunServices handshake alone does not satisfy the
-  updater's desktop requirement.
-- If the observed corrupted text display persists for twelve polls after verified
-  patching and an answering agent, the build restarts the emulator once. It does
-  not reapply FIX95CPU during that recovery. This bounded recovery does not
-  identify a CPU or display-driver fault.
-- The OEM first-start wizard has separate license and certificate handlers.
-  Both Setup passes require two desktop-and-agent observations with no pending
-  Setup page before the updater or sealing can proceed.
-- A system-registry error stops the build without restoring a backup or sealing.
-- `MSBATCH.INF` selects QEMU's PS/2 mouse explicitly. COM1 is the agent channel.
+  CD is ejected and the machine reset onto the disk.
 - `MSBATCH.INF` registers `C:\VMLAB\VMLABAGT.EXE` under `RunServices`, so the
-  agent answers on COM1 before logon. The build seals with a
+  agent answers on COM1 before logon, exec only. The build seals with a
   graceful shutdown.
 
-The build targets KVM with `cpu_model = "pentium3"`. It retains the existing
-patcher9x speed-only staging for Setup. FIX95CPU then replaces the installed
-drivers at the first reboot.
-FIX95CPU's author release is
-https://msfn.org/board/topic/141402-windows-95-21ghz-cpu-limit-broken/.
-Needs a vmlab with `Machine.eject_cdrom`, `Machine.ocr_opts`,
+It runs under TCG (`accel = "tcg"`) on a `pentium3` CPU model: on AMD hosts
+Windows 95 hangs at random under KVM (its TLB-invalidation bug, which
+patcher9x fixes only for 98 and later). Needs a vmlab with `Machine.eject_cdrom`,
 `cpu_model` and `accel`. Runs on the `windows-9x` profile (i440fx/SeaBIOS,
 Cirrus VGA, IDE, PCnet).
 
-## KVM verification
-
-OSR2 has not passed a complete blank-disk KVM build and fresh-clone agent check.
-The bounded restart recovered the observed display stall and reached the original
-VMM2XUPD installer, but the later boot reported a system-registry access error.
-That diagnostic image was not accepted. The OEM wizard handlers and registry-error
-guard have scripting-fixture and saved-frame checks, but no subsequent clean build.
+The KVM investigation is deferred to https://github.com/VMLabDev/vmlab/issues/199.
 
 ## Build
 
