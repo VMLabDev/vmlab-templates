@@ -33,6 +33,14 @@ fn screen(vm: Vm) -> string {
     }
 }
 
+// Logon dialogs use small bitmap fonts that need sparse, enlarged OCR.
+fn desktop_screen(vm: Vm) -> string {
+    match vm.ocr_opts(#{ "layout": "sparse", "scale": "3" }) {
+        Ok(t) => t,
+        Err(_) => screen(vm),
+    }
+}
+
 // Wait until `expect` is on screen.
 fn wait_text(vm: Vm, expect: string, secs: int) -> Result[unit, string] {
     match vm.wait_for_text(expect, secs) {
@@ -86,6 +94,14 @@ fn require_fix95cpu(required: bool, applied: bool) -> Result[unit, string] {
     Ok(())
 }
 
+// RunServices can answer before logon; the VMM updater requires the desktop.
+fn setup_ready(required: bool, applied: bool, answering: bool, desktop: bool) -> Result[bool, string] {
+    if answering {
+        require_fix95cpu(required, applied)?
+    }
+    Ok(answering && (!required || desktop))
+}
+
 // Count only consecutive post-patch desktop polls before the one recovery restart.
 fn desktop_agent_polls(required: bool, applied: bool, restarted: bool, desktop: bool, previous: int) -> int {
     if required && applied && !restarted && desktop {
@@ -108,8 +124,8 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
     let rounds = secs / 15
     let shutting_down = 0
     for round in 0..rounds {
-        if vm.agent_answering() {
-            require_fix95cpu(require_patch, patch_applied)?
+        let answering = vm.agent_answering()
+        if setup_ready(require_patch, patch_applied, answering, false)? {
             return Ok(())
         }
         // Windows 95 can hang for good at "Please wait while your computer
@@ -130,6 +146,9 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
             shutting_down = 0
         }
         let s = screen(vm)
+        if require_patch && patch_applied {
+            s = desktop_screen(vm)
+        }
         // With no ProductID in MSBATCH.INF, Express Setup submits the empty
         // field and shows "Invalid Product Identification Number". OCR cannot
         // read that dialog, so it is matched by image (scripts/ref/). OK
@@ -140,7 +159,7 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
             _ => false,
         }
         let refused = invalid_text || refused_image
-        let desktop_visible = false
+        let desktop_visible = on_screen(vm, "ref/desktop-start.png")
         if refused {
             if typed_id {
                 return Err("Setup rejected WINDOWS_95_OEM_KEY; set a valid 20-digit OEM Product ID in .env")
@@ -213,32 +232,57 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
             // matched by image (scripts/ref/printer-wizard.png).
             lab.log("Setup page: no printer")
             vm.send_keys("esc")?
+        } else if on_screen(vm, "ref/new-clock-settings.png") || s.contains("New clock settings") {
+            lab.log("logon clock notice: accepting the current settings")
+            vm.send_keys("enter")?
         } else if s.contains("forgot to enter your user name") {
             vm.send_keys("enter")?
-        } else if s.contains("Set Windows Password") {
+        } else if on_screen(vm, "ref/set-windows-password.png") || s.contains("Set Windows Password") {
             // Confirming the new user's (empty) password.
             vm.send_keys("enter")?
-        } else if s.contains("Enter Network Password") || s.contains("Enter Windows Password") {
-            // The logon dialog is the desktop's, not the agent's: the agent
-            // runs under RunServices before it. A user name with an empty
-            // password logs on, and is not asked for again.
+        } else if on_screen(vm, "ref/enter-windows-password.png") || s.contains("Enter Network Password") || s.contains("Enter Windows Password") {
+            // RunServices starts before logon. Create the empty-password
+            // vmlab profile before running the desktop-dependent updater.
             lab.log("logon dialog: logging on as vmlab with an empty password")
             vm.type_text("vmlab")?
             vm.send_keys("enter")?
-        } else if s.contains("Getting started") {
-            desktop_visible = true
+        }
+        if setup_ready(require_patch, patch_applied, answering, desktop_visible)? {
+            lab.log("post-patch desktop and COM1 agent observed")
+            return Ok(())
         }
         desktop_polls = desktop_agent_polls(require_patch, patch_applied, desktop_restarted, desktop_visible, desktop_polls)
         if desktop_polls >= 12 {
             desktop_restarted = true
-            lab.log("agent absent after 12 post-patch Getting started polls; serial enumeration may need another boot, restarting once")
+            lab.log("agent absent after 12 post-patch desktop polls; serial enumeration may need another boot, restarting once")
             vm.restart()?
             vmlab::sleep_ms(15000)
             continue
         }
         vmlab::sleep_ms(15000)
     }
+    if require_patch {
+        return Err("the desktop and COM1 agent were not both ready after Setup")
+    }
     Err("the agent never answered on COM1 after Setup")
+}
+
+fn update_vmm(vm: Vm) -> Result[unit, string] {
+    let failure = match vm.exec("C:\\VMLAB\\VMM2XUPD.EXE", ["/Q:A", "/R:N"]) {
+        Ok(result) => {
+            if result.exit_code == 0 {
+                return Ok(())
+            }
+            "VMM2XUPD failed: " + fmt("{}", result.exit_code)
+        },
+        Err(e) => "VMM2XUPD execution failed: " + e,
+    }
+    // Flush QEMU's image metadata before failed-build cleanup can kill it.
+    let stop_error = match vm.poweroff() {
+        Ok(_) => "",
+        Err(e) => "; emulator poweroff failed: " + e,
+    }
+    Err(failure + stop_error)
 }
 
 fn install(lab: Lab) -> Result[unit, string] {
@@ -291,10 +335,7 @@ fn install(lab: Lab) -> Result[unit, string] {
     lab.log("legacy agent answering on COM1")
 
     // FIX95CPU's README requires this additional VMM update on OSR2 only.
-    let hotfix = vm.exec("C:\\VMLAB\\VMM2XUPD.EXE", ["/Q:A", "/R:N"])?
-    if hotfix.exit_code != 0 {
-        return Err("VMM2XUPD failed: " + fmt("{}", hotfix.exit_code))
-    }
+    update_vmm(vm)?
     lab.log("VMM2XUPD completed successfully; restarting without reapplying FIX95CPU")
     vm.restart()?
     finish_setup(lab, vm, 1800, false)?

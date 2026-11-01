@@ -19,19 +19,21 @@ vmlab's legacy agent baked in.
   back in the CD's Setup (its boot floppy has no "boot from hard disk"), the
   provision runs FIX95CPU from DOS before ejecting the CD and resetting onto
   the disk. It requires the installer's success message before continuing.
-- After the agent answers, the build applies the OSR2-only `VMM2XUPD.EXE`
-  update required by FIX95CPU's README and restarts before sealing.
+- After the agent answers and the desktop taskbar is visible, the build applies
+  the OSR2-only `VMM2XUPD.EXE` update required by FIX95CPU's README and restarts
+  before sealing. The earlier RunServices handshake alone does not satisfy the
+  updater's desktop requirement.
+- `MSBATCH.INF` selects QEMU's PS/2 mouse explicitly. COM1 is the agent channel.
 - `MSBATCH.INF` registers `C:\VMLAB\VMLABAGT.EXE` under `RunServices`, so the
   agent answers on COM1 before logon, exec only. The build seals with a
   graceful shutdown.
 
 The build targets KVM with `cpu_model = "pentium3"`. It retains the existing
-patcher9x speed-only staging for Setup, then applies FIX95CPU's replacement
-drivers at the first reboot. This ordering preserves the earlier installer
-fixes without applying two binary patches blindly to the same installed files.
+patcher9x speed-only staging for Setup. FIX95CPU then replaces the installed
+drivers at the first reboot.
 FIX95CPU's author release is
 https://msfn.org/board/topic/141402-windows-95-21ghz-cpu-limit-broken/.
-Needs a vmlab with `Machine.eject_cdrom`,
+Needs a vmlab with `Machine.eject_cdrom`, `Machine.ocr_opts`,
 `cpu_model` and `accel`. Runs on the `windows-9x` profile (i440fx/SeaBIOS,
 Cirrus VGA, IDE, PCnet).
 
