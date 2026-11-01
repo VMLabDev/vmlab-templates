@@ -28,6 +28,8 @@ patcher9x fixes only for 98 and later). Needs a vmlab with `Machine.eject_cdrom`
 `cpu_model` and `accel`. Runs on the `windows-9x` profile (i440fx/SeaBIOS,
 Cirrus VGA, IDE, PCnet).
 
+The KVM investigation is deferred to https://github.com/VMLabDev/vmlab/issues/199.
+
 ## Build
 
 ```

@@ -3,7 +3,7 @@
 // A custom wdoc template (wdoc's "bring your own HTML/CSS" seam): it renders the
 // converted Claude Design chrome — theme CSS, sticky nav, footer, and the vanilla
 // JS for the listing search/filter + copy buttons — and slots each page's body in
-// via `${c.content}`. Both the listing page and every generated detail page use
+// through the reserved content slot. Both the listing and detail pages use
 // it (`default_template = :templates_site`). The page bodies are built by the
 // `tpl_listing` / `tpl_detail` blocks in render.wcl.
 //
@@ -161,14 +161,22 @@ let banner_html = <<'HTML'
 <div class="alpha-banner">⚠ <strong>Alpha software.</strong> vmlab and its templates are under active development — expect frequent breaking changes.</div>
 HTML
 
-let shell_html = fn(c: TemplateCtx) -> utf8
-  $<<HTML
+let shell_html = fn(c: TemplateCtx) -> list<Html>
+  flatten([
+    [raw($<<HTML
 <style>${site_css}</style>
-<div class="page" data-theme="dark">${banner_html}${nav_html}${c.content}${footer_html}</div>
+<div class="page" data-theme="dark">${banner_html}${nav_html}
+HTML
+    )],
+    slot(c, :content),
+    [raw($<<HTML
+${footer_html}</div>
 ${site_js}
 HTML
+    )],
+  ])
 
 template templates_site {
-  render = fn(c: TemplateCtx) -> list<HtmlFundamental>
-    [ HtmlFundamental::Raw { html: shell_html(c) } ]
+  slot content: content
+  render = fn(c: TemplateCtx) -> list<Html> shell_html(c)
 }

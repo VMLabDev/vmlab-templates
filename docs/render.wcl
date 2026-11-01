@@ -1,7 +1,7 @@
 // Render blocks: build the listing body and per-template detail body as raw
 // HTML from the `tpl` (facts) + `tmeta` (authored copy) records. Both extend
-// WdocBlock so they can sit directly in a page; their `lower` returns a single
-// HtmlFundamental::Raw. The page shell (nav/footer/CSS/JS) is templates-site.wcl.
+// ContentBlock so they can sit directly in a page; their `lower` returns a single
+// Html::Raw. The page shell (nav/footer/CSS/JS) is templates-site.wcl.
 
 import <wdoc.wcl>
 import "./schema.wcl"
@@ -46,10 +46,10 @@ HTML
 
 // The listing page body: head + toolbar + count + card grid + empty state.
 @block("tpl_listing")
-type TplListing extends WdocBlock {
+type TplListing extends ContentBlock {
   items: list<Tpl>
   metas: list<Tmeta>
-  lower = fn(b: TplListing) -> list<HtmlFundamental> {
+  lower = fn(b: TplListing) -> list<Html> {
     let all_metas = b.metas;
     let keylist = map(b.metas, fn(m: Tmeta) -> utf8 { m.key });
     let cards = map(b.items, fn(t: Tpl) -> utf8 {
@@ -58,7 +58,7 @@ type TplListing extends WdocBlock {
     });
     let grid = join(cards, "");
     let n = len(b.items);
-    [ HtmlFundamental::Raw { html: $<<HTML
+    [ Html::Raw { html: $<<HTML
 <section class="head"><div class="wrap"><div class="eyebrow">// templates.vmlab.io</div><h1 class="h1">Template library</h1><p class="lead">Ready-to-boot base images for vmlab. Reference any template by name in a <span class="mono c-acc">vm</span> block — vmlab pulls it from the registry and clones it on first use.</p><div class="toolbar"><label class="search">${svg_search}<input id="tpl-search" type="text" placeholder="Search templates…"></label><div class="chips">${toolbar_chips}</div></div><div class="count" id="tpl-count">${n} templates</div><div class="tpls">${grid}</div><div class="empty" id="tpl-empty" style="display:none">No templates match your search.</div></div></section>
 HTML
     } ]
@@ -67,10 +67,10 @@ HTML
 
 // One detail page body for a (tpl, tmeta) pair.
 @block("tpl_detail")
-type TplDetail extends WdocBlock {
+type TplDetail extends ContentBlock {
   unit: Tpl
   meta: Tmeta
-  lower = fn(b: TplDetail) -> list<HtmlFundamental> {
+  lower = fn(b: TplDetail) -> list<Html> {
     let t = b.unit;
     let m = b.meta;
     let cls = arch_cls(t.arch);
@@ -81,7 +81,7 @@ type TplDetail extends WdocBlock {
     let feat_html = match len(m.features) { 0 => "", _ => $"<ul class=\"ul\">${feat_items}</ul>" };
     let tag_items = join(map(m.tags, fn(x: utf8) -> utf8 { $"<span class=\"tag\">${x}</span>" }), "");
     let tags_html = match len(m.tags) { 0 => "", _ => $"<div class=\"card\"><h2 class=\"sectitle\">Tags</h2><div class=\"tags\">${tag_items}</div></div>" };
-    [ HtmlFundamental::Raw { html: $<<HTML
+    [ Html::Raw { html: $<<HTML
 <div class="wrap"><div class="crumb"><a href="index.html">Templates</a>${svg_chevron}<span class="c-info">${t.arch}</span>${svg_chevron}<span class="c-fg">${t.short_name}</span></div></div><section class="thead"><div class="wrap theadrow"><div><div class="fx ac gap8"><span class="arch ${cls}">${t.arch}</span><span class="verpill">v${t.version}</span><span class="verpill">latest</span></div><h1 class="tname">${t.name}</h1><p class="tdesc">${m.description}</p></div><div class="tact"><div class="pull"><span class="c-acc">${d}</span><span class="pt">vmlab pull ${t.name}</span><button class="copybtn" data-copy="vmlab pull ${t.name}" onclick="vmlabCopy(this)">copy</button></div><a class="btn btn-primary" href="https://github.com/VMLabDev/vmlab-templates/tree/main/${t.source_dir}">${svg_file}View source</a></div></div></section><div class="wrap body"><div class="main"><div class="sec"><h2 class="sectitle">Overview</h2><div class="prose"><p>${ov}</p></div>${feat_html}</div><div class="sec"><h2 class="sectitle">Reference it in a lab</h2><div class="code"><div class="codehead">${svg_file}vmlab.wcl</div><div class="codebody"><span class="t-key">import</span> <span class="t-str">&lt;vmlab.wcl&gt;</span>
 
 <span class="t-key">lab</span> <span class="t-str">"demo"</span> {
