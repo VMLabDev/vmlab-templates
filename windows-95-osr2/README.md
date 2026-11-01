@@ -23,6 +23,10 @@ vmlab's legacy agent baked in.
   the OSR2-only `VMM2XUPD.EXE` update required by FIX95CPU's README and restarts
   before sealing. The earlier RunServices handshake alone does not satisfy the
   updater's desktop requirement.
+- If the observed corrupted text display persists for twelve polls after verified
+  patching and an answering agent, the build restarts the emulator once. It does
+  not reapply FIX95CPU during that recovery. This bounded recovery does not
+  identify a CPU or display-driver fault.
 - `MSBATCH.INF` selects QEMU's PS/2 mouse explicitly. COM1 is the agent channel.
 - `MSBATCH.INF` registers `C:\VMLAB\VMLABAGT.EXE` under `RunServices`, so the
   agent answers on COM1 before logon, exec only. The build seals with a

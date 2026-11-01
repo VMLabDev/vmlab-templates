@@ -86,8 +86,8 @@ fn on_screen(vm: Vm, image: string) -> bool {
     }
 }
 
-// The password captions share most pixels, so require a near-exact match.
-fn caption_on_screen(vm: Vm, image: string) -> bool {
+// Require near-exact matches for references that share many pixels.
+fn on_screen_strict(vm: Vm, image: string) -> bool {
     match vm.find_image(image) {
         Ok(Some(m)) => m.score >= 0.99,
         _ => false,
@@ -122,6 +122,14 @@ fn desktop_agent_polls(required: bool, applied: bool, restarted: bool, desktop: 
     0
 }
 
+// Recover only the observed post-patch corruption, once an agent has answered.
+fn corrupt_display_polls(required: bool, applied: bool, seen_agent: bool, restarted: bool, visible: bool, previous: int) -> int {
+    if required && applied && seen_agent && !restarted && visible {
+        return previous + 1
+    }
+    0
+}
+
 // Clear the remaining Setup pages and require a verified patch on the first pass.
 fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit, string] {
     // In sync with WINDOWS_95_OEM_KEY (xxxxx-OEM-xxxxxxx-xxxxx).
@@ -133,10 +141,16 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
     let patch_applied = false
     let desktop_polls = 0
     let desktop_restarted = false
+    let seen_agent = false
+    let corrupt_polls = 0
+    let corrupt_restarted = false
     let rounds = secs / 15
     let shutting_down = 0
     for round in 0..rounds {
         let answering = vm.agent_answering()
+        if answering {
+            seen_agent = true
+        }
         if setup_ready(require_patch, patch_applied, answering, false)? {
             return Ok(())
         }
@@ -156,6 +170,15 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
             }
         } else {
             shutting_down = 0
+        }
+        let corrupt_visible = require_patch && patch_applied && seen_agent && on_screen_strict(vm, "ref/corrupt-display.png")
+        corrupt_polls = corrupt_display_polls(require_patch, patch_applied, seen_agent, corrupt_restarted, corrupt_visible, corrupt_polls)
+        if corrupt_polls >= 12 {
+            corrupt_restarted = true
+            lab.log("corrupted display persisted for 12 post-patch polls after agent readiness; restarting the emulator once")
+            vm.restart()?
+            vmlab::sleep_ms(15000)
+            continue
         }
         let s = screen(vm)
         if require_patch && patch_applied {
@@ -188,7 +211,7 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
             key_until(vm, "f3", "To quit Setup, press F3", 15)?
             vm.send_keys("f3")?
             type_until(vm, "cls\nver\n", "Version", 10)?
-            if require_patch {
+            if require_patch && !patch_applied {
                 // Keep the original installer's README choice and confirmations.
                 lab.log("Setup rebooted into DOS; applying FIX95CPU")
                 vm.type_text("b:\\fix95\n")?
@@ -202,7 +225,7 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
                 patch_applied = true
                 lab.log("FIX95CPU installation succeeded")
             } else {
-                lab.log("post-hotfix DOS restart; skipping FIX95CPU and booting the installed disk")
+                lab.log("patch already verified or not required; skipping FIX95CPU and booting the installed disk")
             }
             vm.eject_cdrom()?
             vm.send_keys("ctrl-alt-delete")?
@@ -244,17 +267,17 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
             // matched by image (scripts/ref/printer-wizard.png).
             lab.log("Setup page: no printer")
             vm.send_keys("esc")?
-        } else if caption_on_screen(vm, "ref/new-clock-settings.png") || s.contains("New clock settings") {
+        } else if on_screen_strict(vm, "ref/new-clock-settings.png") || s.contains("New clock settings") {
             lab.log("logon clock notice: accepting the current settings")
             vm.send_keys("enter")?
         } else if missing_user_name(s) {
             lab.log("logon dialog: dismissing the missing-name notice")
             vm.send_keys("enter")?
-        } else if caption_on_screen(vm, "ref/set-windows-password.png") || s.contains("Set Windows Password") {
+        } else if on_screen_strict(vm, "ref/set-windows-password.png") || s.contains("Set Windows Password") {
             // Confirming the new user's (empty) password.
             lab.log("logon dialog: confirming the empty password")
             vm.send_keys("enter")?
-        } else if caption_on_screen(vm, "ref/enter-windows-password.png") || s.contains("Enter Network Password") || s.contains("Enter Windows Password") {
+        } else if on_screen_strict(vm, "ref/enter-windows-password.png") || s.contains("Enter Network Password") || s.contains("Enter Windows Password") {
             // RunServices starts before logon. Create the empty-password
             // vmlab profile before running the desktop-dependent updater.
             lab.log("logon dialog: logging on as vmlab with an empty password")
