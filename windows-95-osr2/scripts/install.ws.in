@@ -86,6 +86,18 @@ fn on_screen(vm: Vm, image: string) -> bool {
     }
 }
 
+// The password captions share most pixels, so require a near-exact match.
+fn caption_on_screen(vm: Vm, image: string) -> bool {
+    match vm.find_image(image) {
+        Ok(Some(m)) => m.score >= 0.99,
+        _ => false,
+    }
+}
+
+fn missing_user_name(s: string) -> bool {
+    s.contains("forgot to enter") && s.contains("name")
+}
+
 // Agent readiness alone must not seal a build that skipped the patch installer.
 fn require_fix95cpu(required: bool, applied: bool) -> Result[unit, string] {
     if required && !applied {
@@ -232,15 +244,17 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
             // matched by image (scripts/ref/printer-wizard.png).
             lab.log("Setup page: no printer")
             vm.send_keys("esc")?
-        } else if on_screen(vm, "ref/new-clock-settings.png") || s.contains("New clock settings") {
+        } else if caption_on_screen(vm, "ref/new-clock-settings.png") || s.contains("New clock settings") {
             lab.log("logon clock notice: accepting the current settings")
             vm.send_keys("enter")?
-        } else if s.contains("forgot to enter your user name") {
+        } else if missing_user_name(s) {
+            lab.log("logon dialog: dismissing the missing-name notice")
             vm.send_keys("enter")?
-        } else if on_screen(vm, "ref/set-windows-password.png") || s.contains("Set Windows Password") {
+        } else if caption_on_screen(vm, "ref/set-windows-password.png") || s.contains("Set Windows Password") {
             // Confirming the new user's (empty) password.
+            lab.log("logon dialog: confirming the empty password")
             vm.send_keys("enter")?
-        } else if on_screen(vm, "ref/enter-windows-password.png") || s.contains("Enter Network Password") || s.contains("Enter Windows Password") {
+        } else if caption_on_screen(vm, "ref/enter-windows-password.png") || s.contains("Enter Network Password") || s.contains("Enter Windows Password") {
             // RunServices starts before logon. Create the empty-password
             // vmlab profile before running the desktop-dependent updater.
             lab.log("logon dialog: logging on as vmlab with an empty password")
