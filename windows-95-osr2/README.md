@@ -27,9 +27,13 @@ vmlab's legacy agent baked in.
   patching and an answering agent, the build restarts the emulator once. It does
   not reapply FIX95CPU during that recovery. This bounded recovery does not
   identify a CPU or display-driver fault.
+- The OEM first-start wizard has separate license and certificate handlers.
+  Both Setup passes require two desktop-and-agent observations with no pending
+  Setup page before the updater or sealing can proceed.
+- A system-registry error stops the build without restoring a backup or sealing.
 - `MSBATCH.INF` selects QEMU's PS/2 mouse explicitly. COM1 is the agent channel.
 - `MSBATCH.INF` registers `C:\VMLAB\VMLABAGT.EXE` under `RunServices`, so the
-  agent answers on COM1 before logon, exec only. The build seals with a
+  agent answers on COM1 before logon. The build seals with a
   graceful shutdown.
 
 The build targets KVM with `cpu_model = "pentium3"`. It retains the existing
@@ -40,6 +44,14 @@ https://msfn.org/board/topic/141402-windows-95-21ghz-cpu-limit-broken/.
 Needs a vmlab with `Machine.eject_cdrom`, `Machine.ocr_opts`,
 `cpu_model` and `accel`. Runs on the `windows-9x` profile (i440fx/SeaBIOS,
 Cirrus VGA, IDE, PCnet).
+
+## KVM verification
+
+OSR2 has not passed a complete blank-disk KVM build and fresh-clone agent check.
+The bounded restart recovered the observed display stall and reached the original
+VMM2XUPD installer, but the later boot reported a system-registry access error.
+That diagnostic image was not accepted. The OEM wizard handlers and registry-error
+guard have scripting-fixture and saved-frame checks, but no subsequent clean build.
 
 ## Build
 

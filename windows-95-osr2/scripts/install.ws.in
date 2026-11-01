@@ -98,6 +98,34 @@ fn missing_user_name(s: string) -> bool {
     s.contains("forgot to enter") && s.contains("name")
 }
 
+fn license_accept_key(radio: bool) -> string {
+    if radio {
+        return "alt-a"
+    }
+    "alt-y"
+}
+
+fn needs_certificate(s: string, requested: bool, typed: bool) -> bool {
+    s.contains("Certificate of Authenticity") && !requested && !typed
+}
+
+fn finish_prompt(s: string) -> bool {
+    s.contains("Start Wizard") && s.contains("saved all information")
+}
+
+fn registry_problem(s: string) -> bool {
+    s.contains("Registry Problem") || (s.contains("error accessing the system") && s.contains("registry"))
+}
+
+// Quit normally so failed-build cleanup does not discard cached image metadata.
+fn build_failure(vm: Vm, failure: string) -> Result[unit, string] {
+    let stop_error = match vm.poweroff() {
+        Ok(_) => "",
+        Err(e) => "; emulator poweroff failed: " + e,
+    }
+    Err(failure + stop_error)
+}
+
 // Agent readiness alone must not seal a build that skipped the patch installer.
 fn require_fix95cpu(required: bool, applied: bool) -> Result[unit, string] {
     if required && !applied {
@@ -106,12 +134,12 @@ fn require_fix95cpu(required: bool, applied: bool) -> Result[unit, string] {
     Ok(())
 }
 
-// RunServices can answer before logon; the VMM updater requires the desktop.
-fn setup_ready(required: bool, applied: bool, answering: bool, desktop: bool) -> Result[bool, string] {
+// Both passes need the desktop with no remaining Setup page, not only RunServices.
+fn setup_ready(required: bool, applied: bool, answering: bool, desktop: bool, pending: bool) -> Result[bool, string] {
     if answering {
         require_fix95cpu(required, applied)?
     }
-    Ok(answering && (!required || desktop))
+    Ok(answering && desktop && !pending)
 }
 
 // Count only consecutive post-patch desktop polls before the one recovery restart.
@@ -138,6 +166,9 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
     // boxes, without "OEM" and the dashes.
     let coa = ["__COA_1__", "__COA_2__", "__COA_3__"]
     let typed_id = false
+    let typed_oem_coa = false
+    let oem_coa_requested = false
+    let ready_polls = 0
     let patch_applied = false
     let desktop_polls = 0
     let desktop_restarted = false
@@ -149,10 +180,8 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
     for round in 0..rounds {
         let answering = vm.agent_answering()
         if answering {
+            require_fix95cpu(require_patch, patch_applied)?
             seen_agent = true
-        }
-        if setup_ready(require_patch, patch_applied, answering, false)? {
-            return Ok(())
         }
         // Windows 95 can hang for good at "Please wait while your computer
         // shuts down" (the agent restarts it once, see MSBATCH.INF). After
@@ -181,8 +210,11 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
             continue
         }
         let s = screen(vm)
-        if require_patch && patch_applied {
+        if !require_patch || patch_applied {
             s = desktop_screen(vm)
+        }
+        if registry_problem(s) || on_screen_strict(vm, "ref/registry-problem.png") {
+            return build_failure(vm, "Windows 95 reported a system-registry error; backup restoration and sealing were not attempted")
         }
         // With no ProductID in MSBATCH.INF, Express Setup submits the empty
         // field and shows "Invalid Product Identification Number". OCR cannot
@@ -195,6 +227,11 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
         }
         let refused = invalid_text || refused_image
         let desktop_visible = on_screen(vm, "ref/desktop-start.png")
+        let radio_license = on_screen(vm, "ref/license-radio.png")
+        let wizard_coa_invalid = on_screen(vm, "ref/coa-invalid-wizard.png")
+        let legacy_coa_invalid = on_screen(vm, "ref/coa-invalid.png")
+        let printer_pending = printer_wizard(vm) || s.contains("You must install")
+        let setup_pending = refused || radio_license || wizard_coa_invalid || legacy_coa_invalid || printer_pending || s.contains("Certificate of Authenticity") || s.contains("license agreement") || s.contains("License Agreement") || s.contains("Windows Components") || s.contains("User Information") || s.contains("Start Wizard")
         if refused {
             if typed_id {
                 return Err("Setup rejected WINDOWS_95_OEM_KEY; set a valid 20-digit OEM Product ID in .env")
@@ -229,7 +266,17 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
             }
             vm.eject_cdrom()?
             vm.send_keys("ctrl-alt-delete")?
-        } else if on_screen(vm, "ref/coa-invalid.png") {
+        } else if wizard_coa_invalid {
+            if typed_oem_coa {
+                return Err("OEM Setup rejected WINDOWS_95_OEM_KEY; set a valid 20-digit OEM Product ID in .env")
+            }
+            vm.send_keys("enter")?
+            vmlab::sleep_ms(2000)
+            lab.log("OEM Setup: typing the numeric certificate groups")
+            vm.type_text(coa[0] + coa[1] + coa[2])?
+            vm.send_keys("enter")?
+            typed_oem_coa = true
+        } else if legacy_coa_invalid {
             // OSR2 and later submit the empty Certificate of Authenticity
             // page first. OCR reads that dialog poorly, so it is matched by
             // its title bar; Re-enter returns to the page, focus in box one.
@@ -244,6 +291,10 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
             vm.type_text(coa[0] + coa[1] + coa[2])?
             vm.send_keys("enter")?
             typed_id = true
+        } else if needs_certificate(s, oem_coa_requested, typed_oem_coa) {
+            lab.log("OEM Setup: submitting the initial certificate page for validation")
+            vm.send_keys("enter")?
+            oem_coa_requested = true
         } else if s.contains("ScanDisk") {
             // OSR2 and later scan C: at boot after an unclean shutdown, such
             // as the emulator restart above, and stop on each problem found.
@@ -256,13 +307,19 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
                 lab.log("ScanDisk prompt at boot: taking its default")
                 vm.send_keys("enter")?
             }
-        } else if s.contains("license agreement") {
+        } else if radio_license || s.contains("license agreement") {
             lab.log("Setup page: accepting the license")
-            vm.send_keys("alt-y")?
+            vm.send_keys(license_accept_key(radio_license))?
+            if radio_license {
+                vm.send_keys("enter")?
+            }
         } else if s.contains("Windows Components") || s.contains("User Information") {
             lab.log("Setup wizard page: Next")
             vm.send_keys("enter")?
-        } else if printer_wizard(vm) || s.contains("You must install") {
+        } else if finish_prompt(s) {
+            lab.log("OEM Setup: Finish")
+            vm.send_keys("enter")?
+        } else if printer_pending {
             // OCR does not read the wizard reliably, so its title bar is also
             // matched by image (scripts/ref/printer-wizard.png).
             lab.log("Setup page: no printer")
@@ -284,11 +341,16 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
             vm.type_text("vmlab")?
             vm.send_keys("enter")?
         }
-        if setup_ready(require_patch, patch_applied, answering, desktop_visible)? {
-            lab.log("post-patch desktop and COM1 agent observed")
-            return Ok(())
+        if setup_ready(require_patch, patch_applied, answering, desktop_visible, setup_pending)? {
+            ready_polls = ready_polls + 1
+            if ready_polls >= 2 {
+                lab.log("desktop and COM1 agent stable after Setup")
+                return Ok(())
+            }
+        } else {
+            ready_polls = 0
         }
-        desktop_polls = desktop_agent_polls(require_patch, patch_applied, desktop_restarted, desktop_visible, desktop_polls)
+        desktop_polls = desktop_agent_polls(require_patch, patch_applied, desktop_restarted, desktop_visible && !answering && !setup_pending, desktop_polls)
         if desktop_polls >= 12 {
             desktop_restarted = true
             lab.log("agent absent after 12 post-patch desktop polls; serial enumeration may need another boot, restarting once")
@@ -298,10 +360,7 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
         }
         vmlab::sleep_ms(15000)
     }
-    if require_patch {
-        return Err("the desktop and COM1 agent were not both ready after Setup")
-    }
-    Err("the agent never answered on COM1 after Setup")
+    Err("the desktop and COM1 agent were not both ready after Setup")
 }
 
 fn update_vmm(vm: Vm) -> Result[unit, string] {
@@ -314,12 +373,7 @@ fn update_vmm(vm: Vm) -> Result[unit, string] {
         },
         Err(e) => "VMM2XUPD execution failed: " + e,
     }
-    // Flush QEMU's image metadata before failed-build cleanup can kill it.
-    let stop_error = match vm.poweroff() {
-        Ok(_) => "",
-        Err(e) => "; emulator poweroff failed: " + e,
-    }
-    Err(failure + stop_error)
+    build_failure(vm, failure)
 }
 
 fn install(lab: Lab) -> Result[unit, string] {
