@@ -44,7 +44,44 @@ fn install(lab: Lab) -> Result[unit, string] {
         Err(e) => lab.log("version check failed (agent is up though): " + e),
     }
 
+    remove_onedrive(lab, vm)?
     sysprep(lab, vm)
+}
+
+// Copy the removal payload from UNATTEND before generalize.
+fn stage_script(lab: Lab, vm: Vm, name: string) -> Result[string, string] {
+    let dst = "C:\\Windows\\Temp\\" + name
+    let copy = vm.exec("cmd.exe", [
+        "/c",
+        "for %d in (D E F G) do if exist %d:\\" + name + " copy /y %d:\\" + name + " " + dst,
+    ])?
+    if copy.exit_code != 0 {
+        return Err("could not stage " + name + ": " + copy.stderr)
+    }
+    Ok(dst)
+}
+
+fn remove_onedrive(lab: Lab, vm: Vm) -> Result[unit, string] {
+    let script = stage_script(lab, vm, "remove-onedrive.ps1")?
+    lab.log("removing OneDrive before generalize...")
+    let r = vm.exec_timeout("powershell.exe", [
+        "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script,
+    ], 600)?
+    lab.log(r.stdout.trim())
+    if r.exit_code == 3010 && r.stdout.contains("ONEDRIVE_REMOVED=REBOOT") {
+        lab.log("rebooting to release OneDrive's locked shell DLLs...")
+        let before = vm.boot_id()?
+        let request = vm.exec("cmd.exe", ["/c", "shutdown /r /t 0 /f"])
+        vm.wait_rebooted(before, 900)?
+        r = vm.exec_timeout("powershell.exe", [
+            "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script, "-CleanupOnly",
+        ], 600)?
+        lab.log(r.stdout.trim())
+    }
+    if r.exit_code != 0 || !r.stdout.contains("ONEDRIVE_REMOVED=OK") {
+        return Err("remove-onedrive.ps1 failed: " + r.stdout.trim() + " " + r.stderr.trim())
+    }
+    Ok(())
 }
 
 // Generalize the image so clones get fresh SIDs (domain-joinable). The answer

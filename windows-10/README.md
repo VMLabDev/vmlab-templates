@@ -26,7 +26,7 @@ What happens (`scripts/install.ws` narrates it in the build log):
    the single **Enterprise Evaluation** image, sets `Administrator` / `vmlab123!`, and on first logon installs
    the virtio guest tools and the vmlab guest agent.
 3. The script waits for the guest agent — that's the "install finished" signal.
-4. It disables Windows Update, copies `generalize.ps1` and
+4. It disables Windows Update, uninstalls OneDrive, copies `generalize.ps1` and
    `sysprep-unattend.xml` from the UNATTEND ISO into
    `C:\ProgramData\vmlab\sysprep\`, and shuts the VM down. vmlab seals
    this as the **base**, which is installed and patched but not generalized.
@@ -38,6 +38,13 @@ What happens (`scripts/install.ws` narrates it in the build log):
    generalized overlay as the `standard` variant.
 
 ## Base and variants
+
+OneDrive is removed from the base before generalize, so both variants inherit
+the removal. Provisioning clears its first-logon setup from the default user
+hive, removes leftover Start menu shortcuts and Explorer navigation entries,
+and sets `DisableFileSyncNGSC=1` to prevent file sync after feature updates.
+If shell DLLs remain locked, provisioning reboots and requires cleanup to
+succeed before generalize.
 
 A built version holds an unsealed base disk and named, sealed variants. Each
 variant is a qcow2 overlay on the base. This template defines two variants,
