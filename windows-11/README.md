@@ -125,6 +125,41 @@ Using it:
   package), the test certificate in the Root and TrustedPublisher stores,
   and `testsigning` in the BCD.
 
+### GDI context rebuild
+
+The local `26100.1742.7#win3d` rebuild uses the unreleased 0.1.2 package
+from vmlab-win3d commit `600475e775847c76e427a7551e9a268098b57ef6`.
+Its KMD version is `100.6.101.58101`. The driver creates a legacy context
+before GDI allocations attach, fixing GPU commands sent on an uncreated
+context after a Windows reboot.
+
+The candidate's `SHA256SUMS` records:
+
+```text
+4fb9877733fe3b7b0a685fe5d69febeb21fe7f6f22550207b00c7648dbb2e209  vmlab-win3d-0.1.2.zip
+1891c30bc9ef9f0d557bfa55b2db4e54dd3393e1e6f3cf115b2644d468e09efd  vmlab-win3d-0.1.2/manifest.json
+```
+
+The package and manifest were checked against the build's `SHA256SUMS`,
+then all files were checked against `manifest.json`. The package is staged
+flat in `win3d/`, with `Install.cmd` and `manifest.json` at the WIN3D ISO
+root. No GitHub release was published. `fetch-deps.sh` still pins the
+published `0.1.2-alpha` bundle and replaces this local candidate if rerun.
+
+The new version reuses the base and `standard` variant from
+`26100.1742.6`; only `win3d` is rebuilt. Existing versions remain in place.
+
+Native verification used vmlab-hv `0afe35b` and vmlab `18c42f6` on the
+RTX 5090. Both architectures enumerated Venus and passed hardware Vulkan
+rendering with pixel readback. A post-render reboot kept the same hypervisor
+process and passed the static checks, with no GPU command errors or new
+bugchecks.
+
+Native first boot did record Windows bugcheck `0x116` during OOBE. The test
+clone also needed stale OOBE autologon values cleared before verification.
+These remain unresolved native first-boot caveats. Two non-GPU
+`virtio-console` queue-readiness errors were also logged.
+
 ### Adding a variant
 
 A variant is a `variant` block in `vmlab.wcl` with its own provisions. List
