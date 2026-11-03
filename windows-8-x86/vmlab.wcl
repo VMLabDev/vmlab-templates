@@ -18,6 +18,8 @@ template "windows-8" {
   memory  = 3GiB
   disk    = 40GiB
 
+  login "vmlab" { user = "vmlab" password = "vmlab123!" }
+
   source "iso" { path = "../iso/en_windows_8_enterprise_x86_dvd_917587.iso" }
 
   // An ISO, not a floppy: the answer file now travels with the vioserial

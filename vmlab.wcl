@@ -885,6 +885,8 @@ template "windows-10" {
   memory  = 8GiB
   disk    = 60GiB
 
+  login "vmlab" { user = "vmlab" password = "vmlab123!" }
+
   source "iso" {
     url    = "https://software-static.download.prss.microsoft.com/dbazure/988969d5-f34g-4e03-ac9d-1f9786c66750/19045.2006.220908-0225.22h2_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso"
     sha256 = "ef7312733a9f5d7d51cfa04ac497671995674ca5e1058d5164d6028f0938d668"
@@ -965,6 +967,8 @@ template "windows-11-arm64" {
   memory  = 8GiB
   disk    = 60GiB
 
+  login "vmlab" { user = "vmlab" password = "vmlab123!" }
+
   source "iso" {
     url    = "https://www.microsoft.com/en-us/evalcenter/evaluate-windows-11-enterprise"
     sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
@@ -1004,6 +1008,8 @@ template "windows-11" {
   cpus    = 4
   memory  = 8GiB
   disk    = 60GiB
+
+  login "vmlab" { user = "vmlab" password = "vmlab123!" }
 
   source "iso" {
     url    = "https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/26100.1742.240906-0331.ge_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso"
@@ -1209,6 +1215,8 @@ template "windows-8" {
   memory  = 3GiB
   disk    = 40GiB
 
+  login "vmlab" { user = "vmlab" password = "vmlab123!" }
+
   source "iso" { path = "./iso/en_windows_8_enterprise_x86_dvd_917587.iso" }
 
   // An ISO, not a floppy: the answer file now travels with the vioserial
@@ -1242,6 +1250,8 @@ template "windows-8.1" {
   cpus    = 2
   memory  = 3GiB
   disk    = 40GiB
+
+  login "vmlab" { user = "vmlab" password = "vmlab123!" }
 
   source "iso" { path = "./iso/en_windows_8_1_enterprise_x86_dvd_2972289.iso" }
 
@@ -1277,6 +1287,8 @@ template "windows-8.1" {
   memory  = 4GiB
   disk    = 40GiB
 
+  login "vmlab" { user = "vmlab" password = "vmlab123!" }
+
   source "iso" { path = "./iso/en_windows_8_1_enterprise_x64_dvd_2971902.iso" }
 
   // An ISO, not a floppy: the answer file now travels with the vioserial
@@ -1310,6 +1322,8 @@ template "windows-8" {
   cpus    = 2
   memory  = 4GiB
   disk    = 40GiB
+
+  login "vmlab" { user = "vmlab" password = "vmlab123!" }
 
   source "iso" { path = "./iso/en_windows_8_enterprise_x64_dvd_917522.iso" }
 

@@ -29,6 +29,8 @@ template "windows-11-arm64" {
   memory  = 8GiB
   disk    = 60GiB
 
+  login "vmlab" { user = "vmlab" password = "vmlab123!" }
+
   source "iso" {
     url    = "https://www.microsoft.com/en-us/evalcenter/evaluate-windows-11-enterprise"
     sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
