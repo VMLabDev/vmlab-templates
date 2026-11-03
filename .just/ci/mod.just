@@ -18,7 +18,12 @@ main:
 
 # Everything a change must pass before it can merge
 [group('ci')]
-check: wcl-sync-check wcl-check examples-check docs-build
+check: wcl-sync-check wcl-check examples-check docs-tool-check docs-build
+
+# Verify docs CLI pinning without network access or tool installation
+[group('ci')]
+docs-tool-check: require-uv
+	uv run python scripts/test-docs-wcl.py
 
 # Regenerating from the per-template definitions and diffing keeps an edit to
 # <template>/vmlab.wcl from landing unpropagated — and is what makes wcl-check
@@ -65,4 +70,4 @@ examples-check: require-vmlab require-uv require-git
 # Build the template-library website
 [group('ci')]
 docs-build: require-wcl
-	wcl wdoc build docs/main.wcl --out docs/_site
+	bash scripts/docs-wcl.sh wdoc build docs/main.wcl --out docs/_site
