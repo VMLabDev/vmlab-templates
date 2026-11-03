@@ -864,6 +864,11 @@ windows-vista-x86-example-destroy: (example-destroy 'windows-vista-x86')
 
 # --- docs site (templates.vmlab.dev) ---
 
+# Install the docs CLI at the revision in .wcl-rev without replacing host tools
+[group('docs')]
+docs-tool-install:
+	bash scripts/docs-wcl.sh --install
+
 # Regenerate docs/data/templates.gen.wcl from the registry + in-repo vmlab.wcl
 [group('docs')]
 docs-data:
@@ -879,7 +884,7 @@ docs-build: ci::docs-build
 # Serve the website locally with live reload
 [group('docs')]
 docs-serve:
-	wcl wdoc serve docs/main.wcl
+	bash scripts/docs-wcl.sh wdoc serve docs/main.wcl
 
 # Remove the generated site
 [group('docs')]

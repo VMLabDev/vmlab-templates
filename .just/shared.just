@@ -7,7 +7,7 @@ require-vmlab:
 
 [private]
 require-wcl:
-	@command -v wcl > /dev/null 2>&1 || (echo "wcl is required (cargo install --git https://github.com/wiltaylor/wcl.git wcl)" && exit 1)
+	@bash scripts/docs-wcl.sh --version > /dev/null
 
 [private]
 require-uv:

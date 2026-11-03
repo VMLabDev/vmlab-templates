@@ -18,14 +18,15 @@ on:
     branches: [main]
     paths:
       - 'docs/**'
+      - '.wcl-rev'
+      - 'scripts/docs-wcl.sh'
+      - 'justfile'
+      - '.just/**'
       - 'wrangler.toml'
       - '.github/workflows/deploy-site.yml'
 
 env:
   CARGO_TERM_COLOR: always
-  # Pin the wcl CLI to the same rev the vmlab repo uses, so both sites render
-  # with the same wdoc version.
-  WCL_REV: ed84924565334008ae0656be78e29338328c8419
 
 jobs:
   deploy:
@@ -45,12 +46,12 @@ jobs:
         id: wcl-cache
         uses: actions/cache@v4
         with:
-          path: ~/.cargo/bin/wcl
-          key: wcl-${{ env.WCL_REV }}
+          path: .scratch/tools/wcl
+          key: wcl-${{ runner.os }}-${{ hashFiles('.wcl-rev') }}
 
       - name: Install wcl CLI
         if: steps.wcl-cache.outputs.cache-hit != 'true'
-        run: cargo install --git https://github.com/wiltaylor/wcl.git --rev ${{ env.WCL_REV }} --locked wcl
+        run: bash scripts/docs-wcl.sh --install
 
       - uses: taiki-e/install-action@just
 
