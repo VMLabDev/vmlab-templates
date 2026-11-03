@@ -207,7 +207,20 @@ vm "box" { template = "x86_64/debian-13" }
 
 `just ci::check` is the merge bar — everything a change must pass before it
 lands. It runs in under a second from a clean checkout, needs no network, and
-needs only `vmlab`, `wcl`, `git` and `uv`:
+needs `vmlab`, `git`, `uv`, and the pinned docs CLI. Install the docs CLI once
+before running the gate. This setup step needs Cargo and network access:
+
+```sh
+just docs-tool-install
+```
+
+The docs build and preview use the WCL revision in `.wcl-rev`, installed under
+`.scratch/tools/wcl/<revision>/`. Deployment uses the same pin and installer.
+The installer leaves host tools unchanged, including config-weave-managed
+binaries and `~/.local/share/wcl`. The docs use the `HtmlFundamental` and
+`WdocBlock` APIs from that revision; newer WCL releases changed those APIs.
+
+After setup, the gate runs offline:
 
 ```sh
 just ci                 # list the parts

@@ -54,6 +54,7 @@ fn install(lab: Lab) -> Result[unit, string] {
         apply_updates(lab, vm)?
     }
     disable_updates(lab, vm)?
+    remove_onedrive(lab, vm)?
     stage_sysprep(lab, vm)?
     shut_down(lab, vm)
 }
@@ -291,6 +292,30 @@ fn disable_updates(lab: Lab, vm: Vm) -> Result[unit, string] {
     lab.log(r.stdout.trim())
     if !r.stdout.contains("WU_DISABLED=OK") {
         return Err("disable-windows-update.ps1 did not confirm success: " + r.stdout.trim() + " " + r.stderr.trim())
+    }
+    Ok(())
+}
+
+// Remove OneDrive from the base so every variant inherits the removal.
+fn remove_onedrive(lab: Lab, vm: Vm) -> Result[unit, string] {
+    let script = stage_script(lab, vm, "remove-onedrive.ps1")?
+    lab.log("removing OneDrive before generalize...")
+    let r = vm.exec_timeout("powershell.exe", [
+        "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script,
+    ], 600)?
+    lab.log(r.stdout.trim())
+    if r.exit_code == 3010 && r.stdout.contains("ONEDRIVE_REMOVED=REBOOT") {
+        lab.log("rebooting to release OneDrive's locked shell DLLs...")
+        let before = vm.boot_id()?
+        let request = vm.exec("cmd.exe", ["/c", "shutdown /r /t 0 /f"])
+        vm.wait_rebooted(before, 900)?
+        r = vm.exec_timeout("powershell.exe", [
+            "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script, "-CleanupOnly",
+        ], 600)?
+        lab.log(r.stdout.trim())
+    }
+    if r.exit_code != 0 || !r.stdout.contains("ONEDRIVE_REMOVED=OK") {
+        return Err("remove-onedrive.ps1 failed: " + r.stdout.trim() + " " + r.stderr.trim())
     }
     Ok(())
 }

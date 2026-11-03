@@ -27,7 +27,7 @@ What happens (`scripts/install.ws` narrates it in the build log):
    the single **Enterprise Evaluation** image, sets `Administrator` / `vmlab123!`, and on first logon installs
    the virtio guest tools and the vmlab guest agent.
 3. The script waits for the guest agent — that's the "install finished" signal.
-4. It disables Windows Update, copies `generalize.ps1` and
+4. It disables Windows Update, uninstalls OneDrive, copies `generalize.ps1` and
    `sysprep-unattend.xml` from the UNATTEND ISO into
    `C:\ProgramData\vmlab\sysprep\`, and shuts the VM down. vmlab seals
    this as the **base**, which is installed and patched but not generalized.
@@ -39,6 +39,13 @@ What happens (`scripts/install.ws` narrates it in the build log):
    generalized overlay as the `standard` variant.
 
 ## Base and variants
+
+OneDrive is removed from the base before generalize, so both variants inherit
+the removal. Provisioning clears its first-logon setup from the default user
+hive, removes leftover Start menu shortcuts and Explorer navigation entries,
+and sets `DisableFileSyncNGSC=1` to prevent file sync after feature updates.
+If shell DLLs remain locked, provisioning reboots and requires cleanup to
+succeed before generalize.
 
 A built version holds an unsealed base disk and named, sealed variants. Each
 variant is a qcow2 overlay on the base. This template defines two variants,
@@ -124,6 +131,70 @@ Using it:
 - The clone keeps the `vmlab-win3d-repair` startup task (part of the
   package), the test certificate in the Root and TrustedPublisher stores,
   and `testsigning` in the BCD.
+
+### Timeout recovery rebuild
+
+The local `26100.1742.10#win3d` rebuild uses the unreleased `0.1.3` package
+from vmlab-win3d commit `8f0a61f2baae7e6c8e1ae3ed9a0660cead0c6404`.
+Its KMD version is `100.6.101.58104`. The driver implements adapter timeout
+reset and restart, cancels pending transport requests, restores legacy
+contexts, and rejects lost opaque Vulkan/VirGL state. It also handles both
+queue and configuration causes for INTx status 3.
+
+The user-mode driver reports device loss when reset revokes a cached
+batch-feedback mapping. Native x64/x86 production-code probes reproduce
+the old access violation and confirm the corrected device-loss result.
+
+Driver PR: https://github.com/VMLabDev/vmlab-win3d/pull/3.
+
+The candidate's `SHA256SUMS` records:
+
+```text
+725a40921b1103542d73442e21b106732f00fcfa5b12f2b96f907128b644945a  vmlab-win3d-0.1.3.zip
+555954bfce7512f005d8d593713c623cea1f7a51d63189763b4b8f6cfb5555f5  vmlab-win3d-0.1.3/manifest.json
+```
+
+The package and manifest were checked against the build's `SHA256SUMS`,
+then all files were checked against `manifest.json`. The package is staged
+flat in `win3d/`, with `Install.cmd` and `manifest.json` at the WIN3D ISO
+root. No GitHub release was published. `fetch-deps.sh` still pins the
+published `0.1.2-alpha` bundle and replaces this local candidate if rerun.
+
+The new version has independent reflinks of the base and `standard` variant
+from `26100.1742.7`; only `win3d` is rebuilt. Earlier versions remain in place.
+The sealed `win3d/disk.qcow2` SHA256 is
+`4aaed1a2eab48884c18188ed5ba5ffd10112170c672b4fddaa35d2fe778ad512`.
+The build passed both Vulkan architectures and all static checks, then
+sysprep generalized on pass 0.
+
+The old `58101` driver reproduced bugcheck `0x116` on a forced native TDR,
+with reset returning `0xc00000bb`. Event 1001, WER BlueScreen code 116,
+and the minidump agree. The original unforced OOBE stall is not attributed
+to a specific cause.
+
+Four fresh native first boots passed, twice on NVIDIA and twice on AMD.
+All 24 Vulkan and x64/x86 D3D11 hardware readbacks passed before and after
+forced TDR. Both recovery counters advanced from zero to one, both statuses
+were zero, test policy was restored, and Windows continued without a
+bugcheck or OS reboot. First-boot counters were zero in every run.
+
+The intermediate `.9` checked-copy candidate fails x86 D3D11 device creation
+on both native NVIDIA and AMD before forced TDR. It is retained for evidence.
+The `.10` replacement uses direct memory access with a thread-scoped x86
+exception frame. Native production-code feedback tests also pass all ten cases.
+
+A OneDrive `ucrtbase.dll` access violation after forced TDR was seen in three
+runs. The owner explicitly excluded OneDrive and stopped its investigation.
+It was deliberately not pursued and does not block the acceptance bar of
+recovered Vulkan and x64/x86 D3D11 readback with no bugcheck.
+
+Native vmlab-hv reset currently lacks an explicit renderer-worker/GPU-idle
+acknowledgement and logs teardown errors without rejecting reset. Removed
+guest BAR aliases limit the memory-lifetime risk, but functional recovery
+does not prove the full backend quiescence contract. The driver PR records
+this limitation separately from the owner's functional acceptance. The host
+contract and current gap are documented in the regression PR:
+https://github.com/VMLabDev/vmlab-hypervisor/pull/4.
 
 ### Adding a variant
 

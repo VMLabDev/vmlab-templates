@@ -37,6 +37,13 @@ succeeds.
 
 ## Known risks
 
+OneDrive is uninstalled before generalize. Provisioning clears its first-logon
+setup from the default user hive, removes leftover Start menu shortcuts and
+Explorer navigation entries, and sets `DisableFileSyncNGSC=1` to prevent file
+sync after feature updates.
+If shell DLLs remain locked, provisioning reboots and requires cleanup to
+succeed before generalize.
+
 - **Speed.** On an x86 host there is no KVM for aarch64, so the entire guest
   runs under TCG emulation. A Windows install that takes ~30 min natively can
   take **many hours** here; `scripts/install.ws` waits up to 8h for the guest
