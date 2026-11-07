@@ -26,7 +26,7 @@ done
 echo "agent answered before the update (after $n retries)"
 $Q exec "$e/agent.sock" 60 'C:\WINDOWS\REGEDIT.EXE' /e 'C:\VMLAB\PRE.REG' 'HKEY_LOCAL_MACHINE\Enum' || true
 echo "== VMM2XUPD"
-$Q exec "$e/agent.sock" 300 'A:\VMM2XUPD.EXE' /Q:A /R:N; echo "vmm2xupd exec rc=$?"
+$Q exec "$e/agent.sock" 300 'C:\VMLAB\VMM2XUPD.EXE' /Q:A /R:N && rc=0 || rc=$?; echo "vmm2xupd exec rc=$rc"
 sleep 5
 $Q shot "$e/mon.sock" "$e/after-upd.png" >/dev/null
 $Q hmp "$e/mon.sock" quit >/dev/null 2>&1 || true
