@@ -134,11 +134,12 @@ def do_exec(path, timeout, argv):
         for kind, ch, payload in frames:
             if kind == 0 and ch == 0:
                 msg = json.loads(payload.decode(errors="replace"))
-                if state == "hello" and msg.get("cmd") == "hello" and msg.get("token") == "v85x":
+                ev = msg.get("event", msg.get("cmd"))
+                if state == "hello" and ev == "hello" and msg.get("token") == "v85x":
                     print("agent: %s" % payload.decode(errors="replace"), file=sys.stderr)
                     s.sendall(frame(json.dumps({"cmd": "open_exec", "id": 1, "argv": argv}).encode()))
                     state = "exec"
-                elif msg.get("cmd") == "exited" and msg.get("id") == 1:
+                elif ev == "exited" and msg.get("id") == 1:
                     code = msg.get("code")
                     print("exit %s" % code, file=sys.stderr)
                     s.close()
