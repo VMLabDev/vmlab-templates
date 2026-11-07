@@ -21,8 +21,9 @@ template "windows-95" {
   // Windows 9x crashes in Setup and Explorer on a modern host CPU's CPUID;
   // a period model keeps it on what it was written for. Clones inherit it.
   cpu_model = "pentium3"
-  // The provision requires verified FIX95CPU installation before sealing.
-  accel     = "kvm"
+  // No accel: vmlab picks hardware virtualisation (x86 TCG is gone, D7).
+  // FIX95CPU, applied at Setup's first reboot, makes 95 boot on a fast CPU;
+  // the provision refuses to seal without its success message.
   cpus    = 1
   memory  = 64MiB
   disk    = 2GiB

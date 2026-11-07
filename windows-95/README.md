@@ -27,11 +27,33 @@ The build targets KVM with `cpu_model = "pentium3"`. It retains the existing
 patcher9x speed-only staging for Setup, then applies FIX95CPU's replacement
 drivers at the first reboot. This ordering preserves the earlier installer
 fixes without applying two binary patches blindly to the same installed files.
-FIX95CPU's author release is
-https://msfn.org/board/topic/141402-windows-95-21ghz-cpu-limit-broken/.
-Needs a vmlab with `Machine.eject_cdrom`,
-`cpu_model` and `accel`. Runs on the `windows-9x` profile (i440fx/SeaBIOS,
+Needs a vmlab with `Machine.eject_cdrom`
+and `cpu_model`. The template sets no `accel`: vmlab picks hardware
+virtualisation, because x86 TCG is removed (Phase 4 decision D7). Runs on the `windows-9x` profile (i440fx/SeaBIOS,
 Cirrus VGA, IDE, PCnet).
+
+## Why FIX95CPU
+
+Unpatched Windows 95 stops at Setup's first reboot on a fast CPU, and under
+KVM the guest sees the host's real speed:
+
+- above 350 MHz: `While initializing device IOS: Windows Protection Error`
+  (Microsoft fixed it in AMDK6UPD.EXE, which runs only inside Windows);
+- above 2.1 GHz: `While initializing device NDIS: Windows Protection Error`
+  (MSKB Q312108; Microsoft shipped a fix for 98 only).
+
+FIX95CPU v3.0 by LoneCrusader installs the fixed system files from DOS, so
+the build can apply it before Windows first boots. The template used to run
+on TCG to avoid these errors; with x86 TCG removed, the patch is the fix.
+
+Source (staged by `stage-fix95cpu.sh`, not committed):
+
+- canonical: http://www.tmeeco.eu/9X4EVER/GOODIES/FIX95CPU_V3_FINAL.ZIP
+  (timed out when the template was written)
+- pinned mirror: https://archive.org/download/fix-95-cpu-v3-final/FIX95CPU_V3_FINAL.ZIP
+- sha256: `7618245fcc1005a975006c5f625ebf581a58309491642c8fdc9eef583deb0d40`
+  (the author publishes no hash; this is the mirror's file)
+- author's release: https://msfn.org/board/topic/141402-windows-95-21ghz-cpu-limit-broken/
 
 ## Build
 
