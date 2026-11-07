@@ -14,9 +14,22 @@ use vmlab
 
 fn boot_from_dvd(lab: Lab, vm: Vm) -> Result[unit, string] {
     for attempt in 0..4 {
-        // Spam enter through the prompt's window.
-        for i in 0..30 {
-            let k = vm.send_keys("enter")   // bind unused Result
+        // Press enter only while the prompt is on screen, for up to 60 s.
+        // Blind presses outlive the prompt on a fast boot: they reach Windows
+        // Setup, land on its Cancel button and leave it at "Are you sure you
+        // want to quit?". Stop once the prompt has come and gone.
+        let seen = false
+        for i in 0..60 {
+            let screen = match vm.ocr() {
+                Ok(t) => t,
+                Err(_) => "",
+            }
+            if screen.contains("Press any key") {
+                seen = true
+                let k = vm.send_keys("enter")   // bind unused Result
+            } else if seen {
+                break
+            }
             vmlab::sleep_ms(1000)
         }
         // If we missed it, OVMF falls through to its shell; reset and retry.
