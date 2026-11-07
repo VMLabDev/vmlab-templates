@@ -1,0 +1,449 @@
+// Install Windows 95 from its bootable CD, unattended through B:\MSBATCH.INF,
+// and bake vmlab's legacy agent.
+//
+// The CD's El Torito boot floppy becomes A:, so the answer floppy (built from
+// ./answer/ by fetch-deps.sh) is B:. The boot floppy maps the CD to X: and
+// runs Setup straight away; there is no "boot from hard disk" choice. That
+// Setup partitions and formats the blank disk, but takes no answer file, so it
+// is used for that and quit: at the third welcome screen, F3 twice drops to
+// X:\WIN95>.
+//
+// B:\VMLAB.BAT then copies the agent and the patched \WIN95 tree from the
+// VMLABSRC CD (see fetch-deps.sh) to C: and runs Setup from C:\WIN95 with
+// B:\MSBATCH.INF. When Setup's own reboot lands back in the CD's Setup, the CD
+// is ejected and the machine reset, so it boots the disk.
+//
+// The OEM Product ID is typed into Setup's Product Identification page rather
+// than read from MSBATCH.INF: retail 4.00.950 Setup rejects an OEM ID passed as
+// ProductID= that it accepts when typed. fetch-deps.sh writes it into
+// scripts/install.ws from WINDOWS_95_OEM_KEY.
+//
+// MSBATCH.INF registers C:\VMLAB\VMLABAGT.EXE under RunServices, so the agent
+// answers on COM1 before anyone logs on. The build script waits for that
+// answer; the builder then verifies the handshake and seals with a graceful
+// shutdown.
+
+use vmlab
+
+// The screen's text, or nothing when OCR fails.
+fn screen(vm: Vm) -> string {
+    match vm.ocr() {
+        Ok(t) => t,
+        Err(_) => "",
+    }
+}
+
+// Logon dialogs use small bitmap fonts that need sparse, enlarged OCR.
+fn desktop_screen(vm: Vm) -> string {
+    match vm.ocr_opts(#{ "layout": "sparse", "scale": "3" }) {
+        Ok(t) => t,
+        Err(_) => screen(vm),
+    }
+}
+
+// Wait until `expect` is on screen.
+fn wait_text(vm: Vm, expect: string, secs: int) -> Result[unit, string] {
+    match vm.wait_for_text(expect, secs) {
+        Ok(_) => Ok(()),
+        Err(e) => Err("never saw \"" + expect + "\": " + e),
+    }
+}
+
+// Press `chord` until `expect` appears; a real-mode TUI drops keys.
+fn key_until(vm: Vm, chord: string, expect: string, secs: int) -> Result[unit, string] {
+    for attempt in 0..6 {
+        vm.send_keys(chord)?
+        match vm.wait_for_text(expect, secs) {
+            Ok(_) => return Ok(()),
+            Err(_) => vmlab::sleep_ms(800),
+        }
+    }
+    Err("never reached the screen showing \"" + expect + "\"")
+}
+
+// Type `text`, then confirm `expect` appears, retrying the input if dropped.
+fn type_until(vm: Vm, text: string, expect: string, secs: int) -> Result[unit, string] {
+    for attempt in 0..5 {
+        vm.type_text(text)?
+        match vm.wait_for_text(expect, secs) {
+            Ok(_) => return Ok(()),
+            Err(_) => vmlab::sleep_ms(800),
+        }
+    }
+    Err("typed input never produced \"" + expect + "\"")
+}
+
+// Whether the Add Printer Wizard is on screen.
+fn printer_wizard(vm: Vm) -> bool {
+    on_screen(vm, "ref/printer-wizard.png")
+}
+
+// Whether the reference image under scripts/ is on screen.
+fn on_screen(vm: Vm, image: string) -> bool {
+    match vm.find_image(image) {
+        Ok(Some(_)) => true,
+        _ => false,
+    }
+}
+
+// Require near-exact matches for references that share many pixels.
+fn on_screen_strict(vm: Vm, image: string) -> bool {
+    match vm.find_image(image) {
+        Ok(Some(m)) => m.score >= 0.99,
+        _ => false,
+    }
+}
+
+fn missing_user_name(s: string) -> bool {
+    s.contains("forgot to enter") && s.contains("name")
+}
+
+fn license_accept_key(radio: bool) -> string {
+    if radio {
+        return "alt-a"
+    }
+    "alt-y"
+}
+
+fn needs_certificate(s: string, requested: bool, typed: bool) -> bool {
+    s.contains("Certificate of Authenticity") && !requested && !typed
+}
+
+fn finish_prompt(s: string) -> bool {
+    s.contains("Start Wizard") && s.contains("saved all information")
+}
+
+fn registry_problem(s: string) -> bool {
+    s.contains("Registry Problem") || (s.contains("error accessing the system") && s.contains("registry"))
+}
+
+// Quit normally so failed-build cleanup does not discard cached image metadata.
+fn build_failure(vm: Vm, failure: string) -> Result[unit, string] {
+    let stop_error = match vm.poweroff() {
+        Ok(_) => "",
+        Err(e) => "; emulator poweroff failed: " + e,
+    }
+    Err(failure + stop_error)
+}
+
+// Agent readiness alone must not seal a build that skipped the patch installer.
+fn require_fix95cpu(required: bool, applied: bool) -> Result[unit, string] {
+    if required && !applied {
+        return Err("the agent answered before FIX95CPU installation was verified")
+    }
+    Ok(())
+}
+
+// Both passes need the desktop with no remaining Setup page, not only RunServices.
+fn setup_ready(required: bool, applied: bool, answering: bool, desktop: bool, pending: bool) -> Result[bool, string] {
+    if answering {
+        require_fix95cpu(required, applied)?
+    }
+    Ok(answering && desktop && !pending)
+}
+
+// Count only consecutive post-patch desktop polls before the one recovery restart.
+fn desktop_agent_polls(required: bool, applied: bool, restarted: bool, desktop: bool, previous: int) -> int {
+    if required && applied && !restarted && desktop {
+        return previous + 1
+    }
+    0
+}
+
+// Recover only the observed post-patch corruption, once an agent has answered.
+fn corrupt_display_polls(required: bool, applied: bool, seen_agent: bool, restarted: bool, visible: bool, previous: int) -> int {
+    if required && applied && seen_agent && !restarted && visible {
+        return previous + 1
+    }
+    0
+}
+
+// Clear the remaining Setup pages and require a verified patch on the first pass.
+fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit, string] {
+    // In sync with WINDOWS_95_OEM_KEY (xxxxx-OEM-xxxxxxx-xxxxx).
+    let product_id = "__PRODUCT_KEY__"
+    // The same ID as OSR2's Certificate of Authenticity page takes it: three
+    // boxes, without "OEM" and the dashes.
+    let coa = ["__COA_1__", "__COA_2__", "__COA_3__"]
+    let typed_id = false
+    let typed_oem_coa = false
+    let oem_coa_requested = false
+    let ready_polls = 0
+    let patch_applied = false
+    let desktop_polls = 0
+    let desktop_restarted = false
+    let seen_agent = false
+    let corrupt_polls = 0
+    let corrupt_restarted = false
+    let rounds = secs / 15
+    let shutting_down = 0
+    for round in 0..rounds {
+        let answering = vm.agent_answering()
+        if answering {
+            require_fix95cpu(require_patch, patch_applied)?
+            seen_agent = true
+        }
+        // Windows 95 can hang for good at "Please wait while your computer
+        // shuts down" (the agent restarts it once, see MSBATCH.INF). After
+        // three minutes on that screen the emulator is restarted; the CD then
+        // boots its Setup, which the "Welcome to Setup" case below turns back
+        // into a disk boot.
+        if on_screen(vm, "ref/shutting-down.png") {
+            shutting_down = shutting_down + 1
+            if shutting_down >= 12 {
+                lab.log("Windows hung shutting down; restarting the emulator")
+                vm.restart()?
+                shutting_down = 0
+                vmlab::sleep_ms(15000)
+                continue
+            }
+        } else {
+            shutting_down = 0
+        }
+        let corrupt_visible = require_patch && patch_applied && seen_agent && on_screen_strict(vm, "ref/corrupt-display.png")
+        corrupt_polls = corrupt_display_polls(require_patch, patch_applied, seen_agent, corrupt_restarted, corrupt_visible, corrupt_polls)
+        if corrupt_polls >= 12 {
+            corrupt_restarted = true
+            lab.log("corrupted display persisted for 12 post-patch polls after agent readiness; restarting the emulator once")
+            vm.restart()?
+            vmlab::sleep_ms(15000)
+            continue
+        }
+        let s = screen(vm)
+        if !require_patch || patch_applied {
+            s = desktop_screen(vm)
+        }
+        if registry_problem(s) || on_screen_strict(vm, "ref/registry-problem.png") {
+            return build_failure(vm, "Windows 95 reported a system-registry error; backup restoration and sealing were not attempted")
+        }
+        // With no ProductID in MSBATCH.INF, Express Setup submits the empty
+        // field and shows "Invalid Product Identification Number". OCR cannot
+        // read that dialog, so it is matched by image (scripts/ref/). OK
+        // returns to the page, where the ID is typed.
+        let invalid_text = s.contains("Invalid Product Identification") || s.contains("you specified is not valid")
+        let refused_image = match vm.find_image("ref/id-invalid.png") {
+            Ok(Some(_)) => true,
+            _ => false,
+        }
+        let refused = invalid_text || refused_image
+        let desktop_visible = on_screen(vm, "ref/desktop-start.png")
+        let radio_license = on_screen(vm, "ref/license-radio.png")
+        let wizard_coa_invalid = on_screen(vm, "ref/coa-invalid-wizard.png")
+        let legacy_coa_invalid = on_screen(vm, "ref/coa-invalid.png")
+        let printer_pending = printer_wizard(vm) || s.contains("You must install")
+        let setup_pending = refused || radio_license || wizard_coa_invalid || legacy_coa_invalid || printer_pending || s.contains("Certificate of Authenticity") || s.contains("license agreement") || s.contains("License Agreement") || s.contains("Windows Components") || s.contains("User Information") || s.contains("Start Wizard")
+        if refused {
+            if typed_id {
+                return Err("Setup rejected WINDOWS_95_OEM_KEY; set a valid 20-digit OEM Product ID in .env")
+            }
+            lab.log("Setup page: typing the OEM Product ID")
+            vm.send_keys("enter")?
+            vmlab::sleep_ms(2000)
+            vm.type_text(product_id)?
+            vm.send_keys("enter")?
+            typed_id = true
+        } else if s.contains("Welcome to Setup") {
+            // A process restart reattaches the install CD. After the VMM hotfix,
+            // leave its Setup without repeating the earlier patch.
+            key_until(vm, "f3", "To quit Setup, press F3", 15)?
+            vm.send_keys("f3")?
+            type_until(vm, "cls\nver\n", "Version", 10)?
+            if require_patch && !patch_applied {
+                // Keep the original installer's README choice and confirmations.
+                lab.log("Setup rebooted into DOS; applying FIX95CPU")
+                vm.type_text("b:\\fix95\n")?
+                wait_text(vm, "High-Speed Processor Support Setup", 60)?
+                vm.send_keys("space")?
+                wait_text(vm, "Recommended", 30)?
+                vm.send_keys("n")?
+                wait_text(vm, "Ready to install", 30)?
+                vm.send_keys("space")?
+                wait_text(vm, "INSTALLED SUCCESSFULLY", 120)?
+                patch_applied = true
+                lab.log("FIX95CPU installation succeeded")
+            } else {
+                lab.log("patch already verified or not required; skipping FIX95CPU and booting the installed disk")
+            }
+            vm.eject_cdrom()?
+            vm.send_keys("ctrl-alt-delete")?
+        } else if wizard_coa_invalid {
+            if typed_oem_coa {
+                return Err("OEM Setup rejected WINDOWS_95_OEM_KEY; set a valid 20-digit OEM Product ID in .env")
+            }
+            vm.send_keys("enter")?
+            vmlab::sleep_ms(2000)
+            lab.log("OEM Setup: typing the numeric certificate groups")
+            vm.type_text(coa[0] + coa[1] + coa[2])?
+            vm.send_keys("enter")?
+            typed_oem_coa = true
+        } else if legacy_coa_invalid {
+            // OSR2 and later submit the empty Certificate of Authenticity
+            // page first. OCR reads that dialog poorly, so it is matched by
+            // its title bar; Re-enter returns to the page, focus in box one.
+            if typed_id {
+                return Err("Setup rejected WINDOWS_95_OEM_KEY; set a valid 20-digit OEM Product ID in .env")
+            }
+            vm.send_keys("enter")?
+            vmlab::sleep_ms(2000)
+            lab.log("Setup page: typing the OEM Product ID into the certificate boxes")
+            // A full box moves focus to the next one by itself, so the
+            // groups are typed back to back; a Tab would skip a box.
+            vm.type_text(coa[0] + coa[1] + coa[2])?
+            vm.send_keys("enter")?
+            typed_id = true
+        } else if needs_certificate(s, oem_coa_requested, typed_oem_coa) {
+            lab.log("OEM Setup: submitting the initial certificate page for validation")
+            vm.send_keys("enter")?
+            oem_coa_requested = true
+        } else if s.contains("ScanDisk") {
+            // OSR2 and later scan C: at boot after an unclean shutdown, such
+            // as the emulator restart above, and stop on each problem found.
+            // Each prompt's default (Save, then Exit) lets the boot go on,
+            // except the Undo disk prompt's, which waits for a floppy in A:.
+            if s.contains("Undo") {
+                lab.log("ScanDisk prompt at boot: skipping the Undo disk")
+                vm.send_keys("s")?
+            } else {
+                lab.log("ScanDisk prompt at boot: taking its default")
+                vm.send_keys("enter")?
+            }
+        } else if radio_license || s.contains("license agreement") {
+            lab.log("Setup page: accepting the license")
+            vm.send_keys(license_accept_key(radio_license))?
+            if radio_license {
+                vm.send_keys("enter")?
+            }
+        } else if s.contains("Windows Components") || s.contains("User Information") {
+            lab.log("Setup wizard page: Next")
+            vm.send_keys("enter")?
+        } else if finish_prompt(s) {
+            lab.log("OEM Setup: Finish")
+            vm.send_keys("enter")?
+        } else if printer_pending {
+            // OCR does not read the wizard reliably, so its title bar is also
+            // matched by image (scripts/ref/printer-wizard.png).
+            lab.log("Setup page: no printer")
+            vm.send_keys("esc")?
+        } else if on_screen_strict(vm, "ref/new-clock-settings.png") || s.contains("New clock settings") {
+            lab.log("logon clock notice: accepting the current settings")
+            vm.send_keys("enter")?
+        } else if missing_user_name(s) {
+            lab.log("logon dialog: dismissing the missing-name notice")
+            vm.send_keys("enter")?
+        } else if on_screen_strict(vm, "ref/set-windows-password.png") || s.contains("Set Windows Password") {
+            // Confirming the new user's (empty) password.
+            lab.log("logon dialog: confirming the empty password")
+            vm.send_keys("enter")?
+        } else if on_screen_strict(vm, "ref/enter-windows-password.png") || s.contains("Enter Network Password") || s.contains("Enter Windows Password") {
+            // RunServices starts before logon. Create the empty-password
+            // vmlab profile before running the desktop-dependent updater.
+            lab.log("logon dialog: logging on as vmlab with an empty password")
+            vm.type_text("vmlab")?
+            vm.send_keys("enter")?
+        }
+        if setup_ready(require_patch, patch_applied, answering, desktop_visible, setup_pending)? {
+            ready_polls = ready_polls + 1
+            if ready_polls >= 2 {
+                lab.log("desktop and COM1 agent stable after Setup")
+                return Ok(())
+            }
+        } else {
+            ready_polls = 0
+        }
+        desktop_polls = desktop_agent_polls(require_patch, patch_applied, desktop_restarted, desktop_visible && !answering && !setup_pending, desktop_polls)
+        if desktop_polls >= 12 {
+            desktop_restarted = true
+            lab.log("agent absent after 12 post-patch desktop polls; serial enumeration may need another boot, restarting once")
+            vm.restart()?
+            vmlab::sleep_ms(15000)
+            continue
+        }
+        vmlab::sleep_ms(15000)
+    }
+    Err("the desktop and COM1 agent were not both ready after Setup")
+}
+
+fn update_vmm(vm: Vm) -> Result[unit, string] {
+    let failure = match vm.exec("C:\\VMLAB\\VMM2XUPD.EXE", ["/Q:A", "/R:N"]) {
+        Ok(result) => {
+            if result.exit_code == 0 {
+                return Ok(())
+            }
+            "VMM2XUPD failed: " + fmt("{}", result.exit_code)
+        },
+        Err(e) => "VMM2XUPD execution failed: " + e,
+    }
+    build_failure(vm, failure)
+}
+
+fn install(lab: Lab) -> Result[unit, string] {
+    let vm = lab.vm("build")?
+
+    // First pass of Setup from the CD: configure the blank disk, reboot. A
+    // FAT32-capable release asks about large disk support first.
+    lab.log("partitioning: Setup from the CD configures the blank disk")
+    wait_text(vm, "Welcome to Setup", 1800)?
+    key_until(vm, "enter", "unallocated", 15)?
+    vm.send_keys("enter")?
+    // VML-85 spike: wait for the large disk prompt (a loaded host shows it
+    // after the old fixed 4 s check), pick Yes, and repeat a dropped Enter.
+    wait_text(vm, "large disk", 90)?
+    vm.send_keys("down")?
+    vmlab::sleep_ms(1000)
+    key_until(vm, "enter", "restart your computer", 20)?
+    vm.send_keys("enter")?
+
+    // Second pass formats the new partition, then quits before ScanDisk.
+    lab.log("formatting: Setup's second pass formats C:")
+    wait_text(vm, "routine check", 2400)?
+    key_until(vm, "esc", "restart your system", 15)?
+    vm.send_keys("enter")?
+
+    // Third pass: quit at the welcome screen to the X:\WIN95> prompt.
+    lab.log("returning to the prompt with the CD driver loaded")
+    wait_text(vm, "Welcome to Setup", 1800)?
+    key_until(vm, "f3", "To quit Setup, press F3", 15)?
+    vm.send_keys("f3")?
+    // OCR misreads the prompt's own text (WIN98> comes back as WINSB>), so
+    // `ver` proves the prompt is there: its output says "Version", which the
+    // typed command does not (COMMAND.COM expands no %variables% at the
+    // prompt, so an echoed sentinel would match its own command line).
+    type_until(vm, "cls\nver\n", "Version", 10)?
+
+    // One short command: B:\\VMLAB.BAT stages C:\\VMLAB, copies the patched
+    // install folder from the VMLABSRC CD (see fetch-deps.sh) to C: and starts
+    // Setup there. Real-mode DOS drops keystrokes, so typing that whole
+    // sequence was what failed; the batch's own echo proves it started (OCR
+    // reads "vmlab" as "umlab", so the check matches the rest of the line).
+    // The CD stays in for now: its boot floppy is A:, where XCOPY and
+    // COMMAND.COM come from. finish_setup ejects it when Setup's reboot lands
+    // back in the CD's Setup.
+    lab.log("running B:\\VMLAB.BAT: stage C:, copy the patched tree, start Setup")
+    type_until(vm, "b:\\vmlab\n", "staging Setup", 30)?
+
+    // File copy, reboots, hardware detection.
+    finish_setup(lab, vm, 14400, true)?
+    lab.log("legacy agent answering on COM1")
+
+    // FIX95CPU's README requires this additional VMM update on OSR2 only.
+    update_vmm(vm)?
+    lab.log("VMM2XUPD completed successfully; restarting without reapplying FIX95CPU")
+    vm.restart()?
+    finish_setup(lab, vm, 1800, false)?
+
+    // The build verifies the agent's handshake on its own and then seals with
+    // a graceful shutdown, which goes through this agent and flushes the disk
+    // cache. Shutting down here would race that verification.
+    lab.log("Windows 95 installed; the build verifies the agent and seals")
+    Ok(())
+}
+
+fn main(lab: Lab) {
+    match install(lab) {
+        Ok(u) => u,
+        Err(e) => {
+            let failed: Result[unit, string] = Err(e)
+            failed.expect("windows-95 build failed: " + e)
+        },
+    }
+}
