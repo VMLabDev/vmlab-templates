@@ -188,7 +188,9 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int, require_patch: bool) -> Result[unit
         // three minutes on that screen the emulator is restarted; the CD then
         // boots its Setup, which the "Welcome to Setup" case below turns back
         // into a disk boot.
-        if on_screen(vm, "ref/shutting-down.png") {
+        // VML-85 spike: on KVM the hung shutdown logo is captured as a text-mode
+        // grid of bars (ref/shutdown-grid.png), which the logo ref never matches.
+        if on_screen(vm, "ref/shutting-down.png") || on_screen(vm, "ref/shutdown-grid.png") {
             shutting_down = shutting_down + 1
             if shutting_down >= 12 {
                 lab.log("Windows hung shutting down; restarting the emulator")
