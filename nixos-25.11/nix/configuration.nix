@@ -16,6 +16,8 @@
   systemd.services.vmlab-agent = {
     description = "vmlab guest agent (terminals/exec/files over virtio-serial)";
     wantedBy = [ "multi-user.target" ];
+    # Exec requests need the commands and wrappers available to login shells.
+    environment.PATH = "/run/wrappers/bin:/run/current-system/sw/bin";
     serviceConfig = {
       ExecStart = "/usr/local/lib/vmlab/vmlab-agent";
       Restart = "always";
