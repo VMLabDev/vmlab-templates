@@ -1,6 +1,6 @@
 # System configuration baked into the nixos-25.11 template.
 # Credentials: vmlab / vmlab (passwordless sudo via wheel); root is locked.
-{ config, pkgs, ... }:
+{ lib, ... }:
 
 {
   imports = [ ./hardware-configuration.nix ];
@@ -16,6 +16,8 @@
   systemd.services.vmlab-agent = {
     description = "vmlab guest agent (terminals/exec/files over virtio-serial)";
     wantedBy = [ "multi-user.target" ];
+    # Override the generated service PATH so exec can find login shell commands.
+    environment.PATH = lib.mkForce "/run/wrappers/bin:/run/current-system/sw/bin";
     serviceConfig = {
       ExecStart = "/usr/local/lib/vmlab/vmlab-agent";
       Restart = "always";

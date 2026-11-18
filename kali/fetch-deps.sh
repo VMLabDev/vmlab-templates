@@ -17,7 +17,8 @@ set -eu
 
 VERSION="2026.1"
 ARCHIVE="kali-linux-${VERSION}-qemu-amd64.7z"
-URL="https://cdimage.kali.org/kali-${VERSION}/${ARCHIVE}"
+# Pinned releases move off cdimage.kali.org when newer releases arrive.
+URL="https://old.kali.org/kali-images/kali-${VERSION}/${ARCHIVE}"
 SHA256="efce2da10c775da5f58954166f633d5da9115e29663731dcb65d616f19d966f4"
 
 cd "$(dirname "$0")"

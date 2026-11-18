@@ -36,5 +36,24 @@ Notes:
   `sha256` (or update both for a newer build via `sha256sum`).
 - The sealed image is **generalized**: each clone's first boot replays
   `sysprep-unattend.xml` — fresh SID, auto-generated computer name, OOBE
-  skipped, `Administrator` / `vmlab123!` restored with one autologon — so
+  skipped, `Administrator` restored with the build password, which the first boot replaces (see [Login password](#login-password)), no autologon — so
   clones are domain-joinable out of the box. (the build-time computer name VMLAB-WS2019 is replaced per clone)
+
+## Login password
+
+Each clone gets its own password for `Administrator` at its first boot
+(`scripts/firstboot.ws`), after sysprep's OOBE pass and before the clone is
+reported ready, so no lab starts with the `vmlab123!` build password from the
+answer files.
+
+- To choose a password, declare a login for the account on the machine in
+  the lab file: `login "admin" { user = "Administrator" password = "..." }`. The first boot sets it. It must meet the Windows
+  password policy. With the login declared, `vmlab exec`, `vmlab shell` and
+  RDP app sharing log on as that account.
+- Every account without a declared password gets one random 24-character
+  password. Read it with
+  `vmlab exec <vm> -- cmd /c type C:\ProgramData\vmlab\password.txt`
+  (only SYSTEM and Administrators can read the file).
+
+`vmlab exec`, `vmlab shell` and provisions without a declared login run
+through the guest agent as SYSTEM and need no password.

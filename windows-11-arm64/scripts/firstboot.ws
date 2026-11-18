@@ -317,10 +317,72 @@ fn image_fixed(lab: Lab, vm: Vm) -> bool {
     false
 }
 
+// Give the clone its own login passwords, so no lab made from this template
+// opens with the published one from the answer files. An account takes the
+// password of a `login {}` block the lab declares for it on the machine
+// (`login "vmlab" { user = "vmlab" password = "..." }`). Every account the lab
+// declares no password for gets one random 24-character password, generated in
+// the guest and written to C:\ProgramData\vmlab\password.txt, which only SYSTEM
+// and Administrators can read:
+//
+//   vmlab exec <vm> -- cmd /c type C:\ProgramData\vmlab\password.txt
+//
+// It runs after wait_user_oobe, because the oobeSystem pass sets the answer
+// file's passwords. The template declares no logins, so every login seen here
+// is the lab's. The vmlab guest agent runs as SYSTEM and its authentication
+// does not change. A failure fails the first boot rather than leave the
+// published password in place.
+fn declared_password(vm: Vm, account: string) -> string {
+    for login in vm.logins() {
+        if login.user.to_lower() == account.to_lower() {
+            let Some(p) = login.password else { continue }
+            return p
+        }
+    }
+    ""
+}
+
+// A PowerShell single-quoted literal: a quote inside doubles.
+fn ps_literal(s: string) -> string {
+    "'" + s.replace("'", "''") + "'"
+}
+
+fn set_lab_passwords(lab: Lab, vm: Vm) -> Result[unit, string] {
+    let declared = "@{{ 'vmlab' = " + ps_literal(declared_password(vm, "vmlab")) + "; 'Administrator' = " + ps_literal(declared_password(vm, "Administrator")) + " }}"
+    let ps = "$ErrorActionPreference = 'Stop'; $lab = " + declared + "; $c = [char[]]'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'; $b = New-Object byte[] 20; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); $gen = 'Vl7-' + -join ($b | ForEach-Object {{ $c[$_ % $c.Length] }}); $names = @(Get-CimInstance Win32_UserAccount -Filter 'LocalAccount=True' | ForEach-Object {{ $_.Name }}); $used = $false; foreach ($u in @('vmlab', 'Administrator')) {{ if ($names -notcontains $u) {{ 'skipped ' + $u + ' (no such account)'; continue }}; $p = $lab[$u]; $src = 'lab'; if (-not $p) {{ $p = $gen; $used = $true; $src = 'generated' }}; $e = [ADSI]('WinNT://' + $env:COMPUTERNAME + '/' + $u + ',user'); $e.SetPassword($p); $e.SetInfo(); 'set ' + $u + ' (' + $src + ')' }}; $f = 'C:\\ProgramData\\vmlab\\password.txt'; if ($used) {{ New-Item -ItemType Directory -Force -Path (Split-Path $f) | Out-Null; New-Item -ItemType File -Force -Path $f | Out-Null; icacls $f /inheritance:r /grant:r '*S-1-5-18:F' '*S-1-5-32-544:F' | Out-Null; if ($LASTEXITCODE -ne 0) {{ throw 'icacls failed' }}; Set-Content -Path $f -Value $gen -Encoding ASCII }} else {{ Remove-Item -Force -ErrorAction SilentlyContinue $f }}; 'done'"
+    // The agent can blip right after OOBE; a failed exec is retried, a
+    // script that ran and failed is not.
+    for i in 0..5 {
+        match vm.exec("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", ps]) {
+            Ok(r) => {
+                let out = r.stdout.trim()
+                if r.exit_code != 0 || !out.ends_with("done") {
+                    return Err(fmt("setting the login passwords exited {}: {}", r.exit_code, r.stderr.trim()))
+                }
+                lab.log("first-boot: login passwords: " + out.replace("\r\n", ", ").replace("\n", ", "))
+                if out.contains("(generated)") {
+                    lab.log("first-boot: read the generated password with: vmlab exec " + vm.name() + " -- cmd /c type C:\\ProgramData\\vmlab\\password.txt")
+                }
+                return Ok(())
+            }
+            Err(e) => lab.log("first-boot: agent busy (" + e + "); retrying the login passwords"),
+        }
+        vmlab::sleep_ms(5000)
+    }
+    Err("the agent did not answer to set the login passwords")
+}
+
 fn main(lab: Lab) {
     let vm = lab.this_vm().expect("first-boot: no target VM")
     wait_first_boot(lab, vm).expect("windows first-boot failed")
     wait_user_oobe(lab, vm)
+    match set_lab_passwords(lab, vm) {
+        Ok(u)  => u,
+        Err(e) => {
+            let failed: Result[unit, string] = Err(e)
+            failed.expect("first-boot: login passwords failed: " + e)
+        },
+    }
     let fixed = image_fixed(lab, vm)
     settle_appx(lab, vm)
     if !fixed {
