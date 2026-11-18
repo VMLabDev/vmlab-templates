@@ -6,9 +6,9 @@
 //
 //   vmlab template build        (run from this directory)
 //
-// The cloud image in releases/26.04/release/ is periodically respun; if the
-// sha256 stops matching, refresh it from
-// https://cloud-images.ubuntu.com/releases/26.04/release/SHA256SUMS
+// Image pinned to release-20261108; sha256 from that directory's SHA256SUMS,
+// verified with the Ubuntu cloud image signing key
+// D2EB44626FDDC30B513D5BB71A5D6C4C7DB87C81.
 
 import <vmlab.wcl>
 
@@ -23,8 +23,8 @@ template "ubuntu-26.04" {
   disk     = 20GiB
 
   source "qcow2" {
-    url    = "https://cloud-images.ubuntu.com/releases/26.04/release/ubuntu-26.04-server-cloudimg-amd64.img"
-    sha256 = "8196be9d7958059cb56c6c75c80fdf6cee8a8885bc149ea791d7db1c7ef93035"
+    url    = "https://cloud-images.ubuntu.com/releases/26.04/release-20261108/ubuntu-26.04-server-cloudimg-amd64.img"
+    sha256 = "7b90593f5532b49b7e3fe3d2743f0d1f0d822e5b07cebcd8e00c0df8069ecab9"
   }
 
   media { kind = "iso" from = "./cloudinit/" label = "CIDATA" }
