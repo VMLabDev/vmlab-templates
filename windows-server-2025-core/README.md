@@ -50,7 +50,7 @@ Notes:
   (sha256: download the ISO once and `sha256sum` it).
 - The sealed image is **generalized**: each clone's first boot replays
   `sysprep-unattend.xml` — fresh SID, auto-generated computer name, OOBE
-  skipped, `Administrator` restored with one autologon and the build password, which the first boot replaces (see [Login password](#login-password)) — so
+  skipped, `Administrator` restored with the build password, which the first boot replaces (see [Login password](#login-password)), no autologon — so
   clones are domain-joinable out of the box (the build-time computer name
   VMLAB-WS2025C is replaced per clone). First boot of a clone takes a few extra
   minutes while specialize runs.

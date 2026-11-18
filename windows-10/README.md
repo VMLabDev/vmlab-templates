@@ -143,7 +143,7 @@ Notes:
   `sha256` (or update both for a newer build via `sha256sum`).
 - The `standard` variant is **generalized**: each clone's first boot replays
   `sysprep-unattend.xml` — fresh SID, auto-generated computer name, OOBE
-  skipped, `Administrator` restored with one autologon and the build password, which the first boot replaces (see [Login password](#login-password)) — so
+  skipped, `Administrator` restored with the build password, which the first boot replaces (see [Login password](#login-password)), no autologon — so
   clones are domain-joinable out of the box. (the build-time name VMLAB-WIN10 is replaced per clone)
 
 ## Login password
