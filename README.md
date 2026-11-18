@@ -162,8 +162,15 @@ on its own with `just windows-11-arm64-build`. See its README.
 
 ## Conventions
 
-- Credentials baked into every template: user `vmlab`, password `vmlab`
-  (Windows: `Administrator` / `vmlab123!` — see its README).
+- Build credentials: user `vmlab`, password `vmlab` (Windows:
+  `Administrator` / `vmlab123!`). The published templates do not keep them:
+  each clone's first boot sets a password from a `login {}` the lab declares
+  for the account, or else a random one stored in the guest
+  (`/root/vmlab-password`, or `C:\ProgramData\vmlab\password.txt` on
+  Windows). The "Login password" section of each template's README says how
+  to read or set it. The templates built from local media (the `iso/`
+  Windows and vintage targets) and `macos-tahoe` still keep their build
+  credentials.
 - The QEMU guest agent is installed and enabled, so lab clones come up
   with the "ready" flag and support `vmlab exec` / `vmlab cp`.
 - Versions are pinned; ISO/qcow2 sources carry sha256 sums from the

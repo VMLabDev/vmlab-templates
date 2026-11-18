@@ -28,5 +28,8 @@ template "nixos-25.11" {
   media { kind = "iso" from = "./nix/" label = "NIXSETUP" }
   nic { nat = true }
 
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "scripts/firstboot.ws"
+
   provision "scripts/install.ws" { }
 }
