@@ -1,6 +1,6 @@
 # Windows 95 OSR2
 
-Builds `x86/windows-95-osr2` (4.00.1111) from the vanilla Windows 95 OSR2 CD, unattended, with
+Builds `x86/windows-95-osr2` (4.00.1111-2) from the vanilla Windows 95 OSR2 CD, unattended, with
 vmlab's legacy agent baked in.
 
 - `../iso/win95_osr2_en.iso` (gitignored) is the install media. It is OEM media
@@ -22,9 +22,11 @@ vmlab's legacy agent baked in.
   agent answers on COM1 before logon, exec only. The build seals with a
   graceful shutdown.
 
-It runs under TCG (`accel = "tcg"`) on a `pentium3` CPU model: on AMD hosts
-Windows 95 hangs at random under KVM (its TLB-invalidation bug, which
-patcher9x fixes only for 98 and later). Needs a vmlab with `Machine.eject_cdrom`,
+It builds and boots under KVM (`accel = "kvm"`) on a `pentium3` CPU model.
+Setup selects a PS/2 mouse so serial mouse detection cannot claim COM1.
+The build waits for the large disk prompt, recovers from the shutdown logo
+or bar grid hang, and retries a GUI Setup stack overflow up to three times.
+Needs a vmlab with `Machine.eject_cdrom`,
 `cpu_model` and `accel`. Runs on the `windows-9x` profile (i440fx/SeaBIOS,
 Cirrus VGA, IDE, PCnet).
 
