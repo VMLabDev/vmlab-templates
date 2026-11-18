@@ -18,7 +18,12 @@ main:
 
 # Everything a change must pass before it can merge
 [group('ci')]
-check: wcl-sync-check wcl-check examples-check docs-tool-check docs-build
+check: wcl-sync-check validation-tool-check wcl-check examples-check docs-tool-check docs-build
+
+# Verify tolerated host prerequisites never hide unrelated validation errors
+[group('ci')]
+validation-tool-check: require-uv
+	uv run python scripts/test-validate-templates.py
 
 # Verify docs CLI pinning without network access or tool installation
 [group('ci')]
