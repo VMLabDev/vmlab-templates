@@ -1,8 +1,8 @@
 // Parrot OS (Security edition) template built from the official QEMU
-// qcow2. Parrot ships it zipped, so fetch-deps.sh downloads, verifies and
+// qcow2. Parrot ships it compressed with xz, so fetch-deps.sh downloads, verifies and
 // extracts it first (vmlab URL sources need a raw qcow2):
 //
-//   ./fetch-deps.sh             # one-time: ~3G download into disk/
+//   ./fetch-deps.sh             # one-time: ~9G download into disk/
 //   vmlab template build        (run from this directory)
 //
 // The provision script waits for the vmlab guest agent, falling back to a
@@ -12,7 +12,7 @@ import <vmlab.wcl>
 
 template "parrot" {
   arch    = "x86_64"
-  version = "7.2"
+  version = "7.4"
   registry = "ghcr.io/vmlabdev/vmlab-templates/parrot"
   profile = "linux-modern"
   cpus    = 2

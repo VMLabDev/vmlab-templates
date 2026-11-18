@@ -1,6 +1,6 @@
 # parrot
 
-Parrot OS Security edition 7.2 from the official prebuilt QEMU qcow2.
+Parrot OS Security edition 7.4 from the official prebuilt QEMU qcow2.
 
 - Credentials: `parrot` / `parrot` (image default) plus `vmlab` / `vmlab`
   (added by the provision, in sudo group). SSH enabled.
@@ -11,7 +11,7 @@ Parrot OS Security edition 7.2 from the official prebuilt QEMU qcow2.
   provision runs, and the install is baked into the sealed image so clones
   come up "ready". **Requires `virt-customize` (libguestfs) on the build
   host.**
-- Parrot distributes the image zipped — run `./fetch-deps.sh` once to
+- Parrot distributes the image compressed with xz — run `./fetch-deps.sh` once to
   download, sha256-verify, extract `disk/parrot.qcow2` and inject the agent
   bootstrap (all gitignored).
 - To bump: update `VERSION` and `SHA256` in `fetch-deps.sh` (sums in
