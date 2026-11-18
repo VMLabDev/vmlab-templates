@@ -59,6 +59,20 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(self.validate_output("unexpected failure"),
                          ([], ["unexpected failure"]))
 
+    def test_missing_vulkan_render_node_is_explained(self):
+        diagnostic = (
+            "vmlab-hv renders `vulkan` on a host GPU's render node, and this host has none — "
+            'declare `gpu "<name>" { address = ... }` in ~/.config/vmlab/config.wcl, '
+            'or use hypervisor = "qemu"'
+        )
+        for template in ('template "steamos"', 'template "windows-10" variant "win3d"'):
+            with self.subTest(template=template):
+                excused, unexplained = self.validate_output(
+                    f"  × {template}: {diagnostic}\n  × unknown field typo\n"
+                )
+                self.assertEqual(excused, [f"{template} (no host Vulkan render node; skipped)"])
+                self.assertEqual(unexplained, ["unknown field typo"])
+
     def test_success_needs_no_skip(self):
         self.assertEqual(self.validate_output("", returncode=0), ([], []))
 

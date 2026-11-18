@@ -15,6 +15,7 @@ the machine it runs on, and a merge bar has to pass from a clean checkout:
   * A lab's template must be in the local store. Nothing is built at gate time.
   * So must a layered template's `source "template"`: the build clones it.
   * Apple SMC guests need a host-supplied OSK, absent on CI hosts.
+  * Vulkan guests need a host GPU render node, absent on some CI hosts.
 
 So a diagnostic is tolerated only when it is one of those, a missing path only
 when git agrees it is ignored, and a missing layered source only when a template
@@ -55,6 +56,12 @@ MISSING_APPLE_SMC_OSK = (
     "apple_smc = true requires host.apple_smc_osk in "
     "~/.config/vmlab/config.wcl; obtain it from your own Apple hardware. "
     "See docs/manual/pages/reference/host-config.wcl (Apple SMC OSK)"
+)
+MISSING_VULKAN_RENDER_NODE = re.compile(
+    r'template "[^"]+"(?: variant "[^"]+")?: '
+    r'vmlab-hv renders `vulkan` on a host GPU\'s render node, and this host has none — '
+    r'declare `gpu "<name>" \{ address = \.\.\. \}` in ~/.config/vmlab/config\.wcl, '
+    r'or use hypervisor = "qemu"'
 )
 
 # The unified vmlab.wcl is generated with one `template "<name>" {` per
@@ -126,6 +133,9 @@ def excuse(directory, messages, refs):
     for message in messages:
         if message == MISSING_APPLE_SMC_OSK:
             return "host Apple SMC OSK (not configured on this host; skipped)"
+        if MISSING_VULKAN_RENDER_NODE.fullmatch(message):
+            template, _, _ = message.partition(": vmlab-hv renders")
+            return f"{template} (no host Vulkan render node; skipped)"
         match = MISSING_TEMPLATE.match(message)
         if match:
             return f"template {match.group(1)} (not in this store)"
