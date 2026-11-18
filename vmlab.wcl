@@ -34,7 +34,7 @@ template "almalinux-10" {
   disk     = 20GiB
 
   source "qcow2" {
-    url    = "https://repo.almalinux.org/almalinux/10/cloud/x86_64/images/AlmaLinux-10-GenericCloud-10.2-20260526.0.x86_64.qcow2"
+    url    = "https://vault.almalinux.org/10.2/cloud/x86_64/images/AlmaLinux-10-GenericCloud-10.2-20260526.0.x86_64.qcow2"
     sha256 = "47f2218668dd4776be140dd92fa3bea700be1766e2c7d88bdfd6a4b50f477b4d"
   }
 
