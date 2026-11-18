@@ -41,6 +41,9 @@ template "almalinux-10" {
   media { kind = "iso" from = "./almalinux-10/cloudinit/" label = "CIDATA" }
   nic { nat = true }
 
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "almalinux-10/scripts/firstboot.ws"
+
   provision "almalinux-10/scripts/install.ws" { }
 }
 
@@ -76,6 +79,9 @@ template "alpine-3.23" {
   media { kind = "iso" from = "./alpine-3.23-arm64/cloudinit/" label = "CIDATA" }
   nic { nat = true }
 
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "alpine-3.23-arm64/scripts/firstboot.ws"
+
   provision "alpine-3.23-arm64/scripts/install.ws" { }
 }
 
@@ -108,6 +114,9 @@ template "alpine-3.23" {
 
   media { kind = "iso" from = "./alpine-3.23/cloudinit/" label = "CIDATA" }
   nic { nat = true }
+
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "alpine-3.23/scripts/firstboot.ws"
 
   provision "alpine-3.23/scripts/install.ws" { }
 }
@@ -147,6 +156,9 @@ template "arch" {
   media { kind = "iso" from = "./arch/cloudinit/" label = "CIDATA" }
   nic { nat = true }
 
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "arch/scripts/firstboot.ws"
+
   provision "arch/scripts/install.ws" { }
 }
 
@@ -183,6 +195,9 @@ template "debian-13" {
   media { kind = "iso" from = "./debian-13-arm64/cloudinit/" label = "CIDATA" }
   nic { nat = true }
 
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "debian-13-arm64/scripts/firstboot.ws"
+
   provision "debian-13-arm64/scripts/install.ws" { }
 }
 
@@ -216,6 +231,9 @@ template "debian-13" {
 
   media { kind = "iso" from = "./debian-13/cloudinit/" label = "CIDATA" }
   nic { nat = true }
+
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "debian-13/scripts/firstboot.ws"
 
   provision "debian-13/scripts/install.ws" { }
 }
@@ -252,6 +270,9 @@ template "debian-13" {
 
   media { kind = "iso" from = "./debian-riscv64/cloudinit/" label = "CIDATA" }
   nic { nat = true }
+
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "debian-riscv64/scripts/firstboot.ws"
 
   provision "debian-riscv64/scripts/install.ws" { }
 }
@@ -313,6 +334,9 @@ template "fedora-44" {
   media { kind = "iso" from = "./fedora-44-arm64/cloudinit/" label = "CIDATA" }
   nic { nat = true }
 
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "fedora-44-arm64/scripts/firstboot.ws"
+
   provision "fedora-44-arm64/scripts/install.ws" { }
 }
 
@@ -344,6 +368,9 @@ template "fedora-44" {
 
   media { kind = "iso" from = "./fedora-44/cloudinit/" label = "CIDATA" }
   nic { nat = true }
+
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "fedora-44/scripts/firstboot.ws"
 
   provision "fedora-44/scripts/install.ws" { }
 }
@@ -379,6 +406,9 @@ template "fedora-42" {
 
   media { kind = "iso" from = "./fedora-riscv64/cloudinit/" label = "CIDATA" }
   nic { nat = true }
+
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "fedora-riscv64/scripts/firstboot.ws"
 
   provision "fedora-riscv64/scripts/install.ws" { }
 }
@@ -487,6 +517,9 @@ template "kali" {
 
   nic { nat = true }
 
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "kali/scripts/firstboot.ws"
+
   provision "kali/scripts/install.ws" { }
 }
 
@@ -566,6 +599,9 @@ template "nixos-25.11" {
   media { kind = "iso" from = "./nixos-25.11/nix/" label = "NIXSETUP" }
   nic { nat = true }
 
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "nixos-25.11/scripts/firstboot.ws"
+
   provision "nixos-25.11/scripts/install.ws" { }
 }
 
@@ -595,6 +631,9 @@ template "parrot" {
   source "qcow2" { path = "./parrot/disk/parrot.qcow2" }
 
   nic { nat = true }
+
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "parrot/scripts/firstboot.ws"
 
   provision "parrot/scripts/install.ws" { }
 }
@@ -627,6 +666,9 @@ template "rocky-9" {
 
   media { kind = "iso" from = "./rocky-9/cloudinit/" label = "CIDATA" }
   nic { nat = true }
+
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "rocky-9/scripts/firstboot.ws"
 
   provision "rocky-9/scripts/install.ws" { }
 }
@@ -747,6 +789,9 @@ template "ubuntu-24.04" {
   media { kind = "iso" from = "./ubuntu-24.04/cloudinit/" label = "CIDATA" }
   nic { nat = true }
 
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "ubuntu-24.04/scripts/firstboot.ws"
+
   provision "ubuntu-24.04/scripts/install.ws" { }
 }
 
@@ -783,6 +828,9 @@ template "ubuntu-26.04" {
 
   media { kind = "iso" from = "./ubuntu-26.04/cloudinit/" label = "CIDATA" }
   nic { nat = true }
+
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "ubuntu-26.04/scripts/firstboot.ws"
 
   provision "ubuntu-26.04/scripts/install.ws" { }
 }
@@ -822,6 +870,9 @@ template "ubuntu-24.04" {
   media { kind = "iso" from = "./ubuntu-arm64/cloudinit/" label = "CIDATA" }
   nic { nat = true }
 
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "ubuntu-arm64/scripts/firstboot.ws"
+
   provision "ubuntu-arm64/scripts/install.ws" { }
 }
 
@@ -858,6 +909,9 @@ template "ubuntu-24.04" {
   media { kind = "iso" from = "./ubuntu-riscv64/cloudinit/" label = "CIDATA" }
   nic { nat = true }
 
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "ubuntu-riscv64/scripts/firstboot.ws"
+
   provision "ubuntu-riscv64/scripts/install.ws" { }
 }
 
@@ -885,7 +939,8 @@ template "windows-10" {
   memory  = 8GiB
   disk    = 60GiB
 
-  login "vmlab" { user = "vmlab" password = "vmlab123!" }
+  // No login block: scripts/firstboot.ws gives each clone its own password
+  // (see README.md, "Login password"), so a fixed one here would be wrong.
 
   source "iso" {
     url    = "https://software-static.download.prss.microsoft.com/dbazure/988969d5-f34g-4e03-ac9d-1f9786c66750/19045.2006.220908-0225.22h2_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso"
@@ -967,7 +1022,8 @@ template "windows-11-arm64" {
   memory  = 8GiB
   disk    = 60GiB
 
-  login "vmlab" { user = "vmlab" password = "vmlab123!" }
+  // No login block: scripts/firstboot.ws gives each clone its own password
+  // (see README.md, "Login password"), so a fixed one here would be wrong.
 
   source "iso" {
     url    = "https://www.microsoft.com/en-us/evalcenter/evaluate-windows-11-enterprise"
@@ -1009,7 +1065,8 @@ template "windows-11" {
   memory  = 8GiB
   disk    = 60GiB
 
-  login "vmlab" { user = "vmlab" password = "vmlab123!" }
+  // No login block: scripts/firstboot.ws gives each clone its own password
+  // (see README.md, "Login password"), so a fixed one here would be wrong.
 
   source "iso" {
     url    = "https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/26100.1742.240906-0331.ge_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso"

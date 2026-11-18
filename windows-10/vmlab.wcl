@@ -20,7 +20,8 @@ template "windows-10" {
   memory  = 8GiB
   disk    = 60GiB
 
-  login "vmlab" { user = "vmlab" password = "vmlab123!" }
+  // No login block: scripts/firstboot.ws gives each clone its own password
+  // (see README.md, "Login password"), so a fixed one here would be wrong.
 
   source "iso" {
     url    = "https://software-static.download.prss.microsoft.com/dbazure/988969d5-f34g-4e03-ac9d-1f9786c66750/19045.2006.220908-0225.22h2_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso"

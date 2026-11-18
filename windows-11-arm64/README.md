@@ -58,3 +58,26 @@ succeed before generalize.
 
 If the build proves unworkable on your host, that's an accepted limitation of
 this experimental template — the x86 Windows templates are independent of it.
+
+## Login password
+
+Each clone gets its own password for `vmlab` and `Administrator` at its first boot
+(`scripts/firstboot.ws`), after sysprep's OOBE pass and before the clone is
+reported ready, so no lab starts with the `vmlab123!` build password from the
+answer files.
+
+- To choose a password, declare a login for the account on the machine in
+  the lab file: `login "vmlab" { user = "vmlab" password = "..." }`. The first boot sets it. It must meet the Windows
+  password policy. With the login declared, `vmlab exec`, `vmlab shell` and
+  RDP app sharing log on as that account.
+- Every account without a declared password gets one random 24-character
+  password. Read it with
+  `vmlab exec <vm> -- cmd /c type C:\ProgramData\vmlab\password.txt`
+  (only SYSTEM and Administrators can read the file).
+
+`vmlab exec`, `vmlab shell` and provisions without a declared login run
+through the guest agent as SYSTEM and need no password.
+
+The template no longer declares `login "vmlab" { user = "vmlab" password = "vmlab123!" }`.
+A lab that used the inherited login (for `--user vmlab` or RDP app sharing)
+declares its own login now.
