@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main, next]
+  pull_request:
+    branches: [main, next]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_BUILD_JOBS: 4
+  WCL_EDITOR_UI_SKIP: 1
+  VMLAB_REV: 530ea3fdaa00e4a8d30b397eb2cc82cb75f0f53a
+
+jobs:
+  check:
+    name: Catalog, examples and docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.99.0
+
+      - uses: taiki-e/install-action@just
+      - uses: astral-sh/setup-uv@v10.3.3
+
+      - name: Cache vmlab CLI
+        id: vmlab-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/vmlab
+          key: template-ci-vmlab-${{ runner.os }}-${{ runner.arch }}-rust1.99.0-${{ env.VMLAB_REV }}
+
+      - name: Install vmlab CLI
+        if: steps.vmlab-cache.outputs.cache-hit != 'true'
+        run: cargo install --git https://github.com/VMLabDev/vmlab.git --rev "$VMLAB_REV" --locked --debug --bin vmlab --target-dir "$RUNNER_TEMP/vmlab-target" vmlab
+
+      - name: Cache wcl CLI
+        id: wcl-cache
+        uses: actions/cache@v4
+        with:
+          path: .scratch/tools/wcl
+          key: template-ci-wcl-${{ runner.os }}-${{ runner.arch }}-rust1.99.0-${{ hashFiles('.wcl-rev') }}
+
+      - name: Install wcl CLI
+        if: steps.wcl-cache.outputs.cache-hit != 'true'
+        run: bash scripts/docs-wcl.sh --install
+
+      - name: Check catalog, examples and docs without building guests
+        run: |
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/template-ci/config"
+          export XDG_DATA_HOME="$RUNNER_TEMP/template-ci/data"
+          export XDG_STATE_HOME="$RUNNER_TEMP/template-ci/state"
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/template-ci/run"
+          mkdir -p "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_STATE_HOME" "$XDG_RUNTIME_DIR"
+          chmod 700 "$XDG_RUNTIME_DIR"
+          just ci::check
