@@ -23,5 +23,8 @@ template "parrot" {
 
   nic { nat = true }
 
+  // Each clone gets its own login password on first boot (README.md).
+  first_boot = "scripts/firstboot.ws"
+
   provision "scripts/install.ws" { }
 }

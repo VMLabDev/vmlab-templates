@@ -29,7 +29,8 @@ template "windows-11-arm64" {
   memory  = 8GiB
   disk    = 60GiB
 
-  login "vmlab" { user = "vmlab" password = "vmlab123!" }
+  // No login block: scripts/firstboot.ws gives each clone its own password
+  // (see README.md, "Login password"), so a fixed one here would be wrong.
 
   source "iso" {
     url    = "https://www.microsoft.com/en-us/evalcenter/evaluate-windows-11-enterprise"
