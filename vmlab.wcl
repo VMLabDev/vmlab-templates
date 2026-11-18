@@ -1414,14 +1414,14 @@ template "windows-8" {
 
 template "windows-95-osr2" {
   arch    = "x86"
-  version = "4.00.1111"
+  version = "4.00.1111-2"
   profile = "windows-9x"
   // Windows 9x crashes in Setup and Explorer on a modern host CPU's CPUID;
   // a period model keeps it on what it was written for. Clones inherit it.
   cpu_model = "pentium3"
-  // Windows 95 hangs at random under KVM on AMD hosts: its TLB-invalidation
-  // bug, which patcher9x fixes only for 98 and later. TCG emulates the TLB.
-  accel     = "tcg"
+  // Build and boot with KVM. MSBATCH.INF reserves COM1 for the guest agent
+  // by selecting the PS/2 mouse instead of probing for a serial mouse.
+  accel     = "kvm"
   cpus    = 1
   memory  = 64MiB
   disk    = 2GiB

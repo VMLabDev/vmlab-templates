@@ -89,6 +89,7 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int) -> Result[unit, string] {
     let typed_id = false
     let rounds = secs / 15
     let shutting_down = 0
+    let stack_restarts = 0
     for round in 0..rounds {
         if vm.agent_answering() {
             return Ok(())
@@ -98,7 +99,7 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int) -> Result[unit, string] {
         // three minutes on that screen the emulator is restarted; the CD then
         // boots its Setup, which the "Welcome to Setup" case below turns back
         // into a disk boot.
-        if on_screen(vm, "ref/shutting-down.png") {
+        if on_screen(vm, "ref/shutting-down.png") || on_screen(vm, "ref/shutdown-grid.png") {
             shutting_down = shutting_down + 1
             if shutting_down >= 12 {
                 lab.log("Windows hung shutting down; restarting the emulator")
@@ -111,6 +112,19 @@ fn finish_setup(lab: Lab, vm: Vm, secs: int) -> Result[unit, string] {
             shutting_down = 0
         }
         let s = screen(vm)
+        // Setup can crash during the GUI phase. Resume from disk, with a
+        // bounded retry so a persistent crash produces a useful failure.
+        if s.contains("Stack Overflow") || s.contains("Stack overflow") {
+            if stack_restarts >= 3 {
+                return Err("Setup repeatedly crashed with Standard Mode: Stack Overflow")
+            }
+            stack_restarts = stack_restarts + 1
+            lab.log("Setup stack overflow; restarting to resume Setup from disk")
+            vm.eject_cdrom()?
+            vm.restart()?
+            vmlab::sleep_ms(15000)
+            continue
+        }
         if s.contains("Invalid Product Identification") || s.contains("you specified is not valid") {
             return Err("Setup rejected WINDOWS_95_OEM_KEY; set a valid 20-digit OEM Product ID in .env")
         }
@@ -206,12 +220,10 @@ fn install(lab: Lab) -> Result[unit, string] {
     wait_text(vm, "Welcome to Setup", 1800)?
     key_until(vm, "enter", "unallocated", 15)?
     vm.send_keys("enter")?
-    vmlab::sleep_ms(4000)
-    if screen(vm).contains("large disk") {
-        vm.send_keys("down")?
-        vm.send_keys("enter")?
-    }
-    wait_text(vm, "restart your computer", 30)?
+    wait_text(vm, "large disk", 90)?
+    vm.send_keys("down")?
+    vmlab::sleep_ms(1000)
+    key_until(vm, "enter", "restart your computer", 20)?
     vm.send_keys("enter")?
 
     // Second pass formats the new partition, then quits before ScanDisk.
