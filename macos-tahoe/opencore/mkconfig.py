@@ -81,7 +81,8 @@ def main():
         EnableWriteUnprotector=True,
         EnableSafeModeSlide=False,
         FixupAppleEfiImages=False,
-        ProvideCustomSlide=False,
+        # Restrict KASLR to slides that avoid the OVMF firmware volumes.
+        ProvideCustomSlide=True,
         SetupVirtualMap=False,
         RebuildAppleMemoryMap=False,
         SyncRuntimePermissions=False,
