@@ -12,7 +12,8 @@
 // vmlab agent and OpenCore into the new disk's EFI system partition, so a
 // clone boots from its one disk. See README.md.
 //
-// The host needs kvm.ignore_msrs=1 (vmlab `up` warns; a build does not).
+// The build VM and the clones run on vmlab-hv, which answers the MSRs macOS
+// reads itself, so the host needs no kvm.ignore_msrs setting.
 // macOS's licence allows it only on Apple hardware, so there is no registry:
 // build it on the host that runs it.
 

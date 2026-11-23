@@ -98,8 +98,9 @@ into the answer-file media (and `just` runs it for you).
 ### macOS (Intel)
 
 `macos-tahoe/` builds macOS Tahoe 26, the final Intel macOS, on vmlab's
-`macos` profile. It needs a vmlab with that profile and the macOS agent, and
-a host with `kvm.ignore_msrs=1`. `fetch-deps.sh` downloads Apple's recovery
+`macos` profile. It needs a vmlab with that profile and the macOS agent. The
+build runs on vmlab-hv, and the host needs no `kvm.ignore_msrs` setting.
+`fetch-deps.sh` downloads Apple's recovery
 image (`iso/fetch-macos-tahoe.sh`) and the pinned OpenCore release. The build
 then installs Tahoe from Apple's servers (about 12 GB, about 50 minutes) and
 puts OpenCore in the disk's own EFI system partition, so a clone boots from its

@@ -21,16 +21,15 @@ The template carries the vmlab agent and nothing else.
 
 ## Requirements
 
-- vmlab with the `macos` profile and the macOS agent (`macos/` on the VMLAB
-  bootstrap ISO).
-- KVM, and `kvm.ignore_msrs=1` on the host. Without it XNU's Intel MSR reads
-  fault during boot. `vmlab up` warns about this; a template build does not.
-
-  ```sh
-  echo "options kvm ignore_msrs=1 report_ignored_msrs=0" | sudo tee /etc/modprobe.d/kvm-msrs.conf
-  echo 1 | sudo tee /sys/module/kvm/parameters/ignore_msrs   # until the next boot
-  ```
-
+- vmlab with the `macos` profile, the macOS agent (`macos/` on the VMLAB
+  bootstrap ISO), and a vmlab-hv from vmlab PR #661 or later. The build needs
+  three vmlab-hv changes: the MSRs macOS reads are answered (#603), the USB
+  keyboard works in the firmware and OpenCore (#637), and AHCI commands run
+  off the vCPU thread (#661). Without the last one macOS panics with an IPI
+  timeout during the install. vmlab selects vmlab-hv for a macOS VM by
+  itself, for the build VM and for clones.
+- KVM. The host needs no `kvm.ignore_msrs` setting: vmlab-hv answers XNU's
+  Intel MSR reads in user space, for macOS guests only.
 - About 13 GB of downloads, about 1 GB of it cached in `../iso/`, and about 40
   GB free for the build disk.
 
