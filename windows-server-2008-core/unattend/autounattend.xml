@@ -121,14 +121,11 @@
           <CommandLine>cmd /c net accounts /maxpwage:unlimited</CommandLine>
           <Description>no password expiry in lab images</Description>
         </SynchronousCommand>
-        <!-- The vmlab bootstrap ISO installs the guest agent, and it must run
-             BEFORE sysprep: the build's verification boot waits for that
-             agent's handshake, and a template sealed without it fails. The
-             agent service survives generalize, so every clone gets one. -->
+        <!-- Install the legacy COM1 service before Sysprep powers off. -->
         <SynchronousCommand wcm:action="add"
             xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
           <Order>2</Order>
-          <CommandLine>cmd /c for %d in (D E F G H) do if exist %d:\install.cmd call %d:\install.cmd</CommandLine>
+          <CommandLine>cmd /c for %d in (D E F G H) do if exist %d:\install-nt.cmd call %d:\install-nt.cmd</CommandLine>
           <Description>vmlab guest agent (from the VMLAB bootstrap ISO)</Description>
         </SynchronousCommand>
         <SynchronousCommand wcm:action="add"

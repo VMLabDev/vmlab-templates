@@ -125,61 +125,13 @@
         </Password>
       </AutoLogon>
 
-      <!-- Stage the sysprep answer file off the UNATTEND CD (drive letter
-           shifts post-install, so probe a few), then generalize + power off. -->
+      <!-- Keep agent registration and Sysprep in one first-logon command. -->
       <FirstLogonCommands>
         <SynchronousCommand wcm:action="add"
             xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
           <Order>1</Order>
-          <CommandLine>cmd /c net accounts /maxpwage:unlimited</CommandLine>
-          <Description>no password expiry in lab images</Description>
-        </SynchronousCommand>
-        <!-- virtio-serial, the agent's channel. Installed here rather than
-             injected in WinPE: Setup treats an injected driver as
-             boot-critical and validates its signature against a SHA-1-era
-             trust store, which rejects every current virtio-win driver
-             ("Windows Setup could not install one or more boot-critical
-             drivers"). Nothing here boots off virtio — the disk is IDE and
-             the NIC e1000 — so the running OS installs it instead, and must
-             do so before the agent below, which has no channel without it. -->
-        <!-- Trust the driver's publisher first, which is the unattended
-             equivalent of ticking "Always trust software from Red Hat, Inc."
-             in the prompt pnputil would otherwise raise and no one is here to
-             answer. The certificate comes out of the driver's own catalog, so
-             nothing is trusted that the driver did not already carry. -->
-        <SynchronousCommand wcm:action="add"
-            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
-          <Order>2</Order>
-          <CommandLine>cmd /c for %d in (D E F G H) do if exist %d:\trust-driver.ps1 powershell -NoProfile -ExecutionPolicy Bypass -File %d:\trust-driver.ps1</CommandLine>
-          <Description>trust the virtio driver's publisher</Description>
-        </SynchronousCommand>
-        <SynchronousCommand wcm:action="add"
-            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
-          <Order>3</Order>
-          <CommandLine>cmd /c for %d in (D E F G H) do if exist %d:\drivers\vioserial\vioser.inf pnputil -i -a %d:\drivers\vioserial\vioser.inf</CommandLine>
-          <Description>virtio-serial driver (the agent's channel)</Description>
-        </SynchronousCommand>
-        <!-- The vmlab bootstrap ISO installs the guest agent, and it must run
-             BEFORE sysprep: the build's verification boot waits for that
-             agent's handshake, and a template sealed without it fails.
-             install.cmd picks the build from PROCESSOR_ARCHITECTURE. -->
-        <SynchronousCommand wcm:action="add"
-            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
-          <Order>4</Order>
-          <CommandLine>cmd /c for %d in (D E F G H) do if exist %d:\install.cmd call %d:\install.cmd</CommandLine>
-          <Description>vmlab guest agent (from the VMLAB bootstrap ISO)</Description>
-        </SynchronousCommand>
-        <SynchronousCommand wcm:action="add"
-            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
-          <Order>5</Order>
-          <CommandLine>cmd /c for %d in (A B D E F G) do if exist %d:\sysprep-unattend.xml copy /y %d:\sysprep-unattend.xml C:\Windows\Temp\sysprep-unattend.xml</CommandLine>
-          <Description>stage the sysprep answer file</Description>
-        </SynchronousCommand>
-        <SynchronousCommand wcm:action="add"
-            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
-          <Order>6</Order>
-          <CommandLine>cmd /c %WINDIR%\System32\Sysprep\sysprep.exe /generalize /oobe /shutdown /quiet /unattend:C:\Windows\Temp\sysprep-unattend.xml</CommandLine>
-          <Description>generalize and power off (build seals on shutdown)</Description>
+          <CommandLine>cmd /c for %d in (D E F G H) do if exist %d:\seal.cmd call %d:\seal.cmd</CommandLine>
+          <Description>Install the legacy agent and generalize Windows</Description>
         </SynchronousCommand>
       </FirstLogonCommands>
     </component>
