@@ -20,8 +20,6 @@ VRC=0
 NoPrompt2Boot=1
 SaveSUBoot=0
 PenWinWarning=0
-
-[System]
 ; Keep serial mouse detection from consuming the host hello and owning COM1.
 Mouse="Standard PS/2 Port Mouse"
 
