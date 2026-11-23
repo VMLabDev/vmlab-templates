@@ -66,6 +66,9 @@ class OneDriveProvisionTests(unittest.TestCase):
                 self.assertIn("if exist %d:\\disable-onedrive.ps1", command)
                 self.assertIn("-File %d:\\disable-onedrive.ps1 &&", command)
                 self.assertIn("sysprep.exe /generalize", command)
+                # Windows skips a longer first-logon command without a word,
+                # and the build then waits for a shutdown that never comes.
+                self.assertLess(len(command), 260)
                 script = (ROOT / name / "unattend/disable-onedrive.ps1").read_text()
                 self.assertIn("'DisableFileSync', 'DisableFileSyncNGSC'", script)
                 self.assertIn("Windows\\SkyDrive", script)

@@ -62,5 +62,25 @@ rm -rf unattend/drivers
 mkdir -p unattend/drivers/vioserial
 # The .pdb is 1.4MB of debug symbols Setup never reads.
 find "$SRC" -maxdepth 1 -type f ! -name '*.pdb' -exec cp {} unattend/drivers/vioserial/ \;
+
+# The publisher certificate, for unattend/trust-driver.cmd. Server Core on
+# 2008 R2 has no PowerShell to read it out of the catalog in the guest, so it
+# is taken out here: the one certificate in the catalog that signs code and
+# is not a CA.
+certs=$(mktemp -d -p "$tmp")
+openssl pkcs7 -inform DER -in unattend/drivers/vioserial/vioser.cat -print_certs \
+    | awk -v dir="$certs" '/-----BEGIN CERTIFICATE-----/ { n++ } n { print > (dir "/" n ".pem") }'
+signer=()
+for pem in "$certs"/*.pem; do
+    text=$(openssl x509 -in "$pem" -noout -ext extendedKeyUsage,basicConstraints 2>/dev/null || true)
+    if grep -q 'Code Signing' <<< "$text" && ! grep -q 'CA:TRUE' <<< "$text"; then
+        signer+=("$pem")
+    fi
+done
+[[ ${#signer[@]} -eq 1 ]] \
+    || { echo "expected one code-signing certificate in vioser.cat, found ${#signer[@]}" >&2; exit 1; }
+openssl x509 -in "${signer[0]}" -outform DER -out unattend/drivers/vioserial/vioser.cer
+echo "publisher: $(openssl x509 -in "${signer[0]}" -noout -subject)"
+
 echo "drivers: vioserial/2k8R2/amd64 -> unattend/drivers/vioserial"
 ls -la unattend/drivers/vioserial

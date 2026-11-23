@@ -133,11 +133,12 @@
              equivalent of ticking "Always trust software from Red Hat, Inc."
              in the prompt pnputil would otherwise raise and no one is here to
              answer. The certificate comes out of the driver's own catalog, so
-             nothing is trusted that the driver did not already carry. -->
+             nothing is trusted that the driver did not already carry. A
+             batch file, not PowerShell: Server Core on 2008 R2 has none. -->
         <SynchronousCommand wcm:action="add"
             xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
           <Order>2</Order>
-          <CommandLine>cmd /c for %d in (D E F G H) do if exist %d:\trust-driver.ps1 powershell -NoProfile -ExecutionPolicy Bypass -File %d:\trust-driver.ps1</CommandLine>
+          <CommandLine>cmd /c for %d in (D E F G H) do if exist %d:\trust-driver.cmd call %d:\trust-driver.cmd</CommandLine>
           <Description>trust the virtio driver's publisher</Description>
         </SynchronousCommand>
         <SynchronousCommand wcm:action="add"
