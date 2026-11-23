@@ -175,10 +175,14 @@
           <CommandLine>cmd /c for %d in (A B D E F G) do if exist %d:\sysprep-unattend.xml copy /y %d:\sysprep-unattend.xml C:\Windows\Temp\sysprep-unattend.xml</CommandLine>
           <Description>stage the sysprep answer file</Description>
         </SynchronousCommand>
+        <!-- Keep this command under 260 characters. Windows did not run
+             the 267-character form at first logon: no OneDrive policy, no
+             sysprep, and the build waited at the Start screen (2026-11-23).
+             Hence the short -NoP and -Exec. -->
         <SynchronousCommand wcm:action="add"
             xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
           <Order>6</Order>
-          <CommandLine>cmd /c for %d in (D E F G H) do if exist %d:\disable-onedrive.ps1 (powershell -NoProfile -ExecutionPolicy Bypass -File %d:\disable-onedrive.ps1 &amp;&amp; %WINDIR%\System32\Sysprep\sysprep.exe /generalize /oobe /shutdown /quiet /unattend:C:\Windows\Temp\sysprep-unattend.xml)</CommandLine>
+          <CommandLine>cmd /c for %d in (D E F G H) do if exist %d:\disable-onedrive.ps1 (powershell -NoP -Exec Bypass -File %d:\disable-onedrive.ps1 &amp;&amp; %WINDIR%\System32\Sysprep\sysprep.exe /generalize /oobe /shutdown /quiet /unattend:C:\Windows\Temp\sysprep-unattend.xml)</CommandLine>
           <Description>disable built-in OneDrive, then generalize and power off</Description>
         </SynchronousCommand>
       </FirstLogonCommands>
