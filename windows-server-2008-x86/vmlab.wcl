@@ -1,39 +1,20 @@
-// Windows 7 Enterprise template (PRD §6.1). Legacy guest: SeaBIOS + IDE + e1000
-// (the windows-legacy profile), installed from a local MSDN/VL ISO in ../iso/.
-// Win7 Enterprise installs keyless (no product key needed), so no .env entry.
-//
-// These old releases have no qemu guest agent, so the install is agent-free:
-// autounattend.xml installs Windows and, on first logon, runs
-// `sysprep /generalize /oobe /shutdown` itself; the build waits for the VM to
-// power off and seals the generalized disk. Clones therefore boot generalized
-// but without the vmlab guest agent (no `ready`/`exec`).
+// Windows Server 2008, installed from local media. The windows-xp profile
+// provides IDE, e1000 and COM1 for the legacy Windows agent. The unattended
+// install registers the agent before Sysprep shuts the guest down.
 
 import <vmlab.wcl>
 
 template "windows-server-2008" {
   arch    = "x86"
   version = "6001.0"
-  profile = "windows-legacy"
+  profile = "windows-xp"
   cpus    = 2
   memory  = 3GiB
   disk    = 40GiB
 
-  // No agent: the channel would be virtio-serial, and Vista-era Setup
-  // refuses to install the driver for it — "Windows Setup could not
-  // install one or more boot-critical drivers", because WinPE from this
-  // era validates SHA-1 signatures only and every current virtio-win
-  // driver is signed SHA-256. Injecting it later is no better: 32-bit
-  // Vista prompts (which an unattended install cannot answer) and 64-bit
-  // enforces outright. So these install screen-driven and agent-free,
-  // as they did before — `ready`, `exec` and `cp` are unavailable.
-  agent   = false
-
   source "iso" { path = "../iso/en_windows_server_2008_x86_dvd_x14-26710.iso" }
 
-  // An ISO, not a floppy: the answer file now travels with the vioserial
-  // driver, and 1.5MB of driver does not fit on 1.44MB of floppy. The
-  // guest has four IDE slots — disk, install DVD, this, and the agent
-  // bootstrap ISO — which is exactly four.
+  // The installer DVD, answer ISO and agent ISO fill the three free IDE slots.
   media { kind = "iso" from = "./unattend/" label = "UNATTEND" }
   nic { nat = true }
 
